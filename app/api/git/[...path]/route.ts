@@ -36,10 +36,7 @@ async function verifyPassword(password: string, hash: string): Promise<boolean> 
 }
 
 async function authenticateUser(authHeader: string | null): Promise<{ id: string; username: string } | null> {
-  console.log("[Git Auth] Starting authentication");
-  
   if (!authHeader || !authHeader.startsWith("Basic ")) {
-    console.log("[Git Auth] No auth header or not Basic auth");
     return null;
   }
 
@@ -47,10 +44,7 @@ async function authenticateUser(authHeader: string | null): Promise<{ id: string
   const credentials = Buffer.from(base64Credentials, "base64").toString("utf-8");
   const [email, password] = credentials.split(":");
 
-  console.log("[Git Auth] Email:", email);
-
   if (!email || !password) {
-    console.log("[Git Auth] Missing email or password");
     return null;
   }
 
@@ -58,8 +52,6 @@ async function authenticateUser(authHeader: string | null): Promise<{ id: string
     const user = await db.query.users.findFirst({
       where: eq(users.email, email),
     });
-
-    console.log("[Git Auth] User found:", !!user);
 
     if (!user) {
       return null;
@@ -69,24 +61,17 @@ async function authenticateUser(authHeader: string | null): Promise<{ id: string
       where: eq(accounts.userId, user.id),
     });
 
-    console.log("[Git Auth] Account found:", !!account, "providerId:", account?.providerId, "hasPassword:", !!account?.password);
-
     if (!account?.password) {
       return null;
     }
 
-    console.log("[Git Auth] Password hash format:", account.password.substring(0, 20) + "...");
-
     const valid = await verifyPassword(password, account.password);
-    console.log("[Git Auth] Password valid:", valid);
-    
     if (!valid) {
       return null;
     }
 
     return { id: user.id, username: user.username };
-  } catch (err) {
-    console.error("[Git Auth] Error:", err);
+  } catch {
     return null;
   }
 }
