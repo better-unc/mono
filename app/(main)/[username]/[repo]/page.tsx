@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { getRepoPageData, getRepoReadme, getRepoCommitCountCached } from "@/actions/repositories";
 import { FileTree } from "@/components/file-tree";
 import { CodeViewer } from "@/components/code-viewer";
@@ -13,6 +14,7 @@ import Link from "next/link";
 import { getPublicServerUrl } from "@/lib/utils";
 
 async function CommitCount({ username, repoName, branch }: { username: string; repoName: string; branch: string }) {
+  await connection();
   const commitCount = await getRepoCommitCountCached(username, repoName);
 
   if (commitCount === 0) return null;
@@ -30,6 +32,7 @@ async function CommitCount({ username, repoName, branch }: { username: string; r
 }
 
 async function ReadmeSection({ username, repoName, readmeOid }: { username: string; repoName: string; readmeOid: string }) {
+  await connection();
   const content = await getRepoReadme(username, repoName, readmeOid);
 
   if (!content) return null;

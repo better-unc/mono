@@ -1,7 +1,9 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import Link from "next/link";
 import { getRepository, getRepoFile, getRepoBranches } from "@/actions/repositories";
+import { ChunkedCodeViewer } from "@/components/chunked-code-viewer";
 import { CodeViewer } from "@/components/code-viewer";
 import { BranchSelector } from "@/components/branch-selector";
 import { Badge } from "@/components/ui/badge";
@@ -28,12 +30,15 @@ const LANGUAGE_MAP: Record<string, string> = {
   zsh: "bash",
 };
 
+const SMALL_FILE_THRESHOLD = 50 * 1024;
+
 function getLanguage(filename: string): string {
   const ext = filename.split(".").pop()?.toLowerCase() || "";
   return LANGUAGE_MAP[ext] || "text";
 }
 
 async function FileContent({ username, repoName, branch, filePath }: { username: string; repoName: string; branch: string; filePath: string }) {
+  await connection();
   const file = await getRepoFile(username, repoName, branch, filePath);
 
   if (!file) {
@@ -42,6 +47,21 @@ async function FileContent({ username, repoName, branch, filePath }: { username:
 
   const fileName = filePath.split("/").pop() || "";
   const language = getLanguage(fileName);
+  const fileSize = new TextEncoder().encode(file.content).length;
+
+  if (fileSize > SMALL_FILE_THRESHOLD) {
+    return (
+      <ChunkedCodeViewer
+        username={username}
+        repoName={repoName}
+        branch={branch}
+        filePath={filePath}
+        language={language}
+        initialContent={file.content}
+        totalSize={fileSize}
+      />
+    );
+  }
 
   return <CodeViewer content={file.content} language={language} showLineNumbers />;
 }

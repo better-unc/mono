@@ -4,7 +4,8 @@ import { db } from "@/db";
 import { repositories, users, stars } from "@/db/schema";
 import { getSession } from "@/lib/session";
 import { eq, and, desc, count, sql } from "drizzle-orm";
-import { revalidatePath, unstable_cache } from "next/cache";
+import { revalidatePath } from "next/cache";
+import { cacheLife, cacheTag } from "next/cache";
 import git from "isomorphic-git";
 import { createR2Fs, getRepoPrefix } from "@/lib/r2-fs";
 
@@ -244,6 +245,10 @@ export async function getRepoFileTree(owner: string, repoName: string, branch: s
 }
 
 export async function getRepoFile(owner: string, repoName: string, branch: string, filePath: string) {
+  "use cache";
+  cacheTag(`repo:${owner}/${repoName}`, `file:${owner}/${repoName}:${branch}:${filePath}`);
+  cacheLife("hours");
+
   const user = await db.query.users.findFirst({
     where: eq(users.username, owner),
   });
@@ -422,6 +427,10 @@ export async function updateRepository(repoId: string, data: { name?: string; de
 }
 
 export async function getRepoBranches(owner: string, repoName: string) {
+  "use cache";
+  cacheTag(`repo:${owner}/${repoName}`, `branches:${owner}/${repoName}`);
+  cacheLife("hours");
+
   const user = await db.query.users.findFirst({
     where: eq(users.username, owner),
   });
@@ -506,6 +515,10 @@ export async function getRepoCommitCount(owner: string, repoName: string, branch
 }
 
 export async function getPublicRepositories(sortBy: "stars" | "updated" | "created" = "updated", limit: number = 20, offset: number = 0) {
+  "use cache";
+  cacheTag("public-repos", `public-repos:${sortBy}:${offset}`);
+  cacheLife("minutes");
+
   const allRepos = await db
     .select({
       id: repositories.id,
@@ -550,6 +563,16 @@ export async function getPublicRepositories(sortBy: "stars" | "updated" | "creat
     })),
     hasMore,
   };
+}
+
+export async function getUserProfile(username: string) {
+  "use cache";
+  cacheTag(`user-profile:${username}`);
+  cacheLife("hours");
+
+  return db.query.users.findFirst({
+    where: eq(users.username, username),
+  });
 }
 
 export type FileEntry = {
@@ -649,23 +672,26 @@ async function fetchCommitCount(userId: string, repoName: string, defaultBranch:
   }
 }
 
-const getCachedFileTree = (owner: string, repoName: string, userId: string, defaultBranch: string) =>
-  unstable_cache(() => fetchFileTree(userId, repoName, defaultBranch), [`file-tree`, owner, repoName], {
-    tags: [`repo:${owner}/${repoName}`],
-    revalidate: 3600,
-  })();
+async function getCachedFileTree(owner: string, repoName: string, userId: string, defaultBranch: string) {
+  "use cache";
+  cacheTag(`repo:${owner}/${repoName}`, `file-tree:${owner}/${repoName}`);
+  cacheLife("hours");
+  return fetchFileTree(userId, repoName, defaultBranch);
+}
 
-const getCachedReadme = (owner: string, repoName: string, userId: string, readmeOid: string) =>
-  unstable_cache(() => fetchReadme(userId, repoName, readmeOid), [`readme`, owner, repoName, readmeOid], {
-    tags: [`repo:${owner}/${repoName}`],
-    revalidate: 3600,
-  })();
+async function getCachedReadme(owner: string, repoName: string, userId: string, readmeOid: string) {
+  "use cache";
+  cacheTag(`repo:${owner}/${repoName}`, `readme:${owner}/${repoName}`);
+  cacheLife("hours");
+  return fetchReadme(userId, repoName, readmeOid);
+}
 
-const getCachedCommitCount = (owner: string, repoName: string, userId: string, defaultBranch: string) =>
-  unstable_cache(() => fetchCommitCount(userId, repoName, defaultBranch), [`commit-count`, owner, repoName], {
-    tags: [`repo:${owner}/${repoName}`],
-    revalidate: 3600,
-  })();
+async function getCachedCommitCount(owner: string, repoName: string, userId: string, defaultBranch: string) {
+  "use cache";
+  cacheTag(`repo:${owner}/${repoName}`, `commit-count:${owner}/${repoName}`);
+  cacheLife("hours");
+  return fetchCommitCount(userId, repoName, defaultBranch);
+}
 
 export async function getRepoPageData(owner: string, repoName: string) {
   const [user, session] = await Promise.all([db.query.users.findFirst({ where: eq(users.username, owner) }), getSession()]);
@@ -723,6 +749,10 @@ export async function getRepoCommitCountCached(owner: string, repoName: string) 
 }
 
 export async function getUserStarredRepos(username: string) {
+  "use cache";
+  cacheTag(`user-starred:${username}`);
+  cacheLife("minutes");
+
   const user = await db.query.users.findFirst({
     where: eq(users.username, username),
   });

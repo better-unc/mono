@@ -1,9 +1,7 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { db } from "@/db";
-import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { getUserRepositoriesWithStars, getUserStarredRepos } from "@/actions/repositories";
+import { connection } from "next/server";
+import { getUserRepositoriesWithStars, getUserStarredRepos, getUserProfile } from "@/actions/repositories";
 import { RepoList } from "@/components/repo-list";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,6 +11,7 @@ import Link from "next/link";
 import { GithubIcon, XIcon, LinkedInIcon } from "@/components/icons";
 
 async function RepositoriesTab({ username }: { username: string }) {
+  await connection();
   const repos = await getUserRepositoriesWithStars(username);
 
   if (repos.length === 0) {
@@ -29,6 +28,7 @@ async function RepositoriesTab({ username }: { username: string }) {
 }
 
 async function StarredTab({ username }: { username: string }) {
+  await connection();
   const repos = await getUserStarredRepos(username);
 
   if (repos.length === 0) {
@@ -65,9 +65,7 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
   const { username } = await params;
   const { tab } = await searchParams;
 
-  const user = await db.query.users.findFirst({
-    where: eq(users.username, username),
-  });
+  const user = await getUserProfile(username);
 
   if (!user) {
     notFound();
