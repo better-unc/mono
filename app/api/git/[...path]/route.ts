@@ -101,13 +101,56 @@ async function getRefsAdvertisement(fs: R2Fs, gitdir: string, service: string): 
   return Buffer.concat(packets);
 }
 
+async function collectReachableObjects(fs: R2Fs, gitdir: string, oids: string[]): Promise<string[]> {
+  const visited = new Set<string>();
+  const toVisit = [...oids];
+
+  while (toVisit.length > 0) {
+    const oid = toVisit.pop()!;
+    if (visited.has(oid)) continue;
+    visited.add(oid);
+
+    try {
+      const { object, type } = await git.readObject({ fs, gitdir, oid });
+
+      if (type === "commit") {
+        const commit = object as { tree: string; parent: string[] };
+        if (commit.tree && !visited.has(commit.tree)) {
+          toVisit.push(commit.tree);
+        }
+        if (commit.parent) {
+          for (const parent of commit.parent) {
+            if (!visited.has(parent)) {
+              toVisit.push(parent);
+            }
+          }
+        }
+      } else if (type === "tree") {
+        const tree = object as Array<{ oid: string }>;
+        for (const entry of tree) {
+          if (!visited.has(entry.oid)) {
+            toVisit.push(entry.oid);
+          }
+        }
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return Array.from(visited);
+}
+
 async function handleUploadPack(fs: R2Fs, gitdir: string, body: Buffer): Promise<Buffer> {
   const lines = parsePktLines(body);
   const wants: string[] = [];
+  const haves: string[] = [];
 
   for (const line of lines) {
     if (line.startsWith("want ")) {
       wants.push(line.slice(5, 45));
+    } else if (line.startsWith("have ")) {
+      haves.push(line.slice(5, 45));
     }
   }
 
@@ -116,10 +159,19 @@ async function handleUploadPack(fs: R2Fs, gitdir: string, body: Buffer): Promise
   }
 
   try {
+    const allOids = await collectReachableObjects(fs, gitdir, wants);
+
+    const haveSet = new Set(haves);
+    const neededOids = allOids.filter((oid) => !haveSet.has(oid));
+
+    if (neededOids.length === 0) {
+      return Buffer.from("0008NAK\n0000");
+    }
+
     const packfile = await git.packObjects({
       fs,
       gitdir,
-      oids: wants,
+      oids: neededOids,
     });
 
     const nakLine = "0008NAK\n";
