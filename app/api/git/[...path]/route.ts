@@ -4,36 +4,35 @@ import { users, repositories, accounts } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import git from "isomorphic-git";
 import { createR2Fs, getRepoPrefix } from "@/lib/r2-fs";
-import { scrypt, timingSafeEqual } from "crypto";
+import { scryptAsync } from "@noble/hashes/scrypt.js";
+import { hexToBytes } from "@noble/hashes/utils.js";
+
+function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a[i] ^ b[i];
+  }
+  return result === 0;
+}
 
 async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    try {
-      const [, params, salt, key] = hash.split("$");
-      if (!params || !salt || !key) {
-        resolve(false);
-        return;
-      }
+  try {
+    const [salt, key] = hash.split(":");
+    if (!salt || !key) return false;
 
-      const paramsObj: Record<string, number> = {};
-      params.split(",").forEach((p) => {
-        const [k, v] = p.split("=");
-        paramsObj[k] = parseInt(v, 10);
-      });
+    const derivedKey = await scryptAsync(password.normalize("NFKC"), salt, {
+      N: 16384,
+      r: 16,
+      p: 1,
+      dkLen: 64,
+    });
 
-      const keyBuffer = Buffer.from(key, "base64");
-
-      scrypt(password, salt, keyBuffer.length, { N: paramsObj.n || 16384, r: paramsObj.r || 8, p: paramsObj.p || 1 }, (err, derivedKey) => {
-        if (err) {
-          resolve(false);
-          return;
-        }
-        resolve(timingSafeEqual(keyBuffer, derivedKey));
-      });
-    } catch {
-      resolve(false);
-    }
-  });
+    return constantTimeEqual(derivedKey, hexToBytes(key));
+  } catch (err) {
+    console.error("[Git Auth] Password verify error:", err);
+    return false;
+  }
 }
 
 async function authenticateUser(authHeader: string | null): Promise<{ id: string; username: string } | null> {
