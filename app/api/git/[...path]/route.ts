@@ -232,22 +232,21 @@ async function handleReceivePack(fs: any, gitdir: string, body: Buffer): Promise
   console.log("[ReceivePack] Updates:", updates);
 
   try {
-    const packPath = "/objects/pack/pack-temp.pack";
-    const packDir = "/objects/pack";
-    const objectsDir = "/objects";
-
     console.log("[ReceivePack] Creating directories...");
-    await fs.promises.mkdir(objectsDir, { recursive: true }).catch((e: Error) => console.log("mkdir objects error:", e.message));
-    await fs.promises.mkdir(packDir, { recursive: true }).catch((e: Error) => console.log("mkdir pack error:", e.message));
+    await fs.promises.mkdir("/objects", { recursive: true }).catch(() => {});
+    await fs.promises.mkdir("/objects/pack", { recursive: true }).catch(() => {});
 
-    console.log("[ReceivePack] Writing pack file to:", packPath);
+    const packHash = require("crypto").createHash("sha1").update(packData).digest("hex");
+    const packFileName = `pack-${packHash}`;
+    const packPath = `/objects/pack/${packFileName}.pack`;
+    const idxPath = `/objects/pack/${packFileName}.idx`;
+
+    console.log("[ReceivePack] Writing pack file:", packPath);
     await fs.promises.writeFile(packPath, packData);
 
     console.log("[ReceivePack] Calling indexPack...");
-    const result = await git.indexPack({ fs, dir: "/", gitdir: "/", filepath: "objects/pack/pack-temp.pack" });
-    console.log("[ReceivePack] indexPack result:", result);
-
-    await fs.promises.unlink(packPath).catch(() => {});
+    const result = await git.indexPack({ fs, dir: "/", gitdir: "/", filepath: `objects/pack/${packFileName}.pack` });
+    console.log("[ReceivePack] indexPack result, oids:", result.oids?.length);
 
     console.log("[ReceivePack] Writing refs...");
     for (const update of updates) {
@@ -276,7 +275,7 @@ async function handleReceivePack(fs: any, gitdir: string, body: Buffer): Promise
     }
     responseStr += "0000";
 
-    console.log("[ReceivePack] Success, response:", response);
+    console.log("[ReceivePack] Success!");
     return Buffer.from(responseStr);
   } catch (err) {
     console.error("[ReceivePack] Error:", err);

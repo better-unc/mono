@@ -52,6 +52,7 @@ export function createR2Fs(repoPrefix: string) {
 
   const writeFile = async (filepath: string, data: Buffer | string): Promise<void> => {
     const key = getKey(filepath);
+    console.log("[R2FS] writeFile:", key, "size:", typeof data === "string" ? data.length : data.length);
     await r2Put(key, typeof data === "string" ? Buffer.from(data) : data);
   };
 

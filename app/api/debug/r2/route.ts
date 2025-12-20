@@ -23,21 +23,21 @@ export async function GET(request: NextRequest) {
   }
 
   const repoPrefix = getRepoPrefix(user.id, `${repo}.git`);
-  const allKeys = await r2List(repoPrefix + "/");
+
+  const allKeys = await r2List("");
+  const repoKeys = allKeys.filter((k) => k.startsWith(repoPrefix));
 
   const head = await r2Get(`${repoPrefix}/HEAD`);
   const config = await r2Get(`${repoPrefix}/config`);
 
   const refsHeadsMain = await r2Get(`${repoPrefix}/refs/heads/main`);
-  const refsMaster = await r2Get(`${repoPrefix}/refs/heads/master`);
 
   return NextResponse.json({
     repoPrefix,
-    totalKeys: allKeys.length,
-    keys: allKeys.slice(0, 100),
+    totalKeysInBucket: allKeys.length,
+    repoKeys: repoKeys,
     head: head?.toString(),
     config: config?.toString(),
     "refs/heads/main": refsHeadsMain?.toString(),
-    "refs/heads/master": refsMaster?.toString(),
   });
 }
