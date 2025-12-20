@@ -1,10 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { users, repositories } from "@/db/schema";
+import { users, repositories, accounts } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { auth } from "@/lib/auth";
 import git from "isomorphic-git";
 import { createR2Fs, getRepoPrefix } from "@/lib/r2-fs";
+import { scrypt, timingSafeEqual } from "crypto";
+
+async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    try {
+      const [, params, salt, key] = hash.split("$");
+      if (!params || !salt || !key) {
+        resolve(false);
+        return;
+      }
+
+      const paramsObj: Record<string, number> = {};
+      params.split(",").forEach((p) => {
+        const [k, v] = p.split("=");
+        paramsObj[k] = parseInt(v, 10);
+      });
+
+      const keyBuffer = Buffer.from(key, "base64");
+
+      scrypt(password, salt, keyBuffer.length, { N: paramsObj.n || 16384, r: paramsObj.r || 8, p: paramsObj.p || 1 }, (err, derivedKey) => {
+        if (err) {
+          resolve(false);
+          return;
+        }
+        resolve(timingSafeEqual(keyBuffer, derivedKey));
+      });
+    } catch {
+      resolve(false);
+    }
+  });
+}
 
 async function authenticateUser(authHeader: string | null): Promise<{ id: string; username: string } | null> {
   if (!authHeader || !authHeader.startsWith("Basic ")) {
@@ -20,14 +50,6 @@ async function authenticateUser(authHeader: string | null): Promise<{ id: string
   }
 
   try {
-    const result = await auth.api.signInEmail({
-      body: { email, password },
-    });
-
-    if (!result?.user) {
-      return null;
-    }
-
     const user = await db.query.users.findFirst({
       where: eq(users.email, email),
     });
@@ -36,8 +58,22 @@ async function authenticateUser(authHeader: string | null): Promise<{ id: string
       return null;
     }
 
+    const account = await db.query.accounts.findFirst({
+      where: and(eq(accounts.userId, user.id), eq(accounts.providerId, "credential")),
+    });
+
+    if (!account?.password) {
+      return null;
+    }
+
+    const valid = await verifyPassword(password, account.password);
+    if (!valid) {
+      return null;
+    }
+
     return { id: user.id, username: user.username };
-  } catch {
+  } catch (err) {
+    console.error("Auth error:", err);
     return null;
   }
 }
