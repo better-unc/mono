@@ -801,3 +801,42 @@ export async function getUserStarredRepos(username: string) {
     },
   }));
 }
+
+export async function getPublicUsers(sortBy: "newest" | "oldest" = "newest", limit: number = 20, offset: number = 0) {
+  "use cache";
+  cacheTag("public-users", `public-users:${sortBy}:${offset}`);
+  cacheLife("minutes");
+
+  const allUsers = await db
+    .select({
+      id: users.id,
+      name: users.name,
+      username: users.username,
+      image: users.image,
+      avatarUrl: users.avatarUrl,
+      bio: users.bio,
+      createdAt: users.createdAt,
+      repoCount: sql<number>`(SELECT COUNT(*) FROM repositories WHERE repositories.owner_id = ${users.id} AND repositories.visibility = 'public')`.as("repo_count"),
+    })
+    .from(users)
+    .orderBy(sortBy === "newest" ? desc(users.createdAt) : users.createdAt)
+    .limit(limit + 1)
+    .offset(offset);
+
+  const hasMore = allUsers.length > limit;
+  const result = allUsers.slice(0, limit);
+
+  return {
+    users: result.map((u) => ({
+      id: u.id,
+      name: u.name,
+      username: u.username,
+      image: u.image,
+      avatarUrl: u.avatarUrl,
+      bio: u.bio,
+      createdAt: u.createdAt,
+      repoCount: Number(u.repoCount),
+    })),
+    hasMore,
+  };
+}
