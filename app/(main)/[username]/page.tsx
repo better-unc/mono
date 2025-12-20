@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { db } from "@/db";
 import { users } from "@/db/schema";
@@ -5,10 +6,43 @@ import { eq } from "drizzle-orm";
 import { getUserRepositoriesWithStars } from "@/actions/repositories";
 import { RepoList } from "@/components/repo-list";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CalendarDays, GitBranch, MapPin, Link as LinkIcon } from "lucide-react";
+import { CalendarDays, GitBranch, MapPin, Link as LinkIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
 import { GithubIcon, XIcon, LinkedInIcon } from "@/components/icons";
+
+async function RepoSection({ username }: { username: string }) {
+  const repos = await getUserRepositoriesWithStars(username);
+
+  if (repos.length === 0) {
+    return (
+      <div className="border border-dashed border-border rounded-lg p-12 text-center">
+        <GitBranch className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+        <h3 className="text-lg font-medium mb-2">No repositories yet</h3>
+        <p className="text-muted-foreground">This user hasn&apos;t created any public repositories.</p>
+      </div>
+    );
+  }
+
+  return <RepoList repos={repos} username={username} />;
+}
+
+function RepoSkeleton() {
+  return (
+    <div className="space-y-4">
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className="border border-border rounded-lg p-4 animate-pulse">
+          <div className="h-5 bg-muted rounded w-1/3 mb-2" />
+          <div className="h-4 bg-muted rounded w-2/3 mb-3" />
+          <div className="flex gap-4">
+            <div className="h-4 bg-muted rounded w-16" />
+            <div className="h-4 bg-muted rounded w-20" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default async function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
@@ -20,8 +54,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   if (!user) {
     notFound();
   }
-
-  const repos = await getUserRepositoriesWithStars(username);
 
   return (
     <div className="container px-4 py-8">
@@ -93,18 +125,11 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
           <div className="flex items-center gap-2 mb-6">
             <GitBranch className="h-5 w-5" />
             <h2 className="text-xl font-semibold">Repositories</h2>
-            <span className="text-sm text-muted-foreground">({repos.length})</span>
           </div>
 
-          {repos.length === 0 ? (
-            <div className="border border-dashed border-border rounded-lg p-12 text-center">
-              <GitBranch className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-medium mb-2">No repositories yet</h3>
-              <p className="text-muted-foreground">{user.name} hasn&apos;t created any public repositories.</p>
-            </div>
-          ) : (
-            <RepoList repos={repos} username={username} />
-          )}
+          <Suspense fallback={<RepoSkeleton />}>
+            <RepoSection username={username} />
+          </Suspense>
         </div>
       </div>
     </div>

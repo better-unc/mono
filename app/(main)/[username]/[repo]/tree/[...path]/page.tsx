@@ -1,28 +1,45 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getRepository, getRepoFileTree, getRepoBranches } from "@/actions/repositories";
 import { FileTree } from "@/components/file-tree";
 import { BranchSelector } from "@/components/branch-selector";
 import { Badge } from "@/components/ui/badge";
-import { Lock, Globe, ChevronRight, Home } from "lucide-react";
+import { Lock, Globe, ChevronRight, Home, Loader2 } from "lucide-react";
+
+async function TreeContent({ username, repoName, branch, dirPath }: { username: string; repoName: string; branch: string; dirPath: string }) {
+  const fileTree = await getRepoFileTree(username, repoName, branch, dirPath);
+
+  if (!fileTree) {
+    notFound();
+  }
+
+  return <FileTree files={fileTree.files} username={username} repoName={repoName} branch={branch} basePath={dirPath} />;
+}
+
+function TreeSkeleton() {
+  return (
+    <div className="divide-y divide-border">
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="flex items-center gap-3 px-4 py-2.5 animate-pulse">
+          <div className="h-4 w-4 bg-muted rounded" />
+          <div className="h-4 bg-muted rounded w-1/4" />
+          <div className="h-4 bg-muted rounded w-1/3 ml-auto hidden sm:block" />
+          <div className="h-4 bg-muted rounded w-20" />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default async function TreePage({ params }: { params: Promise<{ username: string; repo: string; path: string[] }> }) {
   const { username, repo: repoName, path: pathSegments } = await params;
   const branch = pathSegments[0];
   const dirPath = pathSegments.slice(1).join("/");
 
-  const repo = await getRepository(username, repoName);
+  const [repo, branches] = await Promise.all([getRepository(username, repoName), getRepoBranches(username, repoName)]);
 
   if (!repo) {
-    notFound();
-  }
-
-  const [fileTree, branches] = await Promise.all([
-    getRepoFileTree(username, repoName, branch, dirPath),
-    getRepoBranches(username, repoName),
-  ]);
-
-  if (!fileTree) {
     notFound();
   }
 
@@ -57,13 +74,7 @@ export default async function TreePage({ params }: { params: Promise<{ username:
 
       <div className="border border-border rounded-lg overflow-hidden">
         <div className="flex items-center gap-2 px-4 py-3 bg-card border-b border-border">
-          <BranchSelector
-            branches={branches}
-            currentBranch={branch}
-            username={username}
-            repoName={repoName}
-            basePath={dirPath}
-          />
+          <BranchSelector branches={branches} currentBranch={branch} username={username} repoName={repoName} basePath={dirPath} />
         </div>
 
         <nav className="flex items-center gap-1 px-4 py-2 bg-muted/30 border-b border-border text-sm">
@@ -85,7 +96,9 @@ export default async function TreePage({ params }: { params: Promise<{ username:
           ))}
         </nav>
 
-        <FileTree files={fileTree.files} username={username} repoName={repoName} branch={branch} basePath={dirPath} />
+        <Suspense fallback={<TreeSkeleton />}>
+          <TreeContent username={username} repoName={repoName} branch={branch} dirPath={dirPath} />
+        </Suspense>
       </div>
     </div>
   );
