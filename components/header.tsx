@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { GitBranch, Plus, LogOut, User, ChevronDown, Settings } from "lucide-react";
+import { Plus, LogOut, User, ChevronDown, Settings, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -21,10 +21,18 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-[#010409]">
       <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-2.5 group">
             <span className="font-bold text-xl tracking-tight hidden sm:inline">gitbruv</span>
           </Link>
+          <nav className="hidden md:flex items-center gap-1">
+            <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-foreground">
+              <Link href="/explore" className="gap-2">
+                <Compass className="h-4 w-4" />
+                Explore
+              </Link>
+            </Button>
+          </nav>
         </div>
 
         <div className="flex items-center gap-2">

@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/session";
-import { getUserRepositories } from "@/actions/repositories";
+import { getUserRepositoriesWithStars } from "@/actions/repositories";
 import { RepoList } from "@/components/repo-list";
 import { Button } from "@/components/ui/button";
 import { GitBranch, Plus, Rocket, Code, Users, BookOpen } from "lucide-react";
@@ -13,7 +13,7 @@ export default async function HomePage() {
   }
 
   const username = (session.user as { username?: string }).username || "";
-  const repos = await getUserRepositories(username);
+  const repos = await getUserRepositoriesWithStars(username);
 
   return (
     <div className="container py-8">

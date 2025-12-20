@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { getUserRepositories } from "@/actions/repositories";
+import { getUserRepositoriesWithStars } from "@/actions/repositories";
 import { RepoList } from "@/components/repo-list";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CalendarDays, GitBranch, MapPin, Link as LinkIcon } from "lucide-react";
@@ -21,7 +21,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
     notFound();
   }
 
-  const repos = await getUserRepositories(username);
+  const repos = await getUserRepositoriesWithStars(username);
 
   return (
     <div className="container px-4 py-8">

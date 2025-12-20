@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, uuid, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, uuid, jsonb, primaryKey } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
@@ -76,3 +76,17 @@ export const repositories = pgTable("repositories", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+export const stars = pgTable(
+  "stars",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    repositoryId: uuid("repository_id")
+      .notNull()
+      .references(() => repositories.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.repositoryId] })]
+);

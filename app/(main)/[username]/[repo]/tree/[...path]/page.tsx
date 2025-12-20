@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getRepository, getRepoFileTree } from "@/actions/repositories";
+import { getRepository, getRepoFileTree, getRepoBranches } from "@/actions/repositories";
 import { FileTree } from "@/components/file-tree";
+import { BranchSelector } from "@/components/branch-selector";
 import { Badge } from "@/components/ui/badge";
-import { GitBranch, Lock, Globe, ChevronRight, Home } from "lucide-react";
+import { Lock, Globe, ChevronRight, Home } from "lucide-react";
 
 export default async function TreePage({ params }: { params: Promise<{ username: string; repo: string; path: string[] }> }) {
   const { username, repo: repoName, path: pathSegments } = await params;
@@ -16,7 +17,10 @@ export default async function TreePage({ params }: { params: Promise<{ username:
     notFound();
   }
 
-  const fileTree = await getRepoFileTree(username, repoName, branch, dirPath);
+  const [fileTree, branches] = await Promise.all([
+    getRepoFileTree(username, repoName, branch, dirPath),
+    getRepoBranches(username, repoName),
+  ]);
 
   if (!fileTree) {
     notFound();
@@ -53,8 +57,13 @@ export default async function TreePage({ params }: { params: Promise<{ username:
 
       <div className="border border-border rounded-lg overflow-hidden">
         <div className="flex items-center gap-2 px-4 py-3 bg-card border-b border-border">
-          <GitBranch className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">{branch}</span>
+          <BranchSelector
+            branches={branches}
+            currentBranch={branch}
+            username={username}
+            repoName={repoName}
+            basePath={dirPath}
+          />
         </div>
 
         <nav className="flex items-center gap-1 px-4 py-2 bg-muted/30 border-b border-border text-sm">

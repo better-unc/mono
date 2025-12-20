@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
-import { Lock, Globe } from "lucide-react";
+import { Lock, Globe, Star } from "lucide-react";
 
 type Repository = {
   id: string;
@@ -10,6 +10,7 @@ type Repository = {
   description: string | null;
   visibility: "public" | "private";
   updatedAt: Date;
+  starCount?: number;
 };
 
 export function RepoList({
@@ -59,9 +60,17 @@ export function RepoList({
                 </p>
               )}
             </div>
-            <p className="text-xs text-muted-foreground shrink-0 pt-1">
-              {formatDistanceToNow(new Date(repo.updatedAt), { addSuffix: true })}
-            </p>
+            <div className="flex flex-col items-end gap-1 shrink-0 pt-1">
+              {typeof repo.starCount === "number" && repo.starCount > 0 && (
+                <div className="flex items-center gap-1 text-muted-foreground">
+                  <Star className="h-3.5 w-3.5" />
+                  <span className="text-xs">{repo.starCount}</span>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                {formatDistanceToNow(new Date(repo.updatedAt), { addSuffix: true })}
+              </p>
+            </div>
           </div>
         </Link>
       ))}

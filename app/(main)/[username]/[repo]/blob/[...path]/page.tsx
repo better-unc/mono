@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getRepository, getRepoFile } from "@/actions/repositories";
+import { getRepository, getRepoFile, getRepoBranches } from "@/actions/repositories";
 import { CodeViewer } from "@/components/code-viewer";
+import { BranchSelector } from "@/components/branch-selector";
 import { Badge } from "@/components/ui/badge";
 import { Lock, Globe, ChevronRight, Home, FileCode } from "lucide-react";
 
@@ -42,7 +43,10 @@ export default async function BlobPage({ params }: { params: Promise<{ username:
     notFound();
   }
 
-  const file = await getRepoFile(username, repoName, branch, filePath);
+  const [file, branches] = await Promise.all([
+    getRepoFile(username, repoName, branch, filePath),
+    getRepoBranches(username, repoName),
+  ]);
 
   if (!file) {
     notFound();
@@ -81,7 +85,15 @@ export default async function BlobPage({ params }: { params: Promise<{ username:
       </div>
 
       <div className="border border-border rounded-lg overflow-hidden">
-        <nav className="flex items-center gap-1 px-4 py-2 bg-card border-b border-border text-sm">
+        <div className="flex items-center gap-2 px-4 py-3 bg-card border-b border-border">
+          <BranchSelector
+            branches={branches}
+            currentBranch={branch}
+            username={username}
+            repoName={repoName}
+          />
+        </div>
+        <nav className="flex items-center gap-1 px-4 py-2 bg-muted/30 border-b border-border text-sm">
           <Link href={`/${username}/${repoName}`} className="text-accent hover:underline flex items-center gap-1">
             <Home className="h-4 w-4" />
             {repoName}

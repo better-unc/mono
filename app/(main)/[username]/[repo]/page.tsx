@@ -1,23 +1,34 @@
 import { notFound } from "next/navigation";
-import { getRepository, getRepoFileTree, getRepoFile } from "@/actions/repositories";
+import { getRepositoryWithStars, getRepoFileTree, getRepoFile, getRepoBranches, getRepoCommitCount } from "@/actions/repositories";
+import { getSession } from "@/lib/session";
 import { FileTree } from "@/components/file-tree";
 import { CodeViewer } from "@/components/code-viewer";
 import { CloneUrl } from "@/components/clone-url";
+import { StarButton } from "@/components/star-button";
+import { BranchSelector } from "@/components/branch-selector";
 import { Badge } from "@/components/ui/badge";
-import { GitBranch, Lock, Globe, FileCode } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Lock, Globe, FileCode, Settings, GitCommit, GitBranch } from "lucide-react";
 import Link from "next/link";
 import { getPublicServerUrl } from "@/lib/utils";
 
 export default async function RepoPage({ params }: { params: Promise<{ username: string; repo: string }> }) {
   const { username, repo: repoName } = await params;
 
-  const repo = await getRepository(username, repoName);
+  const repo = await getRepositoryWithStars(username, repoName);
 
   if (!repo) {
     notFound();
   }
 
-  const fileTree = await getRepoFileTree(username, repoName, repo.defaultBranch);
+  const session = await getSession();
+  const isOwner = session?.user?.id === repo.ownerId;
+
+  const [fileTree, branches, commitCount] = await Promise.all([
+    getRepoFileTree(username, repoName, repo.defaultBranch),
+    getRepoBranches(username, repoName),
+    getRepoCommitCount(username, repoName, repo.defaultBranch),
+  ]);
   const readmeFile = fileTree?.files.find((f) => f.name.toLowerCase() === "readme.md" && f.type === "blob");
 
   let readmeContent = null;
@@ -51,7 +62,17 @@ export default async function RepoPage({ params }: { params: Promise<{ username:
             )}
           </Badge>
         </div>
-        <CloneUrl username={username} repoName={repo.name} />
+        <div className="flex items-center gap-2">
+          <StarButton repoId={repo.id} initialStarred={repo.starred} initialCount={repo.starCount} />
+          <CloneUrl username={username} repoName={repo.name} />
+          {isOwner && (
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/${username}/${repo.name}/settings`}>
+                <Settings className="h-4 w-4" />
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       {repo.description && <p className="text-muted-foreground mb-6">{repo.description}</p>}
@@ -59,9 +80,23 @@ export default async function RepoPage({ params }: { params: Promise<{ username:
       <div className="grid lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3 space-y-6">
           <div className="border border-border rounded-lg overflow-hidden">
-            <div className="flex items-center gap-2 px-4 py-3 bg-card border-b border-border">
-              <GitBranch className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">{repo.defaultBranch}</span>
+            <div className="flex items-center justify-between gap-4 px-4 py-3 bg-card border-b border-border">
+              <BranchSelector
+                branches={branches}
+                currentBranch={repo.defaultBranch}
+                username={username}
+                repoName={repo.name}
+              />
+              {commitCount > 0 && (
+                <Link
+                  href={`/${username}/${repo.name}/commits/${repo.defaultBranch}`}
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <GitCommit className="h-4 w-4" />
+                  <span className="font-medium">{commitCount}</span>
+                  <span className="hidden sm:inline">commits</span>
+                </Link>
+              )}
             </div>
 
             {fileTree?.isEmpty ? (
