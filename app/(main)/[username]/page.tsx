@@ -3,15 +3,16 @@ import { notFound } from "next/navigation";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { getUserRepositoriesWithStars } from "@/actions/repositories";
+import { getUserRepositoriesWithStars, getUserStarredRepos } from "@/actions/repositories";
 import { RepoList } from "@/components/repo-list";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CalendarDays, GitBranch, MapPin, Link as LinkIcon, Loader2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CalendarDays, GitBranch, MapPin, Link as LinkIcon, Loader2, Star, BookOpen } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
 import { GithubIcon, XIcon, LinkedInIcon } from "@/components/icons";
 
-async function RepoSection({ username }: { username: string }) {
+async function RepositoriesTab({ username }: { username: string }) {
   const repos = await getUserRepositoriesWithStars(username);
 
   if (repos.length === 0) {
@@ -27,7 +28,23 @@ async function RepoSection({ username }: { username: string }) {
   return <RepoList repos={repos} username={username} />;
 }
 
-function RepoSkeleton() {
+async function StarredTab({ username }: { username: string }) {
+  const repos = await getUserStarredRepos(username);
+
+  if (repos.length === 0) {
+    return (
+      <div className="border border-dashed border-border rounded-lg p-12 text-center">
+        <Star className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+        <h3 className="text-lg font-medium mb-2">No starred repositories</h3>
+        <p className="text-muted-foreground">This user hasn&apos;t starred any repositories yet.</p>
+      </div>
+    );
+  }
+
+  return <RepoList repos={repos} username={username} />;
+}
+
+function TabSkeleton() {
   return (
     <div className="space-y-4">
       {[...Array(3)].map((_, i) => (
@@ -44,8 +61,15 @@ function RepoSkeleton() {
   );
 }
 
-export default async function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
+export default async function ProfilePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ username: string }>;
+  searchParams: Promise<{ tab?: string }>;
+}) {
   const { username } = await params;
+  const { tab } = await searchParams;
 
   const user = await db.query.users.findFirst({
     where: eq(users.username, username),
@@ -54,6 +78,8 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   if (!user) {
     notFound();
   }
+
+  const activeTab = tab === "starred" ? "starred" : "repositories";
 
   return (
     <div className="container px-4 py-8">
@@ -122,14 +148,42 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
         </aside>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-6">
-            <GitBranch className="h-5 w-5" />
-            <h2 className="text-xl font-semibold">Repositories</h2>
-          </div>
+          <Tabs defaultValue={activeTab} className="w-full">
+            <TabsList className="mb-6 w-full justify-start bg-transparent border-b border-border rounded-none p-0 h-auto">
+              <TabsTrigger
+                value="repositories"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-accent data-[state=active]:bg-transparent px-4 py-3 gap-2"
+                asChild
+              >
+                <Link href={`/${username}`}>
+                  <BookOpen className="h-4 w-4" />
+                  Repositories
+                </Link>
+              </TabsTrigger>
+              <TabsTrigger
+                value="starred"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-accent data-[state=active]:bg-transparent px-4 py-3 gap-2"
+                asChild
+              >
+                <Link href={`/${username}?tab=starred`}>
+                  <Star className="h-4 w-4" />
+                  Starred
+                </Link>
+              </TabsTrigger>
+            </TabsList>
 
-          <Suspense fallback={<RepoSkeleton />}>
-            <RepoSection username={username} />
-          </Suspense>
+            <TabsContent value="repositories" className="mt-0">
+              <Suspense fallback={<TabSkeleton />}>
+                <RepositoriesTab username={username} />
+              </Suspense>
+            </TabsContent>
+
+            <TabsContent value="starred" className="mt-0">
+              <Suspense fallback={<TabSkeleton />}>
+                <StarredTab username={username} />
+              </Suspense>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>

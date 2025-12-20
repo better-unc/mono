@@ -721,3 +721,53 @@ export async function getRepoCommitCountCached(owner: string, repoName: string) 
 
   return getCachedCommitCount(owner, repoName, user.id, repo.defaultBranch);
 }
+
+export async function getUserStarredRepos(username: string) {
+  const user = await db.query.users.findFirst({
+    where: eq(users.username, username),
+  });
+
+  if (!user) {
+    return [];
+  }
+
+  const starredRepos = await db
+    .select({
+      id: repositories.id,
+      name: repositories.name,
+      description: repositories.description,
+      visibility: repositories.visibility,
+      defaultBranch: repositories.defaultBranch,
+      createdAt: repositories.createdAt,
+      updatedAt: repositories.updatedAt,
+      ownerId: repositories.ownerId,
+      ownerUsername: users.username,
+      ownerName: users.name,
+      ownerImage: users.image,
+      starredAt: stars.createdAt,
+      starCount: sql<number>`(SELECT COUNT(*) FROM stars WHERE stars.repository_id = ${repositories.id})`.as("star_count"),
+    })
+    .from(stars)
+    .innerJoin(repositories, eq(stars.repositoryId, repositories.id))
+    .innerJoin(users, eq(repositories.ownerId, users.id))
+    .where(and(eq(stars.userId, user.id), eq(repositories.visibility, "public")))
+    .orderBy(desc(stars.createdAt));
+
+  return starredRepos.map((r) => ({
+    id: r.id,
+    name: r.name,
+    description: r.description,
+    visibility: r.visibility as "public" | "private",
+    defaultBranch: r.defaultBranch,
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt,
+    starCount: Number(r.starCount),
+    starredAt: r.starredAt,
+    owner: {
+      id: r.ownerId,
+      username: r.ownerUsername,
+      name: r.ownerName,
+      image: r.ownerImage,
+    },
+  }));
+}
