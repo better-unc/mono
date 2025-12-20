@@ -61,8 +61,8 @@ export default async function BlobPage({ params }: { params: Promise<{ username:
             <span className="text-xl font-bold">{username}</span>
           </Link>
           <span className="text-muted-foreground">/</span>
-          <Link href={`/${username}/${repoName}`} className="text-accent hover:underline font-bold">
-            {repoName}
+          <Link href={`/${username}/${repoName}`} className="text-accent hover:underline">
+            <span className="text-xl font-bold">{repoName}</span>
           </Link>
           <Badge variant="secondary" className="text-xs font-normal">
             {repo.visibility === "private" ? (

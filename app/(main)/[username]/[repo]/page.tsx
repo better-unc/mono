@@ -33,7 +33,9 @@ export default async function RepoPage({ params }: { params: Promise<{ username:
             <span className="text-xl font-bold">{username}</span>
           </Link>
           <span className="text-muted-foreground">/</span>
-          <h1 className="text-xl font-bold">{repo.name}</h1>
+          <div className="text-foreground">
+            <span className="text-xl font-bold">{repo.name}</span>
+          </div>
           <Badge variant="secondary" className="text-xs font-normal">
             {repo.visibility === "private" ? (
               <>
