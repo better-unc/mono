@@ -6,6 +6,7 @@ import { CloneUrl } from "@/components/clone-url";
 import { Badge } from "@/components/ui/badge";
 import { GitBranch, Lock, Globe, FileCode } from "lucide-react";
 import Link from "next/link";
+import { getPublicServerUrl } from "@/lib/utils";
 
 export default async function RepoPage({ params }: { params: Promise<{ username: string; repo: string }> }) {
   const { username, repo: repoName } = await params;
@@ -95,7 +96,7 @@ export default async function RepoPage({ params }: { params: Promise<{ username:
 }
 
 function EmptyRepoGuide({ username, repoName }: { username: string; repoName: string }) {
-  const cloneUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/git/${username}/${repoName}.git`;
+  const cloneUrl = `${getPublicServerUrl()}/api/git/${username}/${repoName}.git`;
 
   return (
     <div className="p-6 space-y-6">
