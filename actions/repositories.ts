@@ -816,7 +816,7 @@ export async function getPublicUsers(sortBy: "newest" | "oldest" = "newest", lim
       avatarUrl: users.avatarUrl,
       bio: users.bio,
       createdAt: users.createdAt,
-      repoCount: sql<number>`(SELECT COUNT(*) FROM repositories WHERE repositories.owner_id = ${users.id} AND repositories.visibility = 'public')`.as("repo_count"),
+      repoCount: sql<number>`(SELECT COUNT(*) FROM repositories WHERE repositories.owner_id = users.id AND repositories.visibility = 'public')`.as("repo_count"),
     })
     .from(users)
     .orderBy(sortBy === "newest" ? desc(users.createdAt) : users.createdAt)
