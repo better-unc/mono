@@ -197,42 +197,18 @@ export async function getRepoFileTree(owner: string, repoName: string, branch: s
       }
     }
 
-    const entries = await Promise.all(
-      targetTree.map(async (entry) => {
-        const filePath = dirPath ? `${dirPath}/${entry.path}` : entry.path;
-        let lastCommit: { message: string; timestamp: number } | null = null;
-
-        try {
-          const fileCommits = await git.log({
-            fs,
-            gitdir: "/",
-            ref: branch,
-            filepath: filePath,
-            depth: 1,
-          });
-          if (fileCommits.length > 0) {
-            lastCommit = {
-              message: fileCommits[0].commit.message.split("\n")[0],
-              timestamp: fileCommits[0].commit.committer.timestamp * 1000,
-            };
-          }
-        } catch {}
-
-        return {
-          name: entry.path,
-          type: entry.type as "blob" | "tree",
-          oid: entry.oid,
-          path: filePath,
-          lastCommit,
-        };
-      })
-    );
-
-    entries.sort((a, b) => {
-      if (a.type === "tree" && b.type !== "tree") return -1;
-      if (a.type !== "tree" && b.type === "tree") return 1;
-      return a.name.localeCompare(b.name);
-    });
+    const entries = targetTree
+      .map((entry) => ({
+        name: entry.path,
+        type: entry.type as "blob" | "tree",
+        oid: entry.oid,
+        path: dirPath ? `${dirPath}/${entry.path}` : entry.path,
+      }))
+      .sort((a, b) => {
+        if (a.type === "tree" && b.type !== "tree") return -1;
+        if (a.type !== "tree" && b.type === "tree") return 1;
+        return a.name.localeCompare(b.name);
+      });
 
     return { files: entries, isEmpty: false };
   } catch (err: unknown) {
@@ -580,7 +556,6 @@ export type FileEntry = {
   type: "blob" | "tree";
   oid: string;
   path: string;
-  lastCommit: { message: string; timestamp: number } | null;
 };
 
 async function fetchFileTree(userId: string, repoName: string, defaultBranch: string) {
@@ -603,35 +578,18 @@ async function fetchFileTree(userId: string, repoName: string, defaultBranch: st
 
       const { tree } = await git.readTree({ fs, gitdir: "/", oid: commitOid });
 
-      const fileEntries = await Promise.all(
-        tree.map(async (entry) => {
-          let lastCommit: { message: string; timestamp: number } | null = null;
-          try {
-            const fileCommits = await git.log({ fs, gitdir: "/", ref: defaultBranch, filepath: entry.path, depth: 1 });
-            if (fileCommits.length > 0) {
-              lastCommit = {
-                message: fileCommits[0].commit.message.split("\n")[0],
-                timestamp: fileCommits[0].commit.committer.timestamp * 1000,
-              };
-            }
-          } catch {}
-          return {
-            name: entry.path,
-            type: entry.type as "blob" | "tree",
-            oid: entry.oid,
-            path: entry.path,
-            lastCommit,
-          };
-        })
-      );
-
-      fileEntries.sort((a, b) => {
-        if (a.type === "tree" && b.type !== "tree") return -1;
-        if (a.type !== "tree" && b.type === "tree") return 1;
-        return a.name.localeCompare(b.name);
-      });
-
-      files = fileEntries;
+      files = tree
+        .map((entry) => ({
+          name: entry.path,
+          type: entry.type as "blob" | "tree",
+          oid: entry.oid,
+          path: entry.path,
+        }))
+        .sort((a, b) => {
+          if (a.type === "tree" && b.type !== "tree") return -1;
+          if (a.type !== "tree" && b.type === "tree") return 1;
+          return a.name.localeCompare(b.name);
+        });
 
       const readmeEntry = tree.find((e) => e.path.toLowerCase() === "readme.md" && e.type === "blob");
       if (readmeEntry) {

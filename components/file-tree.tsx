@@ -2,14 +2,12 @@
 
 import Link from "next/link";
 import { Folder, FileCode, FileText, FileJson, File } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
 
 type FileEntry = {
   name: string;
   type: "blob" | "tree";
   oid: string;
   path: string;
-  lastCommit?: { message: string; timestamp: number } | null;
 };
 
 const FILE_ICONS: Record<string, React.ElementType> = {
@@ -45,15 +43,7 @@ export function FileTree({ files, username, repoName, branch }: { files: FileEnt
         return (
           <Link key={file.oid + file.name} href={href} className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors group">
             <Icon className={`h-4 w-4 shrink-0 ${file.type === "tree" ? "text-accent" : "text-muted-foreground"}`} />
-            <span className="text-sm group-hover:text-accent truncate min-w-0 shrink">{file.name}</span>
-            {file.lastCommit && (
-              <>
-                <span className="text-sm text-muted-foreground truncate hidden sm:block flex-1 min-w-0">{file.lastCommit.message}</span>
-                <span className="text-sm text-muted-foreground whitespace-nowrap ml-auto">
-                  {formatDistanceToNow(file.lastCommit.timestamp, { addSuffix: true })}
-                </span>
-              </>
-            )}
+            <span className="text-sm group-hover:text-accent truncate min-w-0">{file.name}</span>
           </Link>
         );
       })}
