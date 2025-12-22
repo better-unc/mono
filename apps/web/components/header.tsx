@@ -60,7 +60,7 @@ export function Header() {
                   <Button variant="ghost" className="h-8 w-8 rounded-full p-0 overflow-hidden ring-2 ring-transparent hover:ring-accent/50 transition-all">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={session.user.image || undefined} />
-                      <AvatarFallback className="bg-gradient-to-br from-accent/40 to-primary/40 text-foreground text-xs font-semibold">
+                      <AvatarFallback className="bg-linear-to-br from-accent/40 to-primary/40 text-foreground text-xs font-semibold">
                         {session.user.name?.charAt(0).toUpperCase() || "U"}
                       </AvatarFallback>
                     </Avatar>

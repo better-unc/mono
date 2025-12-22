@@ -7,6 +7,7 @@ import { revalidateTag } from "next/cache";
 import { rateLimit } from "@/lib/rate-limit";
 import { authenticateRequest } from "@/lib/api-auth";
 import { createHash } from "crypto";
+import { invalidateRepoCache } from "@/lib/git-cache";
 
 function parseGitPath(pathSegments: string[]): { username: string; repoName: string; action: string | null } | null {
   if (pathSegments.length < 2) return null;
@@ -40,27 +41,37 @@ async function getRefsAdvertisement(fs: R2Fs, gitdir: string, service: string): 
 
   const refs: { name: string; oid: string }[] = [];
 
-  try {
-    const branches = await git.listBranches({ fs, gitdir });
-    for (const branch of branches) {
-      const oid = await git.resolveRef({ fs, gitdir, ref: branch });
-      refs.push({ name: `refs/heads/${branch}`, oid });
-    }
-  } catch {}
+  const [branchList, tagList, headResult] = await Promise.all([
+    git.listBranches({ fs, gitdir }).catch(() => [] as string[]),
+    git.listTags({ fs, gitdir }).catch(() => [] as string[]),
+    git.resolveRef({ fs, gitdir, ref: "HEAD" }).catch(() => ""),
+  ]);
 
-  try {
-    const tags = await git.listTags({ fs, gitdir });
-    for (const tag of tags) {
-      const oid = await git.resolveRef({ fs, gitdir, ref: tag });
-      refs.push({ name: `refs/tags/${tag}`, oid });
-    }
-  } catch {}
+  const refPromises = [
+    ...branchList.map(async (branch) => {
+      try {
+        const oid = await git.resolveRef({ fs, gitdir, ref: branch });
+        return { name: `refs/heads/${branch}`, oid };
+      } catch {
+        return null;
+      }
+    }),
+    ...tagList.map(async (tag) => {
+      try {
+        const oid = await git.resolveRef({ fs, gitdir, ref: tag });
+        return { name: `refs/tags/${tag}`, oid };
+      } catch {
+        return null;
+      }
+    }),
+  ];
 
-  let head = "";
-  try {
-    head = await git.resolveRef({ fs, gitdir, ref: "HEAD" });
-  } catch {}
+  const refResults = await Promise.all(refPromises);
+  for (const ref of refResults) {
+    if (ref) refs.push(ref);
+  }
 
+  const head = headResult;
   const lines: string[] = [];
 
   if (refs.length === 0) {
@@ -89,27 +100,45 @@ async function getRefsAdvertisement(fs: R2Fs, gitdir: string, service: string): 
   return Buffer.concat(packets);
 }
 
+const BATCH_SIZE = 50;
+
 async function collectReachableObjects(fs: R2Fs, gitdir: string, oids: string[]): Promise<string[]> {
   const visited = new Set<string>();
-  const toVisit = [...oids];
+  let currentBatch = [...oids];
 
-  while (toVisit.length > 0) {
-    const oid = toVisit.pop()!;
-    if (visited.has(oid)) continue;
-    visited.add(oid);
+  while (currentBatch.length > 0) {
+    const toProcess = currentBatch.filter((oid) => !visited.has(oid));
+    if (toProcess.length === 0) break;
 
-    try {
-      const { object, type } = await git.readObject({ fs, gitdir, oid });
+    for (const oid of toProcess) {
+      visited.add(oid);
+    }
+
+    const objectPromises = toProcess.slice(0, BATCH_SIZE).map(async (oid) => {
+      try {
+        const { object, type } = await git.readObject({ fs, gitdir, oid });
+        return { oid, object, type };
+      } catch {
+        return null;
+      }
+    });
+
+    const results = await Promise.all(objectPromises);
+    const nextBatch: string[] = [];
+
+    for (const result of results) {
+      if (!result) continue;
+      const { object, type } = result;
 
       if (type === "commit") {
         const commit = object as { tree: string; parent: string[] };
         if (commit.tree && !visited.has(commit.tree)) {
-          toVisit.push(commit.tree);
+          nextBatch.push(commit.tree);
         }
         if (commit.parent) {
           for (const parent of commit.parent) {
             if (!visited.has(parent)) {
-              toVisit.push(parent);
+              nextBatch.push(parent);
             }
           }
         }
@@ -117,13 +146,13 @@ async function collectReachableObjects(fs: R2Fs, gitdir: string, oids: string[])
         const tree = object as Array<{ oid: string }>;
         for (const entry of tree) {
           if (!visited.has(entry.oid)) {
-            toVisit.push(entry.oid);
+            nextBatch.push(entry.oid);
           }
         }
       }
-    } catch {
-      continue;
     }
+
+    currentBatch = [...toProcess.slice(BATCH_SIZE), ...nextBatch];
   }
 
   return Array.from(visited);
@@ -408,6 +437,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     response = await handleUploadPack(fs, "/", body);
   } else {
     response = await handleReceivePack(fs, "/", body);
+    invalidateRepoCache(repoPrefix);
     revalidateTag(`repo:${username}/${repoName}`, { expire: 0 });
   }
 

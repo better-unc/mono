@@ -4,6 +4,7 @@ import { RepoList } from "@/components/repo-list";
 import { Button } from "@/components/ui/button";
 import { GitBranch, Plus, Rocket, Code, Users, BookOpen } from "lucide-react";
 import Link from "next/link";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default async function HomePage() {
   const session = await getSession();
@@ -20,9 +21,12 @@ export default async function HomePage() {
       <div className="flex flex-col lg:flex-row gap-8">
         <aside className="lg:w-64 shrink-0">
           <div className="flex items-center gap-3 p-4 rounded-lg bg-card border border-border">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-accent/30 to-primary/30 flex items-center justify-center text-lg font-bold">
-              {session.user.name?.charAt(0).toUpperCase()}
-            </div>
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={session.user.image || undefined} />
+              <AvatarFallback className="bg-linear-to-br from-accent/40 to-primary/40 text-foreground text-xs font-semibold">
+                {session.user.name?.charAt(0).toUpperCase() || "U"}
+              </AvatarFallback>
+            </Avatar>
             <div className="min-w-0">
               <p className="font-semibold truncate">{session.user.name}</p>
               <p className="text-sm text-muted-foreground truncate">@{username}</p>
@@ -128,7 +132,7 @@ function LandingPage() {
 function FeatureCard({ icon: Icon, title, description }: { icon: React.ElementType; title: string; description: string }) {
   return (
     <div className="group p-6 rounded-xl border border-border bg-card hover:border-accent/50 transition-all duration-300">
-      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+      <div className="w-12 h-12 rounded-xl bg-linear-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
         <Icon className="h-6 w-6 text-accent" />
       </div>
       <h3 className="text-lg font-semibold mb-2">{title}</h3>

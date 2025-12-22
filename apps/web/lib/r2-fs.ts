@@ -1,4 +1,5 @@
-import { r2Get, r2Put, r2Delete, r2List, r2DeletePrefix } from "./r2";
+import { r2Get, r2Put, r2Delete, r2List, r2DeletePrefix, r2GetBatch, r2Head } from "./r2";
+import { getCachedObject, setCachedObject, getCachedList, setCachedList } from "./git-cache";
 
 const NOT_FOUND = Symbol("NOT_FOUND");
 
@@ -24,10 +25,14 @@ function createStatResult(type: "file" | "dir", size: number) {
   };
 }
 
-export function createR2Fs(repoPrefix: string) {
+export function createR2Fs(repoPrefix: string, options?: { prefetch?: boolean }) {
   const dirMarkerCache = new Set<string>();
   const fileCache = new Map<string, Buffer | typeof NOT_FOUND>();
   const listCache = new Map<string, string[]>();
+  const existsCache = new Map<string, boolean>();
+  const sizeCache = new Map<string, number>();
+  let allKeysCache: string[] | null = null;
+  let prefetchPromise: Promise<void> | null = null;
 
   const getKey = (filepath: string) => {
     const normalized = normalizePath(filepath);
@@ -40,22 +45,132 @@ export function createR2Fs(repoPrefix: string) {
     return `${repoPrefix}/${normalized}`.replace(/\/+/g, "/");
   };
 
+  const prefetchAllKeys = async () => {
+    if (allKeysCache !== null) return;
+    if (prefetchPromise) {
+      await prefetchPromise;
+      return;
+    }
+    
+    prefetchPromise = (async () => {
+      const keys = await r2List(repoPrefix + "/");
+      allKeysCache = keys;
+      for (const key of keys) {
+        existsCache.set(key, true);
+      }
+    })();
+    
+    await prefetchPromise;
+  };
+
+  if (options?.prefetch !== false) {
+    prefetchAllKeys();
+  }
+
+  const keyExists = async (key: string): Promise<boolean> => {
+    if (existsCache.has(key)) {
+      return existsCache.get(key)!;
+    }
+    
+    if (fileCache.has(key)) {
+      return fileCache.get(key) !== NOT_FOUND;
+    }
+    
+    if (allKeysCache !== null) {
+      const exists = allKeysCache.includes(key);
+      existsCache.set(key, exists);
+      return exists;
+    }
+    
+    const result = await r2Head(key);
+    existsCache.set(key, result.exists);
+    if (result.size !== undefined) {
+      sizeCache.set(key, result.size);
+    }
+    return result.exists;
+  };
+
   const cachedR2Get = async (key: string): Promise<Buffer | null> => {
     if (fileCache.has(key)) {
       const cached = fileCache.get(key);
       return cached === NOT_FOUND ? null : cached!;
     }
+    
+    const globalCached = getCachedObject(key);
+    if (globalCached) {
+      fileCache.set(key, globalCached);
+      existsCache.set(key, true);
+      sizeCache.set(key, globalCached.length);
+      return globalCached;
+    }
+    
+    const exists = existsCache.get(key);
+    if (exists === false) {
+      fileCache.set(key, NOT_FOUND);
+      return null;
+    }
+    
     const data = await r2Get(key);
     fileCache.set(key, data ?? NOT_FOUND);
+    existsCache.set(key, data !== null);
+    if (data) {
+      sizeCache.set(key, data.length);
+      setCachedObject(key, data);
+    }
     return data;
+  };
+
+  const batchGet = async (keys: string[]): Promise<void> => {
+    const uncachedKeys = keys.filter((key) => {
+      if (fileCache.has(key)) return false;
+      const globalCached = getCachedObject(key);
+      if (globalCached) {
+        fileCache.set(key, globalCached);
+        existsCache.set(key, true);
+        sizeCache.set(key, globalCached.length);
+        return false;
+      }
+      return true;
+    });
+    if (uncachedKeys.length === 0) return;
+    
+    const results = await r2GetBatch(uncachedKeys);
+    for (const [key, data] of results) {
+      fileCache.set(key, data ?? NOT_FOUND);
+      existsCache.set(key, data !== null);
+      if (data) {
+        sizeCache.set(key, data.length);
+        setCachedObject(key, data);
+      }
+    }
   };
 
   const cachedR2List = async (prefix: string): Promise<string[]> => {
     if (listCache.has(prefix)) {
       return listCache.get(prefix)!;
     }
+    
+    const globalCached = getCachedList(prefix);
+    if (globalCached) {
+      listCache.set(prefix, globalCached);
+      for (const key of globalCached) {
+        existsCache.set(key, true);
+      }
+      return globalCached;
+    }
+    
+    if (allKeysCache !== null) {
+      const keys = allKeysCache.filter((k) => k.startsWith(prefix));
+      listCache.set(prefix, keys);
+      return keys;
+    }
+    
     const keys = await r2List(prefix);
     listCache.set(prefix, keys);
+    setCachedList(prefix, keys);
+    for (const key of keys) {
+      existsCache.set(key, true);
+    }
     return keys;
   };
 
@@ -78,12 +193,22 @@ export function createR2Fs(repoPrefix: string) {
     const buffer = typeof data === "string" ? Buffer.from(data) : data;
     await r2Put(key, buffer);
     fileCache.set(key, buffer);
+    existsCache.set(key, true);
+    sizeCache.set(key, buffer.length);
+    if (allKeysCache !== null && !allKeysCache.includes(key)) {
+      allKeysCache.push(key);
+    }
   };
 
   const unlink = async (filepath: string): Promise<void> => {
     const key = getKey(filepath);
     await r2Delete(key);
     fileCache.set(key, NOT_FOUND);
+    existsCache.set(key, false);
+    if (allKeysCache !== null) {
+      const idx = allKeysCache.indexOf(key);
+      if (idx !== -1) allKeysCache.splice(idx, 1);
+    }
   };
 
   const readdir = async (filepath: string): Promise<string[]> => {
@@ -123,9 +248,19 @@ export function createR2Fs(repoPrefix: string) {
       return createStatResult("dir", 0);
     }
 
-    const data = await cachedR2Get(key);
-    if (data) {
-      return createStatResult("file", data.length);
+    if (sizeCache.has(key) && existsCache.get(key)) {
+      return createStatResult("file", sizeCache.get(key)!);
+    }
+
+    const exists = await keyExists(key);
+    if (exists) {
+      if (sizeCache.has(key)) {
+        return createStatResult("file", sizeCache.get(key)!);
+      }
+      const data = await cachedR2Get(key);
+      if (data) {
+        return createStatResult("file", data.length);
+      }
     }
 
     const prefix = key.endsWith("/") ? key : `${key}/`;
@@ -172,6 +307,9 @@ export function createR2Fs(repoPrefix: string) {
     lstat,
     readlink,
     symlink,
+    batchGet,
+    getKey,
+    prefetchAllKeys,
   };
 }
 

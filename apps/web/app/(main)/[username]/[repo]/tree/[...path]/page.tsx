@@ -7,6 +7,8 @@ import { BranchSelector } from "@/components/branch-selector";
 import { Badge } from "@/components/ui/badge";
 import { Lock, Globe, ChevronRight, Home } from "lucide-react";
 
+export const revalidate = 60;
+
 async function TreeContent({ username, repoName, branch, dirPath }: { username: string; repoName: string; branch: string; dirPath: string }) {
   const fileTree = await getRepoFileTree(username, repoName, branch, dirPath);
 
@@ -47,7 +49,7 @@ export default async function TreePage({ params }: { params: Promise<{ username:
 
   return (
     <div className="container px-4 py-6">
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col lg:flex-row items-start h-9 lg:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-2 flex-wrap">
           <Link href={`/${username}`} className="text-accent hover:underline">
             <span className="text-xl font-bold">{username}</span>

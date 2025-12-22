@@ -13,6 +13,8 @@ import { Lock, Globe, FileCode, Settings, GitCommit, GitBranch, Loader2 } from "
 import Link from "next/link";
 import { getPublicServerUrl } from "@/lib/utils";
 
+export const revalidate = 60;
+
 async function CommitCount({ username, repoName, branch }: { username: string; repoName: string; branch: string }) {
   await connection();
   const commitCount = await getRepoCommitCountCached(username, repoName);
@@ -86,7 +88,7 @@ export default async function RepoPage({ params }: { params: Promise<{ username:
 
   return (
     <div className="container px-4 py-6">
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col lg:flex-row items-start h-9 lg:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-2 flex-wrap">
           <Link href={`/${username}`} className="text-accent hover:underline">
             <span className="text-xl font-bold">{username}</span>
@@ -121,8 +123,6 @@ export default async function RepoPage({ params }: { params: Promise<{ username:
           )}
         </div>
       </div>
-
-      {repo.description && <p className="text-muted-foreground mb-6">{repo.description}</p>}
 
       <div className="grid lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3 space-y-6">
