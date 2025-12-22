@@ -24,7 +24,7 @@
     },
     "db:push": {
       "cache": false,
-      "inputs": ["$TURBO_DEFAULT$", ".env"]
+      "inputs": ["$TURBO_DEFAULT$", ".env", ".dev.vars"]
     },
     "db:studio": {
       "cache": false,
