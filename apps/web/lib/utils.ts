@@ -15,9 +15,17 @@ export const getPublicServerUrl = () => {
   }
 };
 
+export const getWorkerUrl = () => {
+  if (process.env.NEXT_PUBLIC_WORKER_URL) {
+    return process.env.NEXT_PUBLIC_WORKER_URL;
+  }
+  return null;
+};
+
 export const getGitUrl = () => {
-  if (process.env.NEXT_PUBLIC_GIT_URL) {
-    return process.env.NEXT_PUBLIC_GIT_URL;
+  const workerUrl = getWorkerUrl();
+  if (workerUrl) {
+    return workerUrl;
   }
   const baseUrl = getPublicServerUrl();
   return `${baseUrl}/api/git`;

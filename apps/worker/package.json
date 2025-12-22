@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "set -a && source .dev.vars && set +a && wrangler dev",
+    "dev": "wrangler dev --env-file ../../.env",
     "build": "wrangler deploy --dry-run",
     "deploy": "wrangler deploy",
     "types": "wrangler types"
@@ -13,6 +13,7 @@
     "@gitbruv/db": "workspace:*",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.1",
+    "hono": "^4.6.0",
     "isomorphic-git": "^1.36.1",
     "postgres": "^3.4.7"
   },

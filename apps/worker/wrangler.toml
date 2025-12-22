@@ -5,9 +5,9 @@ compatibility_flags = ["nodejs_compat"]
 
 [[r2_buckets]]
 binding = "REPO_BUCKET"
-bucket_name = "gitbruv-repos"
+bucket_name = "gitbruv"
 
 [[hyperdrive]]
 binding = "DB"
-id = "YOUR_HYPERDRIVE_CONFIG_ID"
+id = "f3ec0cc4c2e2422889f2218b49e489d5"
 
