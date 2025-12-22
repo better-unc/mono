@@ -1,0 +1,13 @@
+name = "gitbruv-git"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[r2_buckets]]
+binding = "REPO_BUCKET"
+bucket_name = "gitbruv-repos"
+
+[[hyperdrive]]
+binding = "DB"
+id = "YOUR_HYPERDRIVE_CONFIG_ID"
+

@@ -1,0 +1,26 @@
+{
+  "name": "@gitbruv/worker",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "set -a && source .dev.vars && set +a && wrangler dev",
+    "build": "wrangler deploy --dry-run",
+    "deploy": "wrangler deploy",
+    "types": "wrangler types"
+  },
+  "dependencies": {
+    "@gitbruv/auth": "workspace:*",
+    "@gitbruv/db": "workspace:*",
+    "bcryptjs": "^3.0.3",
+    "drizzle-orm": "^0.45.1",
+    "isomorphic-git": "^1.36.1",
+    "postgres": "^3.4.7"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241127.0",
+    "@types/bcryptjs": "^3.0.0",
+    "@types/node": "^20",
+    "typescript": "^5",
+    "wrangler": "4"
+  }
+}
