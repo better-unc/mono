@@ -6,7 +6,7 @@ import { createR2Fs } from "../r2-fs";
 import { getRefsAdvertisement, handleUploadPack, handleReceivePack } from "../git-handler";
 
 export function registerGitRoutes(app: Hono<AppEnv>) {
-  app.get("/:username/:repo/info/refs", repoMiddleware, authMiddleware, async (c) => {
+  app.get("/:username/:repo{.+\\.git}/info/refs", repoMiddleware, authMiddleware, async (c) => {
     const { repo, repoPrefix } = c.get("repoData");
     const service = c.req.query("service");
 
@@ -79,4 +79,3 @@ export function registerGitRoutes(app: Hono<AppEnv>) {
     });
   });
 }
-
