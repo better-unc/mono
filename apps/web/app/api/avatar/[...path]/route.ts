@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 const workerUrl = process.env.WORKER_URL || "http://localhost:8787";
 
-export async function GET(request: NextRequest, { params }: { params: { path: string[] } }) {
-  const filename = params.path.join("/");
+export async function GET(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
+  const { path } = await params;
+  const filename = path.join("/");
   const url = `${workerUrl}/avatar/${filename}`;
 
   try {
