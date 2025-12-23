@@ -8,7 +8,6 @@ export const authMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => {
   c.set("user", user);
   await next();
 };
-
 export const requireAuth = (c: Context<AppEnv>, ownerId: string): Response | null => {
   const user = c.get("user");
   if (!user) {
