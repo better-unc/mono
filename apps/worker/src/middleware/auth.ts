@@ -11,8 +11,14 @@ export const authMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => {
 
 export const requireAuth = (c: Context<AppEnv>, ownerId: string): Response | null => {
   const user = c.get("user");
-  if (!user || user.id !== ownerId) {
-    return new Response("Unauthorized", {
+  if (!user) {
+    return new Response("Unauthorized: no valid credentials", {
+      status: 401,
+      headers: { "WWW-Authenticate": 'Basic realm="gitbruv"' },
+    });
+  }
+  if (user.id !== ownerId) {
+    return new Response(`Unauthorized: user ${user.username} does not own this repo`, {
       status: 401,
       headers: { "WWW-Authenticate": 'Basic realm="gitbruv"' },
     });
