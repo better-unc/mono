@@ -23,6 +23,7 @@ import { Route as MainUsernameIndexRouteImport } from './app/_main/$username/ind
 import { Route as ApiAuthSplatRouteImport } from './app/api/auth/$'
 import { Route as MainSettingsAccountRouteImport } from './app/_main/settings/account'
 import { Route as MainUsernameRepoRouteImport } from './app/_main/$username/$repo'
+import { Route as MainUsernameRepoIndexRouteImport } from './app/_main/$username/$repo/index'
 import { Route as MainUsernameRepoSettingsRouteImport } from './app/_main/$username/$repo/settings'
 import { Route as MainUsernameRepoCommitsRouteImport } from './app/_main/$username/$repo/commits'
 import { Route as MainUsernameRepoTreeSplatRouteImport } from './app/_main/$username/$repo/tree/$'
@@ -97,6 +98,11 @@ const MainUsernameRepoRoute = MainUsernameRepoRouteImport.update({
   path: '/$repo',
   getParentRoute: () => MainUsernameRoute,
 } as any)
+const MainUsernameRepoIndexRoute = MainUsernameRepoIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MainUsernameRepoRoute,
+} as any)
 const MainUsernameRepoSettingsRoute =
   MainUsernameRepoSettingsRouteImport.update({
     id: '/settings',
@@ -142,6 +148,7 @@ export interface FileRoutesByFullPath {
   '/settings/': typeof MainSettingsIndexRoute
   '/$username/$repo/commits': typeof MainUsernameRepoCommitsRouteWithChildren
   '/$username/$repo/settings': typeof MainUsernameRepoSettingsRoute
+  '/$username/$repo/': typeof MainUsernameRepoIndexRoute
   '/$username/$repo/blob/$': typeof MainUsernameRepoBlobSplatRoute
   '/$username/$repo/commits/$branch': typeof MainUsernameRepoCommitsBranchRoute
   '/$username/$repo/tree/$': typeof MainUsernameRepoTreeSplatRoute
@@ -152,13 +159,13 @@ export interface FileRoutesByTo {
   '/explore': typeof MainExploreRoute
   '/new': typeof MainNewRoute
   '/': typeof MainIndexRoute
-  '/$username/$repo': typeof MainUsernameRepoRouteWithChildren
   '/settings/account': typeof MainSettingsAccountRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/$username': typeof MainUsernameIndexRoute
   '/settings': typeof MainSettingsIndexRoute
   '/$username/$repo/commits': typeof MainUsernameRepoCommitsRouteWithChildren
   '/$username/$repo/settings': typeof MainUsernameRepoSettingsRoute
+  '/$username/$repo': typeof MainUsernameRepoIndexRoute
   '/$username/$repo/blob/$': typeof MainUsernameRepoBlobSplatRoute
   '/$username/$repo/commits/$branch': typeof MainUsernameRepoCommitsBranchRoute
   '/$username/$repo/tree/$': typeof MainUsernameRepoTreeSplatRoute
@@ -181,6 +188,7 @@ export interface FileRoutesById {
   '/_main/settings/': typeof MainSettingsIndexRoute
   '/_main/$username/$repo/commits': typeof MainUsernameRepoCommitsRouteWithChildren
   '/_main/$username/$repo/settings': typeof MainUsernameRepoSettingsRoute
+  '/_main/$username/$repo/': typeof MainUsernameRepoIndexRoute
   '/_main/$username/$repo/blob/$': typeof MainUsernameRepoBlobSplatRoute
   '/_main/$username/$repo/commits/$branch': typeof MainUsernameRepoCommitsBranchRoute
   '/_main/$username/$repo/tree/$': typeof MainUsernameRepoTreeSplatRoute
@@ -202,6 +210,7 @@ export interface FileRouteTypes {
     | '/settings/'
     | '/$username/$repo/commits'
     | '/$username/$repo/settings'
+    | '/$username/$repo/'
     | '/$username/$repo/blob/$'
     | '/$username/$repo/commits/$branch'
     | '/$username/$repo/tree/$'
@@ -212,13 +221,13 @@ export interface FileRouteTypes {
     | '/explore'
     | '/new'
     | '/'
-    | '/$username/$repo'
     | '/settings/account'
     | '/api/auth/$'
     | '/$username'
     | '/settings'
     | '/$username/$repo/commits'
     | '/$username/$repo/settings'
+    | '/$username/$repo'
     | '/$username/$repo/blob/$'
     | '/$username/$repo/commits/$branch'
     | '/$username/$repo/tree/$'
@@ -240,6 +249,7 @@ export interface FileRouteTypes {
     | '/_main/settings/'
     | '/_main/$username/$repo/commits'
     | '/_main/$username/$repo/settings'
+    | '/_main/$username/$repo/'
     | '/_main/$username/$repo/blob/$'
     | '/_main/$username/$repo/commits/$branch'
     | '/_main/$username/$repo/tree/$'
@@ -351,6 +361,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainUsernameRepoRouteImport
       parentRoute: typeof MainUsernameRoute
     }
+    '/_main/$username/$repo/': {
+      id: '/_main/$username/$repo/'
+      path: '/'
+      fullPath: '/$username/$repo/'
+      preLoaderRoute: typeof MainUsernameRepoIndexRouteImport
+      parentRoute: typeof MainUsernameRepoRoute
+    }
     '/_main/$username/$repo/settings': {
       id: '/_main/$username/$repo/settings'
       path: '/settings'
@@ -418,6 +435,7 @@ const MainUsernameRepoCommitsRouteWithChildren =
 interface MainUsernameRepoRouteChildren {
   MainUsernameRepoCommitsRoute: typeof MainUsernameRepoCommitsRouteWithChildren
   MainUsernameRepoSettingsRoute: typeof MainUsernameRepoSettingsRoute
+  MainUsernameRepoIndexRoute: typeof MainUsernameRepoIndexRoute
   MainUsernameRepoBlobSplatRoute: typeof MainUsernameRepoBlobSplatRoute
   MainUsernameRepoTreeSplatRoute: typeof MainUsernameRepoTreeSplatRoute
 }
@@ -425,6 +443,7 @@ interface MainUsernameRepoRouteChildren {
 const MainUsernameRepoRouteChildren: MainUsernameRepoRouteChildren = {
   MainUsernameRepoCommitsRoute: MainUsernameRepoCommitsRouteWithChildren,
   MainUsernameRepoSettingsRoute: MainUsernameRepoSettingsRoute,
+  MainUsernameRepoIndexRoute: MainUsernameRepoIndexRoute,
   MainUsernameRepoBlobSplatRoute: MainUsernameRepoBlobSplatRoute,
   MainUsernameRepoTreeSplatRoute: MainUsernameRepoTreeSplatRoute,
 }
