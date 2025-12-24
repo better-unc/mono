@@ -17,8 +17,8 @@
     "db:studio": "turbo db:studio --filter=@gitbruv/db"
   },
   "devDependencies": {
-    "turbo": "^2.3.3",
+    "turbo": "^2.7.2",
     "typescript": "^5"
   },
-  "packageManager": "bun@1.1.38"
+  "packageManager": "bun@1.3.5"
 }
