@@ -1,37 +1,35 @@
-"use client";
-
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useDeleteAccount } from "@/lib/hooks/use-settings";
-import { Loader2, AlertTriangle } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useState } from "react"
+import { useNavigate } from "@tanstack/react-router"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { useDeleteAccount } from "@/lib/hooks/use-settings"
+import { Loader2, AlertTriangle } from "lucide-react"
 
 interface DeleteAccountProps {
-  username: string;
+  username: string
 }
 
 export function DeleteAccount({ username }: DeleteAccountProps) {
-  const { trigger, isMutating } = useDeleteAccount();
-  const [error, setError] = useState<string | null>(null);
-  const [confirmation, setConfirmation] = useState("");
-  const [showConfirm, setShowConfirm] = useState(false);
-  const router = useRouter();
+  const { trigger, isMutating } = useDeleteAccount()
+  const [error, setError] = useState<string | null>(null)
+  const [confirmation, setConfirmation] = useState("")
+  const [showConfirm, setShowConfirm] = useState(false)
+  const navigate = useNavigate()
 
   async function handleDelete() {
     if (confirmation !== username) {
-      setError("Please type your username to confirm");
-      return;
+      setError("Please type your username to confirm")
+      return
     }
 
-    setError(null);
+    setError(null)
 
     try {
-      await trigger();
-      router.push("/");
+      await trigger()
+      navigate({ to: "/" })
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete account");
+      setError(err instanceof Error ? err.message : "Failed to delete account")
     }
   }
 
@@ -39,16 +37,14 @@ export function DeleteAccount({ username }: DeleteAccountProps) {
     return (
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Once you delete your account, there is no going back. All your repositories and data will be permanently deleted.
+          Once you delete your account, there is no going back. All your
+          repositories and data will be permanently deleted.
         </p>
-        <Button
-          variant="destructive"
-          onClick={() => setShowConfirm(true)}
-        >
+        <Button variant="destructive" onClick={() => setShowConfirm(true)}>
           Delete Account
         </Button>
       </div>
-    );
+    )
   }
 
   return (
@@ -60,14 +56,16 @@ export function DeleteAccount({ username }: DeleteAccountProps) {
             This action cannot be undone
           </p>
           <p className="text-sm text-muted-foreground">
-            This will permanently delete your account, all repositories, and remove all your data from our servers.
+            This will permanently delete your account, all repositories, and
+            remove all your data from our servers.
           </p>
         </div>
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="confirm">
-          Type <span className="font-mono font-semibold">{username}</span> to confirm
+          Type <span className="font-mono font-semibold">{username}</span> to
+          confirm
         </Label>
         <Input
           id="confirm"
@@ -87,9 +85,9 @@ export function DeleteAccount({ username }: DeleteAccountProps) {
         <Button
           variant="outline"
           onClick={() => {
-            setShowConfirm(false);
-            setConfirmation("");
-            setError(null);
+            setShowConfirm(false)
+            setConfirmation("")
+            setError(null)
           }}
           disabled={isMutating}
         >
@@ -105,5 +103,5 @@ export function DeleteAccount({ username }: DeleteAccountProps) {
         </Button>
       </div>
     </div>
-  );
+  )
 }

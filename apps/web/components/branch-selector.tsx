@@ -1,16 +1,14 @@
-"use client";
-
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { GitBranch, Check, ChevronDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useState } from "react"
+import { useNavigate } from "@tanstack/react-router"
+import { GitBranch, Check, ChevronDown } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
+} from "@/components/ui/dropdown-menu"
+import { cn } from "@/lib/utils"
 
 export function BranchSelector({
   branches,
@@ -19,24 +17,24 @@ export function BranchSelector({
   repoName,
   basePath = "",
 }: {
-  branches: string[];
-  currentBranch: string;
-  username: string;
-  repoName: string;
-  basePath?: string;
+  branches: string[]
+  currentBranch: string
+  username: string
+  repoName: string
+  basePath?: string
 }) {
-  const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const navigate = useNavigate()
+  const [open, setOpen] = useState(false)
 
   function handleSelect(branch: string) {
-    setOpen(false);
-    if (branch === currentBranch) return;
+    setOpen(false)
+    if (branch === currentBranch) return
 
-    if (basePath) {
-      router.push(`/${username}/${repoName}/tree/${branch}/${basePath}`);
-    } else {
-      router.push(`/${username}/${repoName}/tree/${branch}`);
-    }
+    const splat = basePath ? `${branch}/${basePath}` : branch
+    navigate({
+      to: "/$username/$repo/tree/$",
+      params: { username, repo: repoName, _splat: splat },
+    })
   }
 
   if (branches.length === 0) {
@@ -45,7 +43,7 @@ export function BranchSelector({
         <GitBranch className="h-4 w-4" />
         {currentBranch}
       </Button>
-    );
+    )
   }
 
   return (
@@ -81,6 +79,5 @@ export function BranchSelector({
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
-  );
+  )
 }
-

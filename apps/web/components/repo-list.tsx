@@ -1,40 +1,49 @@
-"use client";
-
-import Link from "next/link";
-import { formatDistanceToNow } from "date-fns";
-import { Lock, Globe, Star } from "lucide-react";
+import { Link } from "@tanstack/react-router"
+import { formatDistanceToNow } from "date-fns"
+import { Lock, Globe, Star } from "lucide-react"
 
 type Repository = {
-  id: string;
-  name: string;
-  description: string | null;
-  visibility: "public" | "private";
-  updatedAt: Date | string;
-  starCount?: number;
+  id: string
+  name: string
+  description: string | null
+  visibility: "public" | "private"
+  updatedAt: Date | string
+  starCount?: number
   owner?: {
-    username: string;
-    name: string | null;
-  };
-};
+    username: string
+    name: string | null
+  }
+}
 
-export function RepoList({ repos, username }: { repos: Repository[]; username?: string }) {
+export function RepoList({
+  repos,
+  username,
+}: {
+  repos: Repository[]
+  username?: string
+}) {
   return (
     <div className="space-y-3">
       {repos.map((repo) => {
-        const ownerUsername = repo.owner?.username || username || "";
-        const showOwner = repo.owner && repo.owner.username !== username;
+        const ownerUsername = repo.owner?.username || username || ""
+        const showOwner = repo.owner && repo.owner.username !== username
 
         return (
           <Link
             key={repo.id}
-            href={`/${ownerUsername}/${repo.name}`}
+            to="/$username/$repo"
+            params={{ username: ownerUsername, repo: repo.name }}
             className="block p-5 rounded-xl border border-border bg-card hover:border-accent/50 transition-all duration-200 group"
           >
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-3 mb-1.5">
                   <span className="font-semibold text-accent group-hover:underline text-lg">
-                    {showOwner && <span className="text-muted-foreground font-normal">{repo.owner?.username}/</span>}
+                    {showOwner && (
+                      <span className="text-muted-foreground font-normal">
+                        {repo.owner?.username}/
+                      </span>
+                    )}
                     {repo.name}
                   </span>
                   <span
@@ -57,7 +66,11 @@ export function RepoList({ repos, username }: { repos: Repository[]; username?: 
                     )}
                   </span>
                 </div>
-                {repo.description && <p className="text-sm text-muted-foreground line-clamp-2 mt-2">{repo.description}</p>}
+                {repo.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-2 mt-2">
+                    {repo.description}
+                  </p>
+                )}
               </div>
               <div className="flex flex-col items-end gap-1 shrink-0 pt-1">
                 {typeof repo.starCount === "number" && repo.starCount > 0 && (
@@ -66,12 +79,16 @@ export function RepoList({ repos, username }: { repos: Repository[]; username?: 
                     <span className="text-xs">{repo.starCount}</span>
                   </div>
                 )}
-                <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(repo.updatedAt), { addSuffix: true })}</p>
+                <p className="text-xs text-muted-foreground">
+                  {formatDistanceToNow(new Date(repo.updatedAt), {
+                    addSuffix: true,
+                  })}
+                </p>
               </div>
             </div>
           </Link>
-        );
+        )
       })}
     </div>
-  );
+  )
 }

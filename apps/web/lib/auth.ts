@@ -1,8 +1,7 @@
-import { betterAuth } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { db, users, sessions, accounts, verifications } from "@gitbruv/db";
-import { nextCookies } from "better-auth/next-js";
-import { APIError } from "better-auth/api";
+import { betterAuth } from "better-auth"
+import { drizzleAdapter } from "better-auth/adapters/drizzle"
+import { db, users, sessions, accounts, verifications } from "@gitbruv/db"
+import { APIError } from "better-auth/api"
 
 const BLOCKED_EMAIL_DOMAINS = [
   "tempmail.com",
@@ -25,48 +24,58 @@ const BLOCKED_EMAIL_DOMAINS = [
   "dispostable.com",
   "mailnesia.com",
   "spamgourmet.com",
-];
+]
 
 function containsEmoji(str: string): boolean {
-  return /\p{Extended_Pictographic}/u.test(str);
+  return /\p{Extended_Pictographic}/u.test(str)
 }
 
 function isValidUsername(username: string): { valid: boolean; error?: string } {
   if (username.length < 3) {
-    return { valid: false, error: "Username must be at least 3 characters" };
+    return { valid: false, error: "Username must be at least 3 characters" }
   }
 
   if (username.length > 39) {
-    return { valid: false, error: "Username must be 39 characters or less" };
+    return { valid: false, error: "Username must be 39 characters or less" }
   }
 
   if (containsEmoji(username)) {
-    return { valid: false, error: "Username cannot contain emojis" };
+    return { valid: false, error: "Username cannot contain emojis" }
   }
 
   if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
-    return { valid: false, error: "Username can only contain letters, numbers, hyphens, and underscores" };
+    return {
+      valid: false,
+      error:
+        "Username can only contain letters, numbers, hyphens, and underscores",
+    }
   }
 
   if (!/[a-zA-Z0-9]/.test(username)) {
-    return { valid: false, error: "Username must contain at least one letter or number" };
+    return {
+      valid: false,
+      error: "Username must contain at least one letter or number",
+    }
   }
 
   if (username.startsWith("-") || username.endsWith("-")) {
-    return { valid: false, error: "Username cannot start or end with a hyphen" };
+    return { valid: false, error: "Username cannot start or end with a hyphen" }
   }
 
   if (username.includes("--")) {
-    return { valid: false, error: "Username cannot contain consecutive hyphens" };
+    return {
+      valid: false,
+      error: "Username cannot contain consecutive hyphens",
+    }
   }
 
-  return { valid: true };
+  return { valid: true }
 }
 
 function isBlockedEmailDomain(email: string): boolean {
-  const domain = email.split("@")[1]?.toLowerCase();
-  if (!domain) return true;
-  return BLOCKED_EMAIL_DOMAINS.includes(domain);
+  const domain = email.split("@")[1]?.toLowerCase()
+  if (!domain) return true
+  return BLOCKED_EMAIL_DOMAINS.includes(domain)
 }
 
 export const auth = betterAuth({
@@ -98,26 +107,26 @@ export const auth = betterAuth({
         before: async (user) => {
           if (isBlockedEmailDomain(user.email)) {
             throw new APIError("BAD_REQUEST", {
-              message: "This email domain is not allowed. Please use a different email address.",
-            });
+              message:
+                "This email domain is not allowed. Please use a different email address.",
+            })
           }
 
-          const username = (user as { username?: string }).username;
+          const username = (user as { username?: string }).username
           if (username) {
-            const validation = isValidUsername(username);
+            const validation = isValidUsername(username)
             if (!validation.valid) {
               throw new APIError("BAD_REQUEST", {
                 message: validation.error,
-              });
+              })
             }
           }
 
-          return { data: user };
+          return { data: user }
         },
       },
     },
   },
-  plugins: [nextCookies()],
-});
+})
 
-export type Session = typeof auth.$Infer.Session;
+export type Session = typeof auth.$Infer.Session
