@@ -6,19 +6,15 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const getPublicServerUrl = () => {
-  if (import.meta.env.VITE_VERCEL_ENV === "production") {
-    return `https://${import.meta.env.VITE_VERCEL_PROJECT_PRODUCTION_URL}`;
-  } else if (import.meta.env.VITE_VERCEL_ENV === "preview") {
-    return `https://${import.meta.env.VITE_VERCEL_BRANCH_URL}`;
+  if (import.meta.env.VITE_ENV === "production") {
+    return `https://${import.meta.env.RAILWAY_PUBLIC_DOMAIN}`;
   } else {
     return `http://localhost:3000`;
   }
 };
 
 export const getWorkerUrl = () => {
-  if (import.meta.env.VITE_VERCEL_ENV === "production") {
-    return `https://${import.meta.env.VITE_API_URL}`;
-  } else if (import.meta.env.VITE_VERCEL_ENV === "preview") {
+  if (import.meta.env.VITE_ENV === "production") {
     return `https://${import.meta.env.VITE_API_URL}`;
   } else {
     return `http://localhost:3001`;
