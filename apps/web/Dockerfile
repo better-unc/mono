@@ -21,7 +21,7 @@ FROM node:22-alpine AS runner
 
 WORKDIR /app
 
-COPY --from=builder /app/apps/web/.dist ./dist
+COPY --from=builder /app/apps/web/dist ./dist
 
 ENV NODE_ENV=production
 EXPOSE 3000
