@@ -1,12 +1,5 @@
 import { type Hono } from "hono";
-import {
-  GetObjectCommand,
-  PutObjectCommand,
-  DeleteObjectCommand,
-  ListObjectsV2Command,
-  HeadObjectCommand,
-  DeleteObjectsCommand,
-} from "@aws-sdk/client-s3";
+import { GetObjectCommand, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command, HeadObjectCommand, DeleteObjectsCommand } from "@aws-sdk/client-s3";
 import { type AppEnv } from "../types";
 import { authMiddleware } from "../middleware/auth";
 

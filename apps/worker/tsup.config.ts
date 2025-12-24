@@ -12,4 +12,3 @@ export default defineConfig({
   external: ["@gitbruv/auth", "@gitbruv/db"],
   noExternal: [],
 });
-
