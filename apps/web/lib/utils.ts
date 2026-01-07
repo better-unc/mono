@@ -18,15 +18,27 @@ export const getPublicServerUrl = () => {
 };
 
 export const getApiUrl = () => {
-  if (process.env.API_URL) {
-    return normalizeUrl(process.env.API_URL);
+  const isServer = typeof window === "undefined";
+
+  if (isServer) {
+    if (process.env.API_URL) {
+      return normalizeUrl(process.env.API_URL);
+    }
+    if (process.env.NODE_ENV !== "production") {
+      return "http://localhost:3001";
+    }
+    return undefined;
   }
 
   if (import.meta.env.VITE_API_URL) {
     return normalizeUrl(import.meta.env.VITE_API_URL);
   }
 
-  return "http://localhost:3001";
+  if (!import.meta.env.PROD) {
+    return "http://localhost:3001";
+  }
+
+  return undefined;
 };
 
 export const getGitUrl = () => {

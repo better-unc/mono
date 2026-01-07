@@ -36,7 +36,17 @@ async function proxyRequest(request: Request): Promise<Response> {
 
   const apiUrl = getApiUrl();
   if (!apiUrl) {
-    return new Response("API URL not configured", { status: 500 });
+    console.error("API URL not configured. process.env.API_URL:", process.env.API_URL, "NODE_ENV:", process.env.NODE_ENV);
+    return new Response(
+      JSON.stringify({
+        error: "API URL not configured",
+        message: "API_URL environment variable is not set in production",
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 
   const backendPath = path.replace(/^\/api/, "");
