@@ -14,15 +14,24 @@ const normalizeUrl = (url: string) => {
 };
 
 export const getPublicServerUrl = () => {
-  if (process.env.RAILWAY_PUBLIC_DOMAIN) {
-    return `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
+  const isServer = typeof window === "undefined";
+
+  if (isServer) {
+    if (process.env.RAILWAY_PUBLIC_DOMAIN) {
+      return normalizeUrl(process.env.RAILWAY_PUBLIC_DOMAIN);
+    }
+    return undefined;
   }
 
   if (import.meta.env.VITE_RAILWAY_PUBLIC_DOMAIN) {
-    return `https://${import.meta.env.VITE_RAILWAY_PUBLIC_DOMAIN}`;
+    return normalizeUrl(import.meta.env.VITE_RAILWAY_PUBLIC_DOMAIN);
   }
 
-  return "http://localhost:3000";
+  if (!import.meta.env.PROD) {
+    return "http://localhost:3000";
+  }
+
+  return undefined;
 };
 
 export const getApiUrl = () => {
