@@ -4,10 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { signOut, useSession } from "@/lib/auth-client";
+import { useUserProfile } from "@/lib/hooks/use-users";
 
 export function Header() {
   const navigate = useNavigate();
+
   const { data: session } = useSession();
+  // @ts-ignore
+  const { data: user } = useUserProfile(session?.user?.username || "");
 
   async function handleSignOut() {
     await signOut();
@@ -55,7 +59,7 @@ export function Header() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="h-8 w-8 rounded-full p-0 overflow-hidden ring-2 ring-transparent hover:ring-accent/50 transition-all">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={(session.user as any).avatarUrl || undefined} />
+                      <AvatarImage src={user?.avatarUrl || undefined} />
                       <AvatarFallback className="bg-linear-to-br from-accent/40 to-primary/40 text-foreground text-xs font-semibold">
                         {session.user.name?.charAt(0).toUpperCase() || "U"}
                       </AvatarFallback>
