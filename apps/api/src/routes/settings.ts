@@ -115,7 +115,8 @@ export function registerSettingsRoutes(app: Hono<AppEnv>) {
     );
 
     const workerUrl = c.req.url.split("/api")[0];
-    const avatarUrl = `${workerUrl}/avatar/${user.id}.${ext}`;
+    const timestamp = Date.now();
+    const avatarUrl = `${workerUrl}/avatar/${user.id}.${ext}?v=${timestamp}`;
 
     const db = c.get("db");
     await db
