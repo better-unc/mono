@@ -1,88 +1,73 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router"
-import { useUserProfile, useUserStarredRepos } from "@/lib/hooks/use-users"
-import { useUserRepositories } from "@/lib/hooks/use-repositories"
-import { RepoList } from "@/components/repo-list"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  CalendarDays,
-  GitBranch,
-  MapPin,
-  Link as LinkIcon,
-  Star,
-  BookOpen,
-  Loader2,
-} from "lucide-react"
-import { format } from "date-fns"
-import { GithubIcon, XIcon, LinkedInIcon } from "@/components/icons"
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { useUserProfile, useUserStarredRepos } from "@/lib/hooks/use-users";
+import { useUserRepositories } from "@/lib/hooks/use-repositories";
+import { RepoList } from "@/components/repo-list";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CalendarDays, GitBranch, MapPin, Link as LinkIcon, Star, BookOpen, Loader2 } from "lucide-react";
+import { format } from "date-fns";
+import { GithubIcon, XIcon, LinkedInIcon } from "@/components/icons";
 
 type ProfileSearch = {
-  tab?: string
-}
+  tab?: string;
+};
 
 export const Route = createFileRoute("/_main/$username/")({
   component: ProfilePage,
   validateSearch: (search: Record<string, unknown>): ProfileSearch => ({
     tab: (search.tab as string) || undefined,
   }),
-})
+});
 
 function RepositoriesTab({ username }: { username: string }) {
-  const { data, isLoading } = useUserRepositories(username)
+  const { data, isLoading } = useUserRepositories(username);
 
   if (isLoading) {
-    return <TabSkeleton />
+    return <TabSkeleton />;
   }
 
-  const repos = data?.repos || []
+  const repos = data?.repos || [];
 
   if (repos.length === 0) {
     return (
       <div className="border border-dashed border-border rounded-lg p-12 text-center">
         <GitBranch className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
         <h3 className="text-lg font-medium mb-2">No repositories yet</h3>
-        <p className="text-muted-foreground">
-          This user hasn't created any public repositories.
-        </p>
+        <p className="text-muted-foreground">This user hasn't created any public repositories.</p>
       </div>
-    )
+    );
   }
 
-  return <RepoList repos={repos} username={username} />
+  return <RepoList repos={repos} username={username} />;
 }
 
 function StarredTab({ username }: { username: string }) {
-  const { data, isLoading } = useUserStarredRepos(username)
+  const { data, isLoading } = useUserStarredRepos(username);
 
   if (isLoading) {
-    return <TabSkeleton />
+    return <TabSkeleton />;
   }
 
-  const repos = data?.repos || []
+  const repos = data?.repos || [];
 
   if (repos.length === 0) {
     return (
       <div className="border border-dashed border-border rounded-lg p-12 text-center">
         <Star className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
         <h3 className="text-lg font-medium mb-2">No starred repositories</h3>
-        <p className="text-muted-foreground">
-          This user hasn't starred any repositories yet.
-        </p>
+        <p className="text-muted-foreground">This user hasn't starred any repositories yet.</p>
       </div>
-    )
+    );
   }
 
-  return <RepoList repos={repos} username={username} />
+  return <RepoList repos={repos} username={username} />;
 }
 
 function TabSkeleton() {
   return (
     <div className="space-y-4">
       {[...Array(3)].map((_, i) => (
-        <div
-          key={i}
-          className="border border-border rounded-lg p-4 animate-pulse"
-        >
+        <div key={i} className="border border-border rounded-lg p-4 animate-pulse">
           <div className="h-5 bg-muted rounded w-1/3 mb-2" />
           <div className="h-4 bg-muted rounded w-2/3 mb-3" />
           <div className="flex gap-4">
@@ -92,7 +77,7 @@ function TabSkeleton() {
         </div>
       ))}
     </div>
-  )
+  );
 }
 
 function PageSkeleton() {
@@ -114,23 +99,25 @@ function PageSkeleton() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 function ProfilePage() {
-  const { username } = Route.useParams()
-  const { tab } = Route.useSearch()
-  const { data: user, isLoading, error } = useUserProfile(username)
+  const { username } = Route.useParams();
+  const { tab } = Route.useSearch();
+  const { data: user, isLoading, error } = useUserProfile(username);
 
   if (isLoading) {
-    return <PageSkeleton />
+    return <PageSkeleton />;
   }
 
   if (error || !user) {
-    throw notFound()
+    throw notFound();
   }
 
-  const activeTab = tab === "starred" ? "starred" : "repositories"
+  const activeTab = tab === "starred" ? "starred" : "repositories";
+
+  console.log(user.avatarUrl);
 
   return (
     <div className="container px-4 py-8">
@@ -138,18 +125,14 @@ function ProfilePage() {
         <aside className="lg:w-72 shrink-0">
           <div className="sticky top-20 space-y-4">
             <Avatar className="w-64 h-64 mx-auto lg:mx-0 border border-border">
-              <AvatarImage src={user.avatarUrl || user.image || undefined} />
-              <AvatarFallback className="text-6xl bg-accent/20">
-                {user.name.charAt(0).toUpperCase()}
-              </AvatarFallback>
+              <AvatarImage src={user.avatarUrl || undefined} />
+              <AvatarFallback className="text-6xl bg-accent/20">{user.name.charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
 
             <div>
               <h1 className="text-2xl font-bold">{user.name}</h1>
               <p className="text-lg text-muted-foreground">@{user.username}</p>
-              {user.pronouns && (
-                <p className="text-sm text-muted-foreground">{user.pronouns}</p>
-              )}
+              {user.pronouns && <p className="text-sm text-muted-foreground">{user.pronouns}</p>}
             </div>
 
             {user.bio && <p className="text-sm">{user.bio}</p>}
@@ -164,21 +147,14 @@ function ProfilePage() {
               {user.website && (
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <LinkIcon className="h-4 w-4" />
-                  <a
-                    href={user.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline truncate"
-                  >
+                  <a href={user.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
                     {user.website.replace(/^https?:\/\//, "")}
                   </a>
                 </div>
               )}
               <div className="flex items-center gap-2 text-muted-foreground">
                 <CalendarDays className="h-4 w-4" />
-                <span>
-                  Joined {format(new Date(user.createdAt), "MMMM yyyy")}
-                </span>
+                <span>Joined {format(new Date(user.createdAt), "MMMM yyyy")}</span>
               </div>
             </div>
 
@@ -215,13 +191,7 @@ function ProfilePage() {
                   </a>
                 )}
                 {user.socialLinks.custom?.map((link, i) => (
-                  <a
-                    key={i}
-                    href={link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                  >
+                  <a key={i} href={link} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
                     <LinkIcon className="h-5 w-5" />
                   </a>
                 ))}
@@ -258,6 +228,5 @@ function ProfilePage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
-

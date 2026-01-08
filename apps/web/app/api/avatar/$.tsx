@@ -38,18 +38,18 @@ async function proxyAvatarRequest(request: Request): Promise<Response> {
     );
   }
 
-  // Remove /api prefix from path
   const backendPath = path.replace(/^\/api/, "");
   const backendUrl = `${apiUrl}${backendPath}${url.search}`;
   console.log(`[Proxy] ${request.method} ${path} -> ${backendUrl}`);
 
-  const headers = new Headers();
+  const headers: Record<string, string> = {};
   request.headers.forEach((value, key) => {
     const lowerKey = key.toLowerCase();
     if (lowerKey !== "host" && lowerKey !== "connection" && lowerKey !== "content-length") {
-      headers.set(key, value);
+      headers[key] = value;
     }
   });
+  headers["Connection"] = "close";
 
   try {
     const controller = new AbortController();
@@ -66,6 +66,16 @@ async function proxyAvatarRequest(request: Request): Promise<Response> {
 
     console.log(`[Proxy] ${request.method} ${path} -> ${response.status} ${response.statusText} (from ${backendUrl})`);
 
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "");
+      console.error(`[Proxy] Backend returned error for ${path}:`, response.status, errorText.substring(0, 200));
+      return new Response(errorText || `Backend error: ${response.status}`, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: { "Content-Type": "text/plain" },
+      });
+    }
+
     const responseHeaders = new Headers();
     const headersToSkip = ["content-encoding", "transfer-encoding", "content-length", "connection"];
     response.headers.forEach((value, key) => {
@@ -81,11 +91,6 @@ async function proxyAvatarRequest(request: Request): Promise<Response> {
       responseHeaders.set("Content-Length", responseBody.byteLength.toString());
     } else if (response.status === 200 && responseBody.byteLength === 0) {
       console.warn(`[Proxy] Empty response body for ${path} from ${backendUrl}`);
-    }
-
-    if (!response.ok) {
-      const errorText = new TextDecoder().decode(responseBody);
-      console.error(`[Proxy] Backend returned error for ${path}:`, response.status, errorText.substring(0, 200));
     }
 
     return new Response(responseBody, {

@@ -121,7 +121,6 @@ export function registerSettingsRoutes(app: Hono<AppEnv>) {
     await db
       .update(users)
       .set({
-        image: avatarUrl,
         avatarUrl,
         updatedAt: new Date(),
       })

@@ -43,7 +43,7 @@ function LoggedInHomePage({
     id: string
     name: string
     email: string
-    image?: string | null
+    avatarUrl?: string | null
     username?: string
   }
 }) {
@@ -57,7 +57,7 @@ function LoggedInHomePage({
         <aside className="lg:w-64 shrink-0">
           <div className="flex items-center gap-3 p-4 rounded-lg bg-card border border-border">
             <Avatar className="h-8 w-8">
-              <AvatarImage src={user.image || undefined} />
+              <AvatarImage src={user.avatarUrl || undefined} />
               <AvatarFallback className="bg-linear-to-br from-accent/40 to-primary/40 text-foreground text-xs font-semibold">
                 {user.name?.charAt(0).toUpperCase() || "U"}
               </AvatarFallback>

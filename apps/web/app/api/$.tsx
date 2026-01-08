@@ -8,6 +8,9 @@ export const Route = createFileRoute("/api/$" as any)({
         if (params._splat?.startsWith("auth/")) {
           return new Response("Not Found", { status: 404 });
         }
+        if (params._splat?.startsWith("avatar/")) {
+          return new Response("Not Found", { status: 404 });
+        }
         return proxyRequest(request);
       },
       POST: async ({ request, params }) => {
