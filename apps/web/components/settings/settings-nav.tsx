@@ -1,10 +1,11 @@
 import { Link, useLocation } from "@tanstack/react-router"
-import { User, Shield } from "lucide-react"
+import { User, Shield, Key } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const navItems = [
   { href: "/settings", label: "Profile", icon: User },
   { href: "/settings/account", label: "Account", icon: Shield },
+  { href: "/settings/tokens", label: "Access Tokens", icon: Key },
 ]
 
 export function SettingsNav() {
