@@ -91,7 +91,7 @@ function RepoGrid({
           >
             <div className="flex items-start gap-4">
               <Avatar className="h-10 w-10 shrink-0">
-                <AvatarImage src={repo.owner.image || undefined} />
+                <AvatarImage src={repo.owner.avatarUrl || undefined} />
                 <AvatarFallback className="bg-accent/20">
                   {repo.owner.name?.charAt(0).toUpperCase() || "U"}
                 </AvatarFallback>
@@ -207,7 +207,7 @@ function UserGrid({
           >
             <div className="flex items-start gap-4">
               <Avatar className="h-12 w-12 shrink-0">
-                <AvatarImage src={user.avatarUrl || user.image || undefined} />
+                <AvatarImage src={user.avatarUrl || undefined} />
                 <AvatarFallback className="bg-accent/20 text-lg">
                   {user.name?.charAt(0).toUpperCase() || "U"}
                 </AvatarFallback>

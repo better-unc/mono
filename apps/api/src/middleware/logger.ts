@@ -86,6 +86,13 @@ export const errorHandler: MiddlewareHandler<AppEnv> = async (c, next) => {
   } catch (err) {
     const error = err as Error;
     console.error(`${colors.red}[UNHANDLED ERROR]${colors.reset}`, error.stack || error.message);
-    return c.json({ error: "Internal server error" }, 500);
+    console.error("Error details:", {
+      message: error.message,
+      name: error.name,
+      stack: error.stack,
+      path: c.req.path,
+      method: c.req.method,
+    });
+    return c.text(`Internal Server Error: ${error.message}`, 500);
   }
 };

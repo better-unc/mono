@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './app/__root'
 import { Route as MainRouteImport } from './app/_main'
 import { Route as AuthRouteImport } from './app/_auth'
+import { Route as SplatRouteImport } from './app/$'
 import { Route as MainIndexRouteImport } from './app/_main/index'
 import { Route as ApiSplatRouteImport } from './app/api/$'
 import { Route as MainSettingsRouteImport } from './app/_main/settings'
@@ -21,6 +22,7 @@ import { Route as AuthRegisterRouteImport } from './app/_auth/register'
 import { Route as AuthLoginRouteImport } from './app/_auth/login'
 import { Route as MainSettingsIndexRouteImport } from './app/_main/settings/index'
 import { Route as MainUsernameIndexRouteImport } from './app/_main/$username/index'
+import { Route as ApiAvatarSplatRouteImport } from './app/api/avatar/$'
 import { Route as ApiAuthSplatRouteImport } from './app/api/auth/$'
 import { Route as MainSettingsAccountRouteImport } from './app/_main/settings/account'
 import { Route as MainUsernameRepoRouteImport } from './app/_main/$username/$repo'
@@ -37,6 +39,11 @@ const MainRoute = MainRouteImport.update({
 } as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/_auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SplatRoute = SplatRouteImport.update({
+  id: '/$',
+  path: '/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MainIndexRoute = MainIndexRouteImport.update({
@@ -89,6 +96,11 @@ const MainUsernameIndexRoute = MainUsernameIndexRouteImport.update({
   path: '/',
   getParentRoute: () => MainUsernameRoute,
 } as any)
+const ApiAvatarSplatRoute = ApiAvatarSplatRouteImport.update({
+  id: '/api/avatar/$',
+  path: '/api/avatar/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -140,6 +152,7 @@ const MainUsernameRepoBlobSplatRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
+  '/$': typeof SplatRoute
   '/login': typeof AuthLoginRoute
   '/register': typeof AuthRegisterRoute
   '/$username': typeof MainUsernameRouteWithChildren
@@ -151,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/$username/$repo': typeof MainUsernameRepoRouteWithChildren
   '/settings/account': typeof MainSettingsAccountRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/avatar/$': typeof ApiAvatarSplatRoute
   '/$username/': typeof MainUsernameIndexRoute
   '/settings/': typeof MainSettingsIndexRoute
   '/$username/$repo/commits': typeof MainUsernameRepoCommitsRouteWithChildren
@@ -161,6 +175,7 @@ export interface FileRoutesByFullPath {
   '/$username/$repo/tree/$': typeof MainUsernameRepoTreeSplatRoute
 }
 export interface FileRoutesByTo {
+  '/$': typeof SplatRoute
   '/login': typeof AuthLoginRoute
   '/register': typeof AuthRegisterRoute
   '/explore': typeof MainExploreRoute
@@ -169,6 +184,7 @@ export interface FileRoutesByTo {
   '/': typeof MainIndexRoute
   '/settings/account': typeof MainSettingsAccountRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/avatar/$': typeof ApiAvatarSplatRoute
   '/$username': typeof MainUsernameIndexRoute
   '/settings': typeof MainSettingsIndexRoute
   '/$username/$repo/commits': typeof MainUsernameRepoCommitsRouteWithChildren
@@ -180,6 +196,7 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/$': typeof SplatRoute
   '/_auth': typeof AuthRouteWithChildren
   '/_main': typeof MainRouteWithChildren
   '/_auth/login': typeof AuthLoginRoute
@@ -193,6 +210,7 @@ export interface FileRoutesById {
   '/_main/$username/$repo': typeof MainUsernameRepoRouteWithChildren
   '/_main/settings/account': typeof MainSettingsAccountRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/avatar/$': typeof ApiAvatarSplatRoute
   '/_main/$username/': typeof MainUsernameIndexRoute
   '/_main/settings/': typeof MainSettingsIndexRoute
   '/_main/$username/$repo/commits': typeof MainUsernameRepoCommitsRouteWithChildren
@@ -205,6 +223,7 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/$'
     | '/login'
     | '/register'
     | '/$username'
@@ -216,6 +235,7 @@ export interface FileRouteTypes {
     | '/$username/$repo'
     | '/settings/account'
     | '/api/auth/$'
+    | '/api/avatar/$'
     | '/$username/'
     | '/settings/'
     | '/$username/$repo/commits'
@@ -226,6 +246,7 @@ export interface FileRouteTypes {
     | '/$username/$repo/tree/$'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/$'
     | '/login'
     | '/register'
     | '/explore'
@@ -234,6 +255,7 @@ export interface FileRouteTypes {
     | '/'
     | '/settings/account'
     | '/api/auth/$'
+    | '/api/avatar/$'
     | '/$username'
     | '/settings'
     | '/$username/$repo/commits'
@@ -244,6 +266,7 @@ export interface FileRouteTypes {
     | '/$username/$repo/tree/$'
   id:
     | '__root__'
+    | '/$'
     | '/_auth'
     | '/_main'
     | '/_auth/login'
@@ -257,6 +280,7 @@ export interface FileRouteTypes {
     | '/_main/$username/$repo'
     | '/_main/settings/account'
     | '/api/auth/$'
+    | '/api/avatar/$'
     | '/_main/$username/'
     | '/_main/settings/'
     | '/_main/$username/$repo/commits'
@@ -268,10 +292,12 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  SplatRoute: typeof SplatRoute
   AuthRoute: typeof AuthRouteWithChildren
   MainRoute: typeof MainRouteWithChildren
   ApiSplatRoute: typeof ApiSplatRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiAvatarSplatRoute: typeof ApiAvatarSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -288,6 +314,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: ''
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$': {
+      id: '/$'
+      path: '/$'
+      fullPath: '/$'
+      preLoaderRoute: typeof SplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_main/': {
@@ -359,6 +392,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/$username/'
       preLoaderRoute: typeof MainUsernameIndexRouteImport
       parentRoute: typeof MainUsernameRoute
+    }
+    '/api/avatar/$': {
+      id: '/api/avatar/$'
+      path: '/api/avatar/$'
+      fullPath: '/api/avatar/$'
+      preLoaderRoute: typeof ApiAvatarSplatRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -518,10 +558,12 @@ const MainRouteChildren: MainRouteChildren = {
 const MainRouteWithChildren = MainRoute._addFileChildren(MainRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
+  SplatRoute: SplatRoute,
   AuthRoute: AuthRouteWithChildren,
   MainRoute: MainRouteWithChildren,
   ApiSplatRoute: ApiSplatRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiAvatarSplatRoute: ApiAvatarSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

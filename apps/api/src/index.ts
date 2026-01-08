@@ -8,6 +8,7 @@ import { registerAvatarRoutes } from "./routes/avatar";
 import { registerR2Routes } from "./routes/r2";
 import { registerRepositoryRoutes } from "./routes/repositories";
 import { registerSettingsRoutes } from "./routes/settings";
+import { registerUserRoutes } from "./routes/users";
 import { getEnv } from "./env";
 import { createS3Client } from "./r2-fs";
 import { createDb } from "./db";
@@ -42,6 +43,7 @@ registerAvatarRoutes(app);
 registerR2Routes(app);
 registerRepositoryRoutes(app);
 registerSettingsRoutes(app);
+registerUserRoutes(app);
 registerGitRoutes(app);
 registerFileRoutes(app);
 

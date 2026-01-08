@@ -34,7 +34,7 @@ export type Owner = {
   id: string;
   username: string;
   name: string;
-  image: string | null;
+  avatarUrl: string | null;
 };
 
 export type Repository = {
@@ -86,7 +86,6 @@ export type UserProfile = {
   username: string;
   email?: string;
   emailVerified?: boolean;
-  image: string | null;
   avatarUrl: string | null;
   bio: string | null;
   location: string | null;
@@ -106,7 +105,6 @@ export type PublicUser = {
   id: string;
   name: string;
   username: string;
-  image: string | null;
   avatarUrl: string | null;
   bio: string | null;
   createdAt: string;

@@ -3,10 +3,16 @@ import { type AppEnv } from "../types";
 import { authenticateRequest } from "../auth";
 
 export const authMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => {
-  const db = c.get("db");
-  const user = await authenticateRequest(c.req.raw, db);
-  c.set("user", user);
-  await next();
+  try {
+    const db = c.get("db");
+    const user = await authenticateRequest(c.req.raw, db);
+    c.set("user", user);
+    await next();
+  } catch (error) {
+    console.error("[Auth Middleware] Error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return c.text(`Auth Middleware Error: ${errorMessage}`, 500);
+  }
 };
 export const requireAuth = (c: Context<AppEnv>, ownerId: string): Response | null => {
   const user = c.get("user");
