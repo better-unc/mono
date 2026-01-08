@@ -23,11 +23,11 @@ export const getPublicServerUrl = () => {
     return undefined;
   }
 
-  if (process.env.VITE_RAILWAY_PUBLIC_DOMAIN) {
-    return normalizeUrl(process.env.VITE_RAILWAY_PUBLIC_DOMAIN);
+  if (import.meta.env.VITE_RAILWAY_PUBLIC_DOMAIN) {
+    return normalizeUrl(import.meta.env.VITE_RAILWAY_PUBLIC_DOMAIN);
   }
 
-  if (!process.env.PROD) {
+  if (!import.meta.env.PROD) {
     return "http://localhost:3000";
   }
 
@@ -47,11 +47,11 @@ export const getApiUrl = () => {
     return undefined;
   }
 
-  if (process.env.VITE_API_URL) {
-    return normalizeUrl(process.env.VITE_API_URL);
+  if (import.meta.env.VITE_API_URL) {
+    return normalizeUrl(import.meta.env.VITE_API_URL);
   }
 
-  if (!process.env.PROD) {
+  if (!import.meta.env.PROD) {
     return "http://localhost:3001";
   }
 
