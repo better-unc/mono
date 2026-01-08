@@ -21,6 +21,7 @@ import { Route as AuthRegisterRouteImport } from './app/_auth/register'
 import { Route as AuthLoginRouteImport } from './app/_auth/login'
 import { Route as MainSettingsIndexRouteImport } from './app/_main/settings/index'
 import { Route as MainUsernameIndexRouteImport } from './app/_main/$username/index'
+import { Route as ApiAvatarSplatRouteImport } from './app/api/avatar/$'
 import { Route as ApiAuthSplatRouteImport } from './app/api/auth/$'
 import { Route as MainSettingsAccountRouteImport } from './app/_main/settings/account'
 import { Route as MainUsernameRepoRouteImport } from './app/_main/$username/$repo'
@@ -89,6 +90,11 @@ const MainUsernameIndexRoute = MainUsernameIndexRouteImport.update({
   path: '/',
   getParentRoute: () => MainUsernameRoute,
 } as any)
+const ApiAvatarSplatRoute = ApiAvatarSplatRouteImport.update({
+  id: '/api/avatar/$',
+  path: '/api/avatar/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -151,6 +157,7 @@ export interface FileRoutesByFullPath {
   '/$username/$repo': typeof MainUsernameRepoRouteWithChildren
   '/settings/account': typeof MainSettingsAccountRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/avatar/$': typeof ApiAvatarSplatRoute
   '/$username/': typeof MainUsernameIndexRoute
   '/settings/': typeof MainSettingsIndexRoute
   '/$username/$repo/commits': typeof MainUsernameRepoCommitsRouteWithChildren
@@ -169,6 +176,7 @@ export interface FileRoutesByTo {
   '/': typeof MainIndexRoute
   '/settings/account': typeof MainSettingsAccountRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/avatar/$': typeof ApiAvatarSplatRoute
   '/$username': typeof MainUsernameIndexRoute
   '/settings': typeof MainSettingsIndexRoute
   '/$username/$repo/commits': typeof MainUsernameRepoCommitsRouteWithChildren
@@ -193,6 +201,7 @@ export interface FileRoutesById {
   '/_main/$username/$repo': typeof MainUsernameRepoRouteWithChildren
   '/_main/settings/account': typeof MainSettingsAccountRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/avatar/$': typeof ApiAvatarSplatRoute
   '/_main/$username/': typeof MainUsernameIndexRoute
   '/_main/settings/': typeof MainSettingsIndexRoute
   '/_main/$username/$repo/commits': typeof MainUsernameRepoCommitsRouteWithChildren
@@ -216,6 +225,7 @@ export interface FileRouteTypes {
     | '/$username/$repo'
     | '/settings/account'
     | '/api/auth/$'
+    | '/api/avatar/$'
     | '/$username/'
     | '/settings/'
     | '/$username/$repo/commits'
@@ -234,6 +244,7 @@ export interface FileRouteTypes {
     | '/'
     | '/settings/account'
     | '/api/auth/$'
+    | '/api/avatar/$'
     | '/$username'
     | '/settings'
     | '/$username/$repo/commits'
@@ -257,6 +268,7 @@ export interface FileRouteTypes {
     | '/_main/$username/$repo'
     | '/_main/settings/account'
     | '/api/auth/$'
+    | '/api/avatar/$'
     | '/_main/$username/'
     | '/_main/settings/'
     | '/_main/$username/$repo/commits'
@@ -272,6 +284,7 @@ export interface RootRouteChildren {
   MainRoute: typeof MainRouteWithChildren
   ApiSplatRoute: typeof ApiSplatRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiAvatarSplatRoute: typeof ApiAvatarSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -359,6 +372,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/$username/'
       preLoaderRoute: typeof MainUsernameIndexRouteImport
       parentRoute: typeof MainUsernameRoute
+    }
+    '/api/avatar/$': {
+      id: '/api/avatar/$'
+      path: '/api/avatar/$'
+      fullPath: '/api/avatar/$'
+      preLoaderRoute: typeof ApiAvatarSplatRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -522,6 +542,7 @@ const rootRouteChildren: RootRouteChildren = {
   MainRoute: MainRouteWithChildren,
   ApiSplatRoute: ApiSplatRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiAvatarSplatRoute: ApiAvatarSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
