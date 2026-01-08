@@ -96,17 +96,17 @@ async function proxyRequest(request: Request): Promise<Response> {
 
     console.log(`[Proxy] ${request.method} ${path} -> ${response.status} ${response.statusText} (from ${backendUrl})`);
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => "");
-      console.error(`[Proxy] Backend returned error for ${path}:`, response.status, errorText.substring(0, 200));
-    }
-
     const responseHeaders = new Headers();
     response.headers.forEach((value, key) => {
       responseHeaders.set(key, value);
     });
 
     const responseBody = await response.arrayBuffer();
+
+    if (!response.ok) {
+      const errorText = new TextDecoder().decode(responseBody);
+      console.error(`[Proxy] Backend returned error for ${path}:`, response.status, errorText.substring(0, 200));
+    }
 
     return new Response(responseBody, {
       status: response.status,
