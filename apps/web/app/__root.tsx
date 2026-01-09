@@ -6,6 +6,7 @@ import { GitBranch, Home } from "lucide-react";
 import appCss from "./globals.css?url";
 import { getApiUrl } from "@/lib/utils";
 import { ThemeProvider } from "tanstack-theme-kit";
+import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
 
 async function handleGitRequest(request: Request): Promise<Response | undefined> {
   const url = new URL(request.url);
@@ -81,12 +82,14 @@ function NotFound() {
         <h1 className="text-7xl font-bold text-foreground mb-2">404</h1>
         <h2 className="text-2xl font-semibold mb-4">Page not found</h2>
         <p className="text-muted-foreground mb-8 max-w-md">The page you&apos;re looking for doesn&apos;t exist or you don&apos;t have permission to view it.</p>
-        <Button asChild>
-          <Link to="/" className="gap-2">
-            <Home className="h-4 w-4" />
-            Go home
-          </Link>
-        </Button>
+        <Button
+          render={() => (
+            <Link to="/" className="gap-2">
+              <Home className="h-4 w-4" />
+              Go home
+            </Link>
+          )}
+        />
       </div>
     </div>
   );
@@ -139,17 +142,19 @@ function RootLayout() {
       </head>
       <body className="min-h-screen">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-          <Outlet />
-          <Toaster richColors position="top-right" />
-          <Databuddy
-            clientId="f2d7ca37-ab52-4782-be5a-f88b59c8bac2"
-            trackErrors
-            trackPerformance
-            trackWebVitals
-            trackAttributes
-            trackHashChanges
-            trackOutgoingLinks
-          />
+          <NuqsAdapter>
+            <Outlet />
+            <Toaster richColors position="top-right" />
+            <Databuddy
+              clientId="f2d7ca37-ab52-4782-be5a-f88b59c8bac2"
+              trackErrors
+              trackPerformance
+              trackWebVitals
+              trackAttributes
+              trackHashChanges
+              trackOutgoingLinks
+            />
+          </NuqsAdapter>
         </ThemeProvider>
         <Scripts />
       </body>

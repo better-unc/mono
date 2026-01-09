@@ -91,6 +91,24 @@ export function registerUserRoutes(app: Hono<AppEnv>) {
     });
   });
 
+  app.get("/api/users/by-email/:email/avatar", authMiddleware, async (c) => {
+    const email = c.req.param("email")!;
+    const db = c.get("db");
+
+    const user = await db.query.users.findFirst({
+      where: eq(users.email, email),
+      columns: {
+        avatarUrl: true,
+      },
+    });
+
+    if (!user) {
+      return c.json({ avatarUrl: null });
+    }
+
+    return c.json({ avatarUrl: user.avatarUrl });
+  });
+
   app.get("/api/users/public", async (c) => {
     const db = c.get("db");
     const sortBy = (c.req.query("sortBy") || "newest") as "newest" | "oldest";

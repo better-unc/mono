@@ -20,12 +20,9 @@ import { Route as MainExploreRouteImport } from './app/_main/explore'
 import { Route as MainUsernameRouteImport } from './app/_main/$username'
 import { Route as AuthRegisterRouteImport } from './app/_auth/register'
 import { Route as AuthLoginRouteImport } from './app/_auth/login'
-import { Route as MainSettingsIndexRouteImport } from './app/_main/settings/index'
 import { Route as MainUsernameIndexRouteImport } from './app/_main/$username/index'
 import { Route as ApiAvatarSplatRouteImport } from './app/api/avatar/$'
 import { Route as ApiAuthSplatRouteImport } from './app/api/auth/$'
-import { Route as MainSettingsTokensRouteImport } from './app/_main/settings/tokens'
-import { Route as MainSettingsAccountRouteImport } from './app/_main/settings/account'
 import { Route as MainUsernameRepoRouteImport } from './app/_main/$username/$repo'
 import { Route as MainUsernameRepoIndexRouteImport } from './app/_main/$username/$repo/index'
 import { Route as MainUsernameRepoSettingsRouteImport } from './app/_main/$username/$repo/settings'
@@ -87,11 +84,6 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
   path: '/login',
   getParentRoute: () => AuthRoute,
 } as any)
-const MainSettingsIndexRoute = MainSettingsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => MainSettingsRoute,
-} as any)
 const MainUsernameIndexRoute = MainUsernameIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -106,16 +98,6 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
-} as any)
-const MainSettingsTokensRoute = MainSettingsTokensRouteImport.update({
-  id: '/tokens',
-  path: '/tokens',
-  getParentRoute: () => MainSettingsRoute,
-} as any)
-const MainSettingsAccountRoute = MainSettingsAccountRouteImport.update({
-  id: '/account',
-  path: '/account',
-  getParentRoute: () => MainSettingsRoute,
 } as any)
 const MainUsernameRepoRoute = MainUsernameRepoRouteImport.update({
   id: '/$repo',
@@ -164,16 +146,13 @@ export interface FileRoutesByFullPath {
   '/$username': typeof MainUsernameRouteWithChildren
   '/explore': typeof MainExploreRoute
   '/new': typeof MainNewRoute
-  '/settings': typeof MainSettingsRouteWithChildren
+  '/settings': typeof MainSettingsRoute
   '/api/$': typeof ApiSplatRoute
   '/': typeof MainIndexRoute
   '/$username/$repo': typeof MainUsernameRepoRouteWithChildren
-  '/settings/account': typeof MainSettingsAccountRoute
-  '/settings/tokens': typeof MainSettingsTokensRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/avatar/$': typeof ApiAvatarSplatRoute
   '/$username/': typeof MainUsernameIndexRoute
-  '/settings/': typeof MainSettingsIndexRoute
   '/$username/$repo/commits': typeof MainUsernameRepoCommitsRouteWithChildren
   '/$username/$repo/settings': typeof MainUsernameRepoSettingsRoute
   '/$username/$repo/': typeof MainUsernameRepoIndexRoute
@@ -187,14 +166,12 @@ export interface FileRoutesByTo {
   '/register': typeof AuthRegisterRoute
   '/explore': typeof MainExploreRoute
   '/new': typeof MainNewRoute
+  '/settings': typeof MainSettingsRoute
   '/api/$': typeof ApiSplatRoute
   '/': typeof MainIndexRoute
-  '/settings/account': typeof MainSettingsAccountRoute
-  '/settings/tokens': typeof MainSettingsTokensRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/avatar/$': typeof ApiAvatarSplatRoute
   '/$username': typeof MainUsernameIndexRoute
-  '/settings': typeof MainSettingsIndexRoute
   '/$username/$repo/commits': typeof MainUsernameRepoCommitsRouteWithChildren
   '/$username/$repo/settings': typeof MainUsernameRepoSettingsRoute
   '/$username/$repo': typeof MainUsernameRepoIndexRoute
@@ -212,16 +189,13 @@ export interface FileRoutesById {
   '/_main/$username': typeof MainUsernameRouteWithChildren
   '/_main/explore': typeof MainExploreRoute
   '/_main/new': typeof MainNewRoute
-  '/_main/settings': typeof MainSettingsRouteWithChildren
+  '/_main/settings': typeof MainSettingsRoute
   '/api/$': typeof ApiSplatRoute
   '/_main/': typeof MainIndexRoute
   '/_main/$username/$repo': typeof MainUsernameRepoRouteWithChildren
-  '/_main/settings/account': typeof MainSettingsAccountRoute
-  '/_main/settings/tokens': typeof MainSettingsTokensRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/avatar/$': typeof ApiAvatarSplatRoute
   '/_main/$username/': typeof MainUsernameIndexRoute
-  '/_main/settings/': typeof MainSettingsIndexRoute
   '/_main/$username/$repo/commits': typeof MainUsernameRepoCommitsRouteWithChildren
   '/_main/$username/$repo/settings': typeof MainUsernameRepoSettingsRoute
   '/_main/$username/$repo/': typeof MainUsernameRepoIndexRoute
@@ -242,12 +216,9 @@ export interface FileRouteTypes {
     | '/api/$'
     | '/'
     | '/$username/$repo'
-    | '/settings/account'
-    | '/settings/tokens'
     | '/api/auth/$'
     | '/api/avatar/$'
     | '/$username/'
-    | '/settings/'
     | '/$username/$repo/commits'
     | '/$username/$repo/settings'
     | '/$username/$repo/'
@@ -261,14 +232,12 @@ export interface FileRouteTypes {
     | '/register'
     | '/explore'
     | '/new'
+    | '/settings'
     | '/api/$'
     | '/'
-    | '/settings/account'
-    | '/settings/tokens'
     | '/api/auth/$'
     | '/api/avatar/$'
     | '/$username'
-    | '/settings'
     | '/$username/$repo/commits'
     | '/$username/$repo/settings'
     | '/$username/$repo'
@@ -289,12 +258,9 @@ export interface FileRouteTypes {
     | '/api/$'
     | '/_main/'
     | '/_main/$username/$repo'
-    | '/_main/settings/account'
-    | '/_main/settings/tokens'
     | '/api/auth/$'
     | '/api/avatar/$'
     | '/_main/$username/'
-    | '/_main/settings/'
     | '/_main/$username/$repo/commits'
     | '/_main/$username/$repo/settings'
     | '/_main/$username/$repo/'
@@ -391,13 +357,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthLoginRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_main/settings/': {
-      id: '/_main/settings/'
-      path: '/'
-      fullPath: '/settings/'
-      preLoaderRoute: typeof MainSettingsIndexRouteImport
-      parentRoute: typeof MainSettingsRoute
-    }
     '/_main/$username/': {
       id: '/_main/$username/'
       path: '/'
@@ -418,20 +377,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/auth/$'
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_main/settings/tokens': {
-      id: '/_main/settings/tokens'
-      path: '/tokens'
-      fullPath: '/settings/tokens'
-      preLoaderRoute: typeof MainSettingsTokensRouteImport
-      parentRoute: typeof MainSettingsRoute
-    }
-    '/_main/settings/account': {
-      id: '/_main/settings/account'
-      path: '/account'
-      fullPath: '/settings/account'
-      preLoaderRoute: typeof MainSettingsAccountRouteImport
-      parentRoute: typeof MainSettingsRoute
     }
     '/_main/$username/$repo': {
       id: '/_main/$username/$repo'
@@ -544,27 +489,11 @@ const MainUsernameRouteWithChildren = MainUsernameRoute._addFileChildren(
   MainUsernameRouteChildren,
 )
 
-interface MainSettingsRouteChildren {
-  MainSettingsAccountRoute: typeof MainSettingsAccountRoute
-  MainSettingsTokensRoute: typeof MainSettingsTokensRoute
-  MainSettingsIndexRoute: typeof MainSettingsIndexRoute
-}
-
-const MainSettingsRouteChildren: MainSettingsRouteChildren = {
-  MainSettingsAccountRoute: MainSettingsAccountRoute,
-  MainSettingsTokensRoute: MainSettingsTokensRoute,
-  MainSettingsIndexRoute: MainSettingsIndexRoute,
-}
-
-const MainSettingsRouteWithChildren = MainSettingsRoute._addFileChildren(
-  MainSettingsRouteChildren,
-)
-
 interface MainRouteChildren {
   MainUsernameRoute: typeof MainUsernameRouteWithChildren
   MainExploreRoute: typeof MainExploreRoute
   MainNewRoute: typeof MainNewRoute
-  MainSettingsRoute: typeof MainSettingsRouteWithChildren
+  MainSettingsRoute: typeof MainSettingsRoute
   MainIndexRoute: typeof MainIndexRoute
 }
 
@@ -572,7 +501,7 @@ const MainRouteChildren: MainRouteChildren = {
   MainUsernameRoute: MainUsernameRouteWithChildren,
   MainExploreRoute: MainExploreRoute,
   MainNewRoute: MainNewRoute,
-  MainSettingsRoute: MainSettingsRouteWithChildren,
+  MainSettingsRoute: MainSettingsRoute,
   MainIndexRoute: MainIndexRoute,
 }
 

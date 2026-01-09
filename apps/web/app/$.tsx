@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getApiUrl } from "@/lib/utils";
 
-// Catch-all route for git operations and other unmatched routes
 export const Route = createFileRoute("/$" as any)({
   server: {
     handlers: {
@@ -22,10 +21,9 @@ async function handleGitRequest(request: Request): Promise<Response | undefined>
   const url = new URL(request.url);
   const path = url.pathname;
 
-  // Check if this is a git operation (matches /:username/:repo.git/...)
   const gitPattern = /^\/[^/]+\/[^/]+\.git\//;
   if (!gitPattern.test(path)) {
-    return undefined; // Let other routes handle it
+    return undefined;
   }
 
   const apiUrl = getApiUrl();
@@ -36,7 +34,6 @@ async function handleGitRequest(request: Request): Promise<Response | undefined>
     });
   }
 
-  // Proxy git requests directly to backend
   const backendUrl = `${apiUrl}${path}${url.search}`;
   console.log(`[Git Proxy] ${request.method} ${path} -> ${backendUrl}`);
 
@@ -64,7 +61,6 @@ async function handleGitRequest(request: Request): Promise<Response | undefined>
 
     clearTimeout(timeoutId);
 
-    // Preserve all headers for git operations
     const responseHeaders = new Headers();
     response.headers.forEach((value, key) => {
       responseHeaders.set(key, value);

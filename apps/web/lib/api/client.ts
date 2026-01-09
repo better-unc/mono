@@ -151,6 +151,8 @@ export const api = {
         method: "POST",
       }),
 
+    isStarred: (id: string) => apiFetch<{ starred: boolean }>(`/api/repositories/${id}/is-starred`),
+
     getBranches: (owner: string, name: string) => apiFetch<{ branches: string[] }>(`/api/repositories/${owner}/${name}/branches`),
 
     getTree: (owner: string, name: string, branch: string, path = "") =>
@@ -172,6 +174,8 @@ export const api = {
     getProfile: (username: string) => apiFetch<UserProfile>(`/api/users/${username}/profile`),
 
     getStarred: (username: string) => apiFetch<{ repos: RepositoryWithStars[] }>(`/api/users/${username}/starred`),
+
+    getAvatarByEmail: (email: string) => apiFetch<{ avatarUrl: string | null }>(`/api/users/by-email/${encodeURIComponent(email)}/avatar`),
 
     getPublic: (sortBy: "newest" | "oldest" = "newest", limit = 20, offset = 0) =>
       apiFetch<{ users: PublicUser[]; hasMore: boolean }>(`/api/users/public?sortBy=${sortBy}&limit=${limit}&offset=${offset}`),

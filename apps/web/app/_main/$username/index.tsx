@@ -1,22 +1,16 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
+import { useQueryState, parseAsStringLiteral } from "nuqs";
 import { useUserProfile, useUserStarredRepos } from "@/lib/hooks/use-users";
 import { useUserRepositories } from "@/lib/hooks/use-repositories";
-import { RepoList } from "@/components/repo-list";
+import RepositoryCard from "@/components/repository-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarDays, GitBranch, MapPin, Link as LinkIcon, Star, BookOpen, Loader2 } from "lucide-react";
+import { CalendarDays, GitBranch, MapPin, Star, BookOpen, Globe } from "lucide-react";
 import { format } from "date-fns";
 import { GithubIcon, XIcon, LinkedInIcon } from "@/components/icons";
 
-type ProfileSearch = {
-  tab?: string;
-};
-
 export const Route = createFileRoute("/_main/$username/")({
   component: ProfilePage,
-  validateSearch: (search: Record<string, unknown>): ProfileSearch => ({
-    tab: (search.tab as string) || undefined,
-  }),
 });
 
 function RepositoriesTab({ username }: { username: string }) {
@@ -30,15 +24,21 @@ function RepositoriesTab({ username }: { username: string }) {
 
   if (repos.length === 0) {
     return (
-      <div className="border border-dashed border-border rounded-lg p-12 text-center">
-        <GitBranch className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-        <h3 className="text-lg font-medium mb-2">No repositories yet</h3>
-        <p className="text-muted-foreground">This user hasn't created any public repositories.</p>
+      <div className="py-20 text-center border border-dashed bg-muted/20">
+        <GitBranch className="h-10 w-10 mx-auto mb-4 text-muted-foreground/50" />
+        <h3 className="text-base font-medium">No repositories yet</h3>
+        <p className="text-sm text-muted-foreground">This user hasn't created any public repositories.</p>
       </div>
     );
   }
 
-  return <RepoList repos={repos} username={username} />;
+  return (
+    <div>
+      {repos.map((repo) => (
+        <RepositoryCard key={repo.id} repository={repo} />
+      ))}
+    </div>
+  );
 }
 
 function StarredTab({ username }: { username: string }) {
@@ -52,184 +52,153 @@ function StarredTab({ username }: { username: string }) {
 
   if (repos.length === 0) {
     return (
-      <div className="border border-dashed border-border rounded-lg p-12 text-center">
-        <Star className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-        <h3 className="text-lg font-medium mb-2">No starred repositories</h3>
-        <p className="text-muted-foreground">This user hasn't starred any repositories yet.</p>
+      <div className="py-20 text-center border border-dashed bg-muted/20">
+        <Star className="h-10 w-10 mx-auto mb-4 text-muted-foreground/50" />
+        <h3 className="text-base font-medium">No starred repositories</h3>
+        <p className="text-sm text-muted-foreground">This user hasn't starred any repositories yet.</p>
       </div>
     );
   }
 
-  return <RepoList repos={repos} username={username} />;
-}
-
-function TabSkeleton() {
   return (
-    <div className="space-y-4">
-      {[...Array(3)].map((_, i) => (
-        <div key={i} className="border border-border rounded-lg p-4 animate-pulse">
-          <div className="h-5 bg-muted rounded w-1/3 mb-2" />
-          <div className="h-4 bg-muted rounded w-2/3 mb-3" />
-          <div className="flex gap-4">
-            <div className="h-4 bg-muted rounded w-16" />
-            <div className="h-4 bg-muted rounded w-20" />
-          </div>
-        </div>
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {repos.map((repo) => (
+        <RepositoryCard key={repo.id} repository={repo} />
       ))}
     </div>
   );
 }
 
-function PageSkeleton() {
+function TabSkeleton() {
   return (
-    <div className="container px-4 py-8">
-      <div className="flex flex-col lg:flex-row gap-8">
-        <aside className="lg:w-72 shrink-0">
-          <div className="space-y-4">
-            <div className="w-64 h-64 mx-auto lg:mx-0 rounded-full bg-muted animate-pulse" />
-            <div className="space-y-2">
-              <div className="h-8 w-48 bg-muted rounded animate-pulse" />
-              <div className="h-5 w-32 bg-muted rounded animate-pulse" />
-            </div>
-          </div>
-        </aside>
-        <div className="flex-1 min-w-0">
-          <div className="h-10 w-64 bg-muted rounded animate-pulse mb-6" />
-          <TabSkeleton />
-        </div>
-      </div>
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {[...Array(6)].map((_, i) => (
+        <div key={i} className="h-48 bg-[#171717] border border-[#404040] animate-pulse" />
+      ))}
     </div>
   );
 }
 
 function ProfilePage() {
   const { username } = Route.useParams();
-  const { tab } = Route.useSearch();
+  const [tab, setTab] = useQueryState("tab", parseAsStringLiteral(["repositories", "starred"]).withDefault("repositories"));
   const { data: user, isLoading, error } = useUserProfile(username);
 
   if (isLoading) {
-    return <PageSkeleton />;
+    return (
+      <div className="container max-w-7xl mx-auto px-4 py-12">
+        <div className="flex flex-col lg:flex-row gap-12 animate-pulse">
+          <div className="lg:w-72 space-y-6">
+            <div className="w-64 h-64 bg-muted" />
+            <div className="h-8 w-48 bg-muted" />
+            <div className="h-4 w-full bg-muted" />
+          </div>
+          <div className="flex-1 space-y-6">
+            <div className="h-10 w-64 bg-muted" />
+            <TabSkeleton />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (error || !user) {
     throw notFound();
   }
 
-  const activeTab = tab === "starred" ? "starred" : "repositories";
-
-  console.log(user.avatarUrl);
-
   return (
-    <div className="container px-4 py-8">
-      <div className="flex flex-col lg:flex-row gap-8">
-        <aside className="lg:w-72 shrink-0">
-          <div className="sticky top-20 space-y-4">
-            <Avatar className="w-64 h-64 mx-auto lg:mx-0 border border-border">
-              <AvatarImage src={user.avatarUrl || undefined} />
-              <AvatarFallback className="text-6xl bg-accent/20">{user.name.charAt(0).toUpperCase()}</AvatarFallback>
-            </Avatar>
+    <div className="container max-w-7xl mx-auto px-4 py-12">
+      <div className="flex flex-col lg:flex-row gap-12 items-start">
+        {/* Sidebar */}
+        <aside className="lg:w-72 shrink-0 space-y-6">
+          <Avatar className="w-64 h-64 border shadow-sm rounded-none">
+            <AvatarImage src={user.avatarUrl || undefined} className="object-cover rounded-none" />
+            <AvatarFallback className="text-6xl bg-muted rounded-none">{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+          </Avatar>
 
-            <div>
-              <h1 className="text-2xl font-bold">{user.name}</h1>
-              <p className="text-lg text-muted-foreground">@{user.username}</p>
-              {user.pronouns && <p className="text-sm text-muted-foreground">{user.pronouns}</p>}
-            </div>
+          <div className="space-y-1">
+            <h1 className="text-xl font-bold tracking-tight text-foreground">{user.name}</h1>
+            <p className="text-lg text-muted-foreground">@{user.username}</p>
+          </div>
 
-            {user.bio && <p className="text-sm">{user.bio}</p>}
+          {user.bio && <p className="text-sm leading-relaxed text-foreground/90">{user.bio}</p>}
 
-            <div className="space-y-2 text-sm">
-              {user.location && (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <MapPin className="h-4 w-4" />
-                  <span>{user.location}</span>
-                </div>
-              )}
-              {user.website && (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <LinkIcon className="h-4 w-4" />
-                  <a href={user.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
-                    {user.website.replace(/^https?:\/\//, "")}
-                  </a>
-                </div>
-              )}
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <CalendarDays className="h-4 w-4" />
-                <span>Joined {format(new Date(user.createdAt), "MMMM yyyy")}</span>
-              </div>
-            </div>
-
-            {user.socialLinks && (
-              <div className="flex items-center gap-3">
-                {user.socialLinks.github && (
-                  <a
-                    href={user.socialLinks.github}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <GithubIcon className="h-5 w-5" />
-                  </a>
-                )}
-                {user.socialLinks.twitter && (
-                  <a
-                    href={user.socialLinks.twitter}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <XIcon className="h-5 w-5" />
-                  </a>
-                )}
-                {user.socialLinks.linkedin && (
-                  <a
-                    href={user.socialLinks.linkedin}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <LinkedInIcon className="h-5 w-5" />
-                  </a>
-                )}
-                {user.socialLinks.custom?.map((link, i) => (
-                  <a key={i} href={link} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
-                    <LinkIcon className="h-5 w-5" />
-                  </a>
-                ))}
+          <div className="space-y-3 pt-2">
+            {user.location && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <MapPin className="h-4 w-4" />
+                <span>{user.location}</span>
               </div>
             )}
+            {user.website && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Globe className="h-4 w-4" />
+                <a href={user.website} target="_blank" rel="noopener noreferrer" className="hover:text-accent-foreground hover:underline truncate">
+                  {user.website.replace(/^https?:\/\//, "")}
+                </a>
+              </div>
+            )}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <CalendarDays className="h-4 w-4" />
+              <span>Joined {format(new Date(user.createdAt), "MMMM yyyy")}</span>
+            </div>
           </div>
+
+          {user.socialLinks && (
+            <div className="flex items-center gap-4 pt-2">
+              {user.socialLinks.github && (
+                <a
+                  href={user.socialLinks.github}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <GithubIcon className="h-5 w-5" />
+                </a>
+              )}
+              {user.socialLinks.twitter && (
+                <a
+                  href={user.socialLinks.twitter}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <XIcon className="h-5 w-5" />
+                </a>
+              )}
+              {user.socialLinks.linkedin && (
+                <a
+                  href={user.socialLinks.linkedin}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <LinkedInIcon className="h-5 w-5" />
+                </a>
+              )}
+            </div>
+          )}
         </aside>
 
+        {/* Content */}
         <div className="flex-1 min-w-0">
-          <Tabs defaultValue={activeTab}>
-            <TabsList className="w-full justify-start h-auto bg-transparent border-b border-border rounded-none p-0 mb-6 gap-2">
-              <TabsTrigger
-                value="repositories"
-                asChild
-                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-accent rounded-none px-4 py-3 h-auto"
-              >
-                <Link to="/$username" params={{ username }} className="gap-2 text-sm">
-                  <BookOpen className="h-4 w-4 text-muted-foreground/80" />
-                  <span>Repositories</span>
-                </Link>
+          <Tabs value={tab} onValueChange={(value) => setTab(value === "repositories" ? null : (value as "starred"))}>
+            <TabsList variant="default" className="w-full mb-6 h-12">
+              <TabsTrigger value="repositories">
+                <BookOpen className="h-4 w-4" />
+                Repositories
               </TabsTrigger>
-              <TabsTrigger
-                value="starred"
-                asChild
-                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-accent rounded-none px-4 py-3 h-auto"
-              >
-                <Link to="/$username" params={{ username }} search={{ tab: "starred" }} className="gap-2 text-sm">
-                  <Star className="h-4 w-4 text-muted-foreground/80" />
-                  <span>Starred</span>
-                </Link>
+              <TabsTrigger value="starred">
+                <Star className="h-4 w-4" />
+                Starred
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="repositories">
+            <TabsContent value="repositories" className="mt-0">
               <RepositoriesTab username={username} />
             </TabsContent>
 
-            <TabsContent value="starred">
+            <TabsContent value="starred" className="mt-0">
               <StarredTab username={username} />
             </TabsContent>
           </Tabs>

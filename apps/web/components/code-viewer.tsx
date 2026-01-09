@@ -5,9 +5,11 @@ import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import { useEffect, useState } from "react";
 import { codeToHtml } from "shiki";
+import { useTheme } from "tanstack-theme-kit";
 
 export function CodeViewer({ content, language, showLineNumbers = false }: { content: string; language: string; showLineNumbers?: boolean }) {
   const [highlightedCode, setHighlightedCode] = useState<string | null>(null);
+  const { theme } = useTheme();
 
   useEffect(() => {
     if (language === "markdown" || language === "md") return;
@@ -16,7 +18,7 @@ export function CodeViewer({ content, language, showLineNumbers = false }: { con
       try {
         const html = await codeToHtml(content, {
           lang: language === "text" ? "plaintext" : language,
-          theme: "github-dark-default",
+          theme: theme === "dark" ? "github-dark-default" : "github-light-default",
         });
         setHighlightedCode(html);
       } catch {
@@ -25,7 +27,7 @@ export function CodeViewer({ content, language, showLineNumbers = false }: { con
     }
 
     highlight();
-  }, [content, language]);
+  }, [content, language, theme]);
 
   if (language === "markdown" || language === "md") {
     return (

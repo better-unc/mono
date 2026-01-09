@@ -55,9 +55,9 @@ export function AvatarUpload({ currentAvatar, name }: AvatarUploadProps) {
   return (
     <div className="flex items-start gap-6">
       <div className="relative">
-        <Avatar className="w-24 h-24">
-          <AvatarImage src={preview || undefined} alt={name} />
-          <AvatarFallback className="text-2xl bg-accent">{name.charAt(0).toUpperCase()}</AvatarFallback>
+        <Avatar className="w-24 h-24 rounded-none">
+          <AvatarImage src={preview || undefined} alt={name} className="rounded-none" />
+          <AvatarFallback className="text-2xl bg-accent rounded-none">{name.charAt(0).toUpperCase()}</AvatarFallback>
         </Avatar>
         {isMutating && (
           <div className="absolute inset-0 bg-background/80 rounded-full flex items-center justify-center">

@@ -63,7 +63,7 @@ function NewRepoPage() {
   }
 
   return (
-    <div className="container max-w-3xl py-12">
+    <div className="max-w-xl py-12 mx-auto px-4 sm:px-0">
       <div className="mb-8 border-b border-border pb-6">
         <h1 className="text-2xl font-semibold mb-2">Create a new repository</h1>
         <p className="text-muted-foreground text-sm">A repository contains all project files, including the revision history.</p>
@@ -71,31 +71,23 @@ function NewRepoPage() {
 
       <form onSubmit={handleSubmit} className="space-y-8">
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-3">
-              <Label htmlFor="owner" className="text-sm font-semibold">
-                Owner <span className="text-destructive">*</span>
-              </Label>
-              <div className="h-9 px-3 flex items-center bg-muted/30 border border-border rounded-md text-sm font-medium">{username}</div>
-            </div>
-            <div className="space-y-3">
-              <Label htmlFor="name" className="text-sm font-semibold">
-                Repository name <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="my-awesome-project"
-                required
-                pattern="^[a-zA-Z0-9_.-]+$"
-                className="h-9 bg-background focus-visible:ring-1"
-              />
-            </div>
+          <div className="space-y-3">
+            <Label htmlFor="name" className="text-sm font-semibold">
+              Repository name <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="name"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="my-awesome-project"
+              required
+              pattern="^[a-zA-Z0-9_.-]+$"
+              className="h-9 bg-background focus-visible:ring-1"
+            />
           </div>
           <p className="text-xs text-muted-foreground">
             Great repository names are short and memorable. Need inspiration? How about{" "}
-            <span className="text-success font-semibold italic">stunning-octo-guide</span>?
+            <span className="text-success font-semibold italic">awesome-project</span>?
           </p>
 
           <div className="space-y-3">

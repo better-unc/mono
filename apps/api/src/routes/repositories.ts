@@ -272,6 +272,22 @@ export function registerRepositoryRoutes(app: Hono<AppEnv>) {
     });
   });
 
+  app.get("/api/repositories/:id/is-starred", authMiddleware, async (c) => {
+    const repoId = c.req.param("id")!;
+    const user = c.get("user");
+    const db = c.get("db");
+
+    if (!user) {
+      return c.json({ starred: false });
+    }
+
+    const starred = await db.query.stars.findFirst({
+      where: and(eq(stars.userId, user.id), eq(stars.repositoryId, repoId)),
+    });
+
+    return c.json({ starred: !!starred });
+  });
+
   app.post("/api/repositories/:id/star", authMiddleware, async (c) => {
     const repoId = c.req.param("id")!;
     const user = c.get("user");

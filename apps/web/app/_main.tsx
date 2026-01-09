@@ -11,7 +11,7 @@ function MainLayout() {
     <SWRProvider>
       <div className="min-h-screen flex flex-col">
         <Header />
-        <main className="flex-1 m-2 border rounded-lg bg-accent-foreground">
+        <main className="flex-1">
           <Outlet />
         </main>
       </div>

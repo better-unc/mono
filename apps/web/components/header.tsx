@@ -47,35 +47,34 @@ export function Header() {
           )}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1">
           <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground rounded-md"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            >
+            <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground rounded-md">
-              <Bell className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground rounded-md">
-              <Inbox className="h-4 w-4" />
-            </Button>
+            {session?.user ? (
+              <>
+                <Button variant="ghost" size="icon">
+                  <Bell className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon">
+                  <Inbox className="h-4 w-4" />
+                </Button>
+              </>
+            ) : null}
           </div>
 
           {session?.user ? (
             <div className="flex items-center gap-2">
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground border border-border rounded-md">
+                <DropdownMenuTrigger>
+                  <Button variant="ghost" size="icon">
                     <Plus className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem asChild>
-                    <Link to="/new" className="cursor-pointer gap-2">
+                  <DropdownMenuItem className="p-0!">
+                    <Link to="/new" className="gap-2 flex items-center grow p-2">
                       <BookIcon className="h-4 w-4" />
                       New repository
                     </Link>
@@ -84,56 +83,65 @@ export function Header() {
               </DropdownMenu>
 
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="h-8 w-8 rounded-full p-0 overflow-hidden hover:opacity-80 transition-opacity">
-                    <Avatar className="h-8 w-8 border border-border">
-                      <AvatarImage src={user?.avatarUrl || undefined} />
-                      <AvatarFallback className="bg-accent/10 text-accent text-xs font-semibold">
+                <DropdownMenuTrigger className="h-8 w-8">
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Avatar className="h-8 w-8 border border-border rounded-none">
+                      <AvatarImage src={user?.avatarUrl || undefined} className="rounded-none" />
+                      <AvatarFallback className="bg-accent/10 text-accent text-xs font-semibold rounded-none">
                         {session.user.name?.charAt(0).toUpperCase() || "U"}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  <div className="px-3 py-2">
+                  <DropdownMenuItem className="px-3 py-2 flex items-start flex-col gap-1">
                     <p className="text-sm font-medium">{session.user.name}</p>
                     <p className="text-xs text-muted-foreground">@{(session.user as { username?: string }).username}</p>
-                  </div>
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
+                  <DropdownMenuItem className="p-0!">
                     <Link
                       to="/$username"
                       params={{
                         username: (session.user as { username?: string }).username || "",
                       }}
-                      className="cursor-pointer gap-2"
+                      className="gap-2 flex items-center grow p-2"
                     >
                       <User className="h-4 w-4" />
                       Your profile
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/settings" className="cursor-pointer gap-2">
+                  <DropdownMenuItem className="p-0!">
+                    <Link to="/settings" className="gap-2 flex items-center grow p-2">
                       <Settings className="h-4 w-4" />
                       Settings
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10">
-                    <LogOut className="h-4 w-4" />
-                    Sign out
+                  <DropdownMenuItem className="p-0!">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="cursor-pointer gap-2 text-destructive flex items-center justify-start grow focus:text-destructive focus:bg-destructive/10 p-2"
+                      onClick={handleSignOut}
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Sign out
+                    </Button>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" asChild className="text-sm font-semibold text-foreground/80 hover:text-foreground">
-                <Link to="/login">Sign in</Link>
-              </Button>
-              <Button size="sm" asChild className="h-8 text-sm font-semibold">
-                <Link to="/register">Sign up</Link>
-              </Button>
+              <Link to="/login">
+                <Button variant="ghost" size="sm">
+                  Sign in
+                </Button>
+              </Link>
+              <Link to="/register">
+                <Button size="sm">Sign up</Button>
+              </Link>
             </div>
           )}
         </div>

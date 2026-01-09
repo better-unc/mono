@@ -1,42 +1,40 @@
-import { useState } from "react"
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { signUpWithUsername } from "@/lib/auth-client"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { toast } from "sonner"
-import { Loader2 } from "lucide-react"
+import { useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { signUpWithUsername } from "@/lib/auth-client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/_auth/register")({
   component: RegisterPage,
-})
+});
 
 function RegisterPage() {
-  const navigate = useNavigate()
-  const [loading, setLoading] = useState(false)
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     username: "",
     email: "",
     password: "",
-  })
+  });
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault();
+    setLoading(true);
 
     if (formData.username.length < 3) {
-      toast.error("Username must be at least 3 characters")
-      setLoading(false)
-      return
+      toast.error("Username must be at least 3 characters");
+      setLoading(false);
+      return;
     }
 
     if (!/^[a-zA-Z0-9_-]+$/.test(formData.username)) {
-      toast.error(
-        "Username can only contain letters, numbers, hyphens, and underscores"
-      )
-      setLoading(false)
-      return
+      toast.error("Username can only contain letters, numbers, hyphens, and underscores");
+      setLoading(false);
+      return;
     }
 
     try {
@@ -45,25 +43,25 @@ function RegisterPage() {
         password: formData.password,
         name: formData.name,
         username: formData.username.toLowerCase(),
-      })
+      });
 
       if (error) {
-        toast.error(error.message || "Failed to create account")
-        return
+        toast.error(error.message || "Failed to create account");
+        return;
       }
 
-      toast.success("Account created successfully!")
-      navigate({ to: "/" })
+      toast.success("Account created successfully!");
+      navigate({ to: "/" });
     } catch {
-      toast.error("Something went wrong")
+      toast.error("Something went wrong");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   return (
     <div className="w-full">
-      <div className="rounded-xl border border-border bg-card/80 backdrop-blur-sm p-8">
+      <div className="border border-border bg-card/80 backdrop-blur-sm p-8">
         <div className="text-center mb-8">
           <h1 className="text-xl font-semibold">Create your account</h1>
         </div>
@@ -74,9 +72,7 @@ function RegisterPage() {
               id="name"
               type="text"
               value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="John Doe"
               required
               className="bg-input/50 h-11"
@@ -88,16 +84,12 @@ function RegisterPage() {
               id="username"
               type="text"
               value={formData.username}
-              onChange={(e) =>
-                setFormData({ ...formData, username: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               placeholder="johndoe"
               required
               className="bg-input/50 h-11"
             />
-            <p className="text-xs text-muted-foreground">
-              This will be your unique identifier on gitbruv
-            </p>
+            <p className="text-xs text-muted-foreground">This will be your unique identifier on gitbruv</p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email address</Label>
@@ -105,9 +97,7 @@ function RegisterPage() {
               id="email"
               type="email"
               value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               placeholder="you@example.com"
               required
               className="bg-input/50 h-11"
@@ -119,19 +109,15 @@ function RegisterPage() {
               id="password"
               type="password"
               value={formData.password}
-              onChange={(e) =>
-                setFormData({ ...formData, password: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               placeholder="••••••••"
               required
               minLength={8}
               className="bg-input/50 h-11"
             />
-            <p className="text-xs text-muted-foreground">
-              Must be at least 8 characters
-            </p>
+            <p className="text-xs text-muted-foreground">Must be at least 8 characters</p>
           </div>
-          <Button type="submit" disabled={loading} className="w-full h-11">
+          <Button type="submit" variant="default" disabled={loading} className="w-full h-11">
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -143,15 +129,14 @@ function RegisterPage() {
           </Button>
         </form>
       </div>
-      <div className="mt-6 p-4 rounded-xl border border-border text-center">
+      <div className="mt-6 p-4 border border-border text-center">
         <p className="text-sm text-muted-foreground">
           Already have an account?{" "}
-          <Link to="/login" className="text-accent hover:underline font-medium">
+          <Link to="/login" className="text-foreground hover:underline font-medium">
             Sign in
           </Link>
         </p>
       </div>
     </div>
-  )
+  );
 }
-

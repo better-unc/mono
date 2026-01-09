@@ -1,49 +1,49 @@
-import { useState } from "react"
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { signIn } from "@/lib/auth-client"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { toast } from "sonner"
-import { Loader2 } from "lucide-react"
+import { useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { signIn } from "@/lib/auth-client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/_auth/login")({
   component: LoginPage,
-})
+});
 
 function LoginPage() {
-  const navigate = useNavigate()
-  const [loading, setLoading] = useState(false)
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault();
+    setLoading(true);
 
     try {
       const { error } = await signIn.email({
         email,
         password,
-      })
+      });
 
       if (error) {
-        toast.error(error.message || "Failed to sign in")
-        return
+        toast.error(error.message || "Failed to sign in");
+        return;
       }
 
-      toast.success("Welcome back!")
-      navigate({ to: "/" })
+      toast.success("Welcome back!");
+      navigate({ to: "/" });
     } catch {
-      toast.error("Something went wrong")
+      toast.error("Something went wrong");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   return (
     <div className="w-full">
-      <div className="rounded-xl border border-border bg-card/80 backdrop-blur-sm p-8">
+      <div className="border border-border bg-card/80 backdrop-blur-sm p-8">
         <div className="text-center mb-8">
           <h1 className="text-xl font-semibold">Sign in to gitbruv</h1>
         </div>
@@ -84,18 +84,14 @@ function LoginPage() {
           </Button>
         </form>
       </div>
-      <div className="mt-6 p-4 rounded-xl border border-border text-center">
+      <div className="mt-6 p-4 border border-border text-center">
         <p className="text-sm text-muted-foreground">
           New to gitbruv?{" "}
-          <Link
-            to="/register"
-            className="text-accent hover:underline font-medium"
-          >
+          <Link to="/register" className="text-foreground hover:underline font-medium">
             Create an account
           </Link>
         </p>
       </div>
     </div>
-  )
+  );
 }
-
