@@ -33,7 +33,7 @@ function RepositoriesTab({ username }: { username: string }) {
   }
 
   return (
-    <div>
+    <div className="flex flex-col gap-4">
       {repos.map((repo) => (
         <RepositoryCard key={repo.id} repository={repo} />
       ))}

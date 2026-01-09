@@ -67,7 +67,7 @@ function LoggedInHomePage({ session }: { session: { user: { username?: string; [
           </div>
 
           {userLoading || reposLoading ? (
-            <div className="">
+            <div>
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="h-48 bg-[#171717] border border-[#404040] animate-pulse" />
               ))}
@@ -85,7 +85,7 @@ function LoggedInHomePage({ session }: { session: { user: { username?: string; [
               </Link>
             </div>
           ) : (
-            <div className="">
+            <div className="flex flex-col gap-4">
               {repos.map((repo) => (
                 <RepositoryCard key={repo.id} repository={repo} />
               ))}
