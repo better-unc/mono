@@ -1,57 +1,52 @@
-import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { Tabs } from "expo-router";
-
-import { useColorScheme } from "@/components/useColorScheme";
-
-function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>["name"];
-  color: string;
-}) {
-  return <FontAwesome size={24} style={{ marginBottom: -3 }} {...props} />;
-}
+import { Platform, DynamicColorIOS } from "react-native";
+import {
+  NativeTabs,
+  Icon,
+  Label,
+} from "expo-router/unstable-native-tabs";
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
-
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: isDark ? "#60a5fa" : "#2563eb",
-        tabBarInactiveTintColor: isDark ? "#6b7280" : "#9ca3af",
-        tabBarStyle: {
-          backgroundColor: isDark ? "#111827" : "#ffffff",
-          borderTopColor: isDark ? "#1f2937" : "#e5e7eb",
+    <NativeTabs
+      minimizeBehavior="onScrollDown"
+      labelStyle={Platform.select({
+        ios: {
+          color: DynamicColorIOS({
+            dark: "white",
+            light: "black",
+          }),
         },
-        headerStyle: {
-          backgroundColor: isDark ? "#111827" : "#ffffff",
-        },
-        headerTintColor: isDark ? "#f9fafb" : "#111827",
-      }}
+        default: undefined,
+      })}
+      tintColor={Platform.select({
+        ios: DynamicColorIOS({
+          dark: "white",
+          light: "black",
+        }),
+        default: undefined,
+      })}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Home",
-          tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: "Explore",
-          tabBarIcon: ({ color }) => (
-            <TabBarIcon name="compass" color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
-        }}
-      />
-    </Tabs>
+      <NativeTabs.Trigger name="home">
+        <Icon
+          sf={{ default: "house", selected: "house.fill" }}
+          drawable="ic_home"
+        />
+        <Label>Home</Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="explore">
+        <Icon
+          sf={{ default: "safari", selected: "safari.fill" }}
+          drawable="ic_search"
+        />
+        <Label>Explore</Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="profile">
+        <Icon
+          sf={{ default: "person", selected: "person.fill" }}
+          drawable="ic_person"
+        />
+        <Label>Profile</Label>
+      </NativeTabs.Trigger>
+    </NativeTabs>
   );
 }

@@ -9,6 +9,7 @@ import "../global.css";
 
 import { useColorScheme } from "@/components/useColorScheme";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { QueryProvider } from "@/lib/query-client";
 
 export { ErrorBoundary } from "expo-router";
 
@@ -45,14 +46,16 @@ function RootLayoutNav() {
   const colorScheme = useColorScheme();
 
   return (
-    <SafeAreaProvider>
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="[username]" options={{ headerShown: false }} />
-        </Stack>
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <QueryProvider>
+      <SafeAreaProvider>
+        <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+          <Stack>
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="[username]" options={{ headerShown: false }} />
+          </Stack>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </QueryProvider>
   );
 }

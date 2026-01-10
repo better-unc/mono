@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 
-export default function UserLayout() {
+export default function RepoLayout() {
   return (
     <Stack
       screenOptions={{
@@ -16,8 +16,7 @@ export default function UserLayout() {
         },
       }}
     >
-      <Stack.Screen name="index" options={{ headerLargeTitle: true }} />
-      <Stack.Screen name="[repo]" options={{ headerShown: false }} />
+      <Stack.Screen name="index" />
     </Stack>
   );
 }

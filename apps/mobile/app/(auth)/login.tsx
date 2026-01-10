@@ -1,8 +1,21 @@
 import { useState } from "react";
-import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform, ScrollView, Alert } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Alert,
+  StyleSheet,
+} from "react-native";
 import { Link, router } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { LinearGradient } from "expo-linear-gradient";
 import { signIn } from "@/lib/auth-client";
+import { GlassCard, GlassButton } from "@/components/ui/glass";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -32,71 +45,212 @@ export default function LoginScreen() {
   };
 
   return (
-    <View className="flex-1 bg-gray-900">
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1">
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
-          <View className="flex-1 justify-center px-6 py-12">
-            <View className="mb-8 items-center">
-              <View className="mb-4 h-16 w-16 items-center justify-center rounded-2xl bg-blue-600">
-                <FontAwesome name="code-fork" size={32} color="white" />
-              </View>
-              <Text className="text-2xl font-bold text-white">Welcome back</Text>
-              <Text className="mt-2 text-gray-400">Sign in to your GitBruv account</Text>
+    <View style={styles.container}>
+      <LinearGradient
+        colors={["#0a0a1a", "#1a0a2e", "#0a1a2e"]}
+        style={StyleSheet.absoluteFill}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      />
+      <SafeAreaView style={styles.safeArea}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.keyboardView}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.logoContainer}>
+              <LinearGradient
+                colors={["#3b82f6", "#8b5cf6"]}
+                style={styles.logoGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <FontAwesome name="code-fork" size={36} color="white" />
+              </LinearGradient>
+              <Text style={styles.title}>Welcome back</Text>
+              <Text style={styles.subtitle}>Sign in to your GitBruv account</Text>
             </View>
 
-            <View className="space-y-4">
-              <View>
-                <Text className="mb-2 text-sm font-medium text-gray-300">Email</Text>
-                <TextInput
-                  className="rounded-xl bg-gray-800 px-4 py-3.5 text-white"
-                  placeholder="you@example.com"
-                  placeholderTextColor="#6b7280"
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  autoComplete="email"
-                />
+            <GlassCard style={styles.formCard}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Email</Text>
+                <View style={styles.inputContainer}>
+                  <FontAwesome
+                    name="envelope"
+                    size={16}
+                    color="rgba(255,255,255,0.4)"
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="you@example.com"
+                    placeholderTextColor="rgba(255, 255, 255, 0.3)"
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    autoComplete="email"
+                  />
+                </View>
               </View>
 
-              <View className="mt-4">
-                <Text className="mb-2 text-sm font-medium text-gray-300">Password</Text>
-                <View className="relative">
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Password</Text>
+                <View style={styles.inputContainer}>
+                  <FontAwesome
+                    name="lock"
+                    size={18}
+                    color="rgba(255,255,255,0.4)"
+                    style={styles.inputIcon}
+                  />
                   <TextInput
-                    className="rounded-xl bg-gray-800 px-4 py-3.5 pr-12 text-white"
+                    style={styles.input}
                     placeholder="••••••••"
-                    placeholderTextColor="#6b7280"
+                    placeholderTextColor="rgba(255, 255, 255, 0.3)"
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
                     autoComplete="password"
                   />
-                  <Pressable onPress={() => setShowPassword(!showPassword)} className="absolute right-4 top-3.5">
-                    <FontAwesome name={showPassword ? "eye-slash" : "eye"} size={20} color="#6b7280" />
+                  <Pressable
+                    onPress={() => setShowPassword(!showPassword)}
+                    style={styles.eyeButton}
+                  >
+                    <FontAwesome
+                      name={showPassword ? "eye-slash" : "eye"}
+                      size={18}
+                      color="rgba(255, 255, 255, 0.4)"
+                    />
                   </Pressable>
                 </View>
               </View>
 
-              <Pressable
-                onPress={handleLogin}
-                disabled={loading}
-                className={`mt-6 rounded-xl py-4 ${loading ? "bg-blue-800" : "bg-blue-600 active:bg-blue-700"}`}
-              >
-                <Text className="text-center font-semibold text-white">{loading ? "Signing in..." : "Sign In"}</Text>
+              <Pressable onPress={handleLogin} disabled={loading}>
+                <GlassButton
+                  style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+                  interactive
+                  tintColor="#3b82f6"
+                >
+                  <Text style={styles.submitButtonText}>
+                    {loading ? "Signing in..." : "Sign In"}
+                  </Text>
+                </GlassButton>
               </Pressable>
-            </View>
+            </GlassCard>
 
-            <View className="mt-8 flex-row justify-center">
-              <Text className="text-gray-400">Don't have an account? </Text>
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>Don't have an account? </Text>
               <Link href="/(auth)/register" asChild>
                 <Pressable>
-                  <Text className="font-medium text-blue-500">Sign up</Text>
+                  <Text style={styles.footerLink}>Sign up</Text>
                 </Pressable>
               </Link>
             </View>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  safeArea: {
+    flex: 1,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    padding: 24,
+  },
+  logoContainer: {
+    alignItems: "center",
+    marginBottom: 32,
+  },
+  logoGradient: {
+    width: 72,
+    height: 72,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#ffffff",
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 15,
+    color: "rgba(255, 255, 255, 0.6)",
+  },
+  formCard: {
+    padding: 24,
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "rgba(255, 255, 255, 0.8)",
+    marginBottom: 8,
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+  },
+  inputIcon: {
+    paddingLeft: 16,
+  },
+  input: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    fontSize: 16,
+    color: "#ffffff",
+  },
+  eyeButton: {
+    padding: 14,
+  },
+  submitButton: {
+    paddingVertical: 16,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  submitButtonDisabled: {
+    opacity: 0.6,
+  },
+  submitButtonText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  footer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 32,
+  },
+  footerText: {
+    color: "rgba(255, 255, 255, 0.6)",
+    fontSize: 15,
+  },
+  footerLink: {
+    color: "#60a5fa",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+});

@@ -1,12 +1,13 @@
 import { Stack } from "expo-router";
 
-export default function UserLayout() {
+export default function ExploreLayout() {
   return (
     <Stack
       screenOptions={{
+        headerLargeTitle: true,
         headerTransparent: true,
         headerBlurEffect: "systemMaterial",
-        headerShadowVisible: false,
+        headerLargeTitleShadowVisible: false,
         headerStyle: {
           backgroundColor: "transparent",
         },
@@ -16,8 +17,12 @@ export default function UserLayout() {
         },
       }}
     >
-      <Stack.Screen name="index" options={{ headerLargeTitle: true }} />
-      <Stack.Screen name="[repo]" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="index"
+        options={{
+          title: "Explore",
+        }}
+      />
     </Stack>
   );
 }

@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -6,68 +5,59 @@ import {
   RefreshControl,
   Pressable,
   ActivityIndicator,
+  StyleSheet,
 } from "react-native";
 import { useLocalSearchParams, Link, Stack } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { api, type RepoPageData, type FileEntry } from "@/lib/api";
+import { LinearGradient } from "expo-linear-gradient";
+import { type FileEntry } from "@/lib/api";
+import { GlassCard, GlassButton, GlassGroup } from "@/components/ui/glass";
+import { useRepositoryPageData, useToggleStar } from "@/lib/hooks/use-repository";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function RepositoryScreen() {
   const { username, repo } = useLocalSearchParams<{
     username: string;
     repo: string;
   }>();
-  const [data, setData] = useState<RepoPageData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [starring, setStarring] = useState(false);
+  const queryClient = useQueryClient();
 
-  const fetchData = async () => {
-    if (!username || !repo) return;
-    try {
-      const pageData = await api.repositories.getPageData(username, repo);
-      setData(pageData);
-      setError(null);
-    } catch (err) {
-      setError("Failed to load repository");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
+  const {
+    data,
+    isLoading,
+    error,
+    refetch,
+    isRefetching,
+  } = useRepositoryPageData(username || "", repo || "");
 
-  useEffect(() => {
-    fetchData();
-  }, [username, repo]);
+  const toggleStar = useToggleStar(data?.repo.id || "");
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchData();
+  const handleRefresh = () => {
+    refetch();
   };
 
   const handleStar = async () => {
     if (!data) return;
-    setStarring(true);
-    try {
-      const result = await api.repositories.toggleStar(data.repo.id);
-      setData({
-        ...data,
-        repo: {
-          ...data.repo,
-          starred: result.starred,
-          starCount: result.starred
-            ? data.repo.starCount + 1
-            : data.repo.starCount - 1,
-        },
-      });
-    } catch (err) {
-      console.error("Failed to star:", err);
-    } finally {
-      setStarring(false);
-    }
+    toggleStar.mutate(undefined, {
+      onSuccess: (result) => {
+        queryClient.setQueryData(
+          ["repository", username, repo, "pageData"],
+          (old: typeof data) => ({
+            ...old,
+            repo: {
+              ...old.repo,
+              starred: result.starred,
+              starCount: result.starred
+                ? old.repo.starCount + 1
+                : old.repo.starCount - 1,
+            },
+          })
+        );
+      },
+    });
   };
 
-  const getFileIcon = (file: FileEntry) => {
+  const getFileIcon = (file: FileEntry): React.ComponentProps<typeof FontAwesome>["name"] => {
     if (file.type === "tree") return "folder";
     const ext = file.name.split(".").pop()?.toLowerCase();
     switch (ext) {
@@ -85,21 +75,33 @@ export default function RepositoryScreen() {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <View className="flex-1 items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <ActivityIndicator size="large" color="#2563eb" />
+      <View style={styles.loadingContainer}>
+        <Stack.Screen options={{ title: "" }} />
+        <LinearGradient
+          colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]}
+          style={StyleSheet.absoluteFill}
+        />
+        <ActivityIndicator size="large" color="#60a5fa" />
       </View>
     );
   }
 
   if (error || !data) {
     return (
-      <View className="flex-1 items-center justify-center bg-gray-50 p-4 dark:bg-gray-900">
-        <FontAwesome name="exclamation-circle" size={48} color="#dc2626" />
-        <Text className="mt-4 text-lg text-gray-900 dark:text-white">
-          {error || "Repository not found"}
-        </Text>
+      <View style={styles.errorContainer}>
+        <Stack.Screen options={{ title: "Error" }} />
+        <LinearGradient
+          colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]}
+          style={StyleSheet.absoluteFill}
+        />
+        <GlassCard style={styles.errorCard}>
+          <FontAwesome name="exclamation-circle" size={48} color="#f87171" />
+          <Text style={styles.errorText}>
+            {error?.message || "Repository not found"}
+          </Text>
+        </GlassCard>
       </View>
     );
   }
@@ -110,30 +112,58 @@ export default function RepositoryScreen() {
   });
 
   return (
-    <>
+    <View style={styles.container}>
       <Stack.Screen options={{ title: data.repo.name }} />
+      <LinearGradient
+        colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]}
+        style={StyleSheet.absoluteFill}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      />
       <ScrollView
-        className="flex-1 bg-gray-50 dark:bg-gray-900"
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        contentInsetAdjustmentBehavior="automatic"
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={handleRefresh}
+            tintColor="#60a5fa"
+          />
         }
       >
-        <View className="border-b border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-          <View className="flex-row items-center">
+        <GlassCard style={styles.headerCard}>
+          <View style={styles.repoNameRow}>
             <Link href={`/${username}`} asChild>
               <Pressable>
-                <Text className="text-blue-600">{username}</Text>
+                <Text style={styles.ownerName}>{username}</Text>
               </Pressable>
             </Link>
-            <Text className="mx-1 text-gray-400">/</Text>
-            <Text className="font-semibold text-gray-900 dark:text-white">
-              {data.repo.name}
-            </Text>
+            <Text style={styles.separator}>/</Text>
+            <Text style={styles.repoName}>{data.repo.name}</Text>
+          </View>
+
+          <View style={styles.badgeRow}>
             <View
-              className={`ml-2 rounded px-2 py-0.5 ${data.repo.visibility === "private" ? "bg-yellow-100" : "bg-green-100"}`}
+              style={[
+                styles.visibilityBadge,
+                data.repo.visibility === "private"
+                  ? styles.privateBadge
+                  : styles.publicBadge,
+              ]}
             >
+              <FontAwesome
+                name={data.repo.visibility === "private" ? "lock" : "globe"}
+                size={10}
+                color={data.repo.visibility === "private" ? "#fbbf24" : "#22c55e"}
+              />
               <Text
-                className={`text-xs ${data.repo.visibility === "private" ? "text-yellow-800" : "text-green-800"}`}
+                style={[
+                  styles.visibilityText,
+                  data.repo.visibility === "private"
+                    ? styles.privateText
+                    : styles.publicText,
+                ]}
               >
                 {data.repo.visibility}
               </Text>
@@ -141,78 +171,297 @@ export default function RepositoryScreen() {
           </View>
 
           {data.repo.description && (
-            <Text className="mt-2 text-gray-600 dark:text-gray-400">
-              {data.repo.description}
-            </Text>
+            <Text style={styles.description}>{data.repo.description}</Text>
           )}
 
-          <View className="mt-4 flex-row gap-3">
-            <Pressable
-              onPress={handleStar}
-              disabled={starring}
-              className={`flex-row items-center rounded-lg px-4 py-2 ${
-                data.repo.starred
-                  ? "bg-yellow-100 dark:bg-yellow-900/30"
-                  : "bg-gray-100 dark:bg-gray-700"
-              }`}
-            >
-              <FontAwesome
-                name={data.repo.starred ? "star" : "star-o"}
-                size={16}
-                color={data.repo.starred ? "#eab308" : "#6b7280"}
-              />
-              <Text
-                className={`ml-2 font-medium ${
-                  data.repo.starred
-                    ? "text-yellow-800 dark:text-yellow-200"
-                    : "text-gray-700 dark:text-gray-300"
-                }`}
+          <GlassGroup style={styles.actionRow} spacing={8}>
+            <Pressable onPress={handleStar} disabled={toggleStar.isPending}>
+              <GlassButton
+                style={styles.actionButton}
+                interactive
+                tintColor={data.repo.starred ? "#eab308" : undefined}
               >
-                {data.repo.starCount}
-              </Text>
+                <FontAwesome
+                  name={data.repo.starred ? "star" : "star-o"}
+                  size={16}
+                  color={data.repo.starred ? "#fbbf24" : "#ffffff"}
+                />
+                <Text
+                  style={[
+                    styles.actionText,
+                    data.repo.starred && styles.starredText,
+                  ]}
+                >
+                  {data.repo.starCount}
+                </Text>
+              </GlassButton>
             </Pressable>
 
-            <View className="flex-row items-center rounded-lg bg-gray-100 px-4 py-2 dark:bg-gray-700">
-              <FontAwesome name="code-fork" size={16} color="#6b7280" />
-              <Text className="ml-2 text-gray-700 dark:text-gray-300">
-                {data.repo.defaultBranch}
-              </Text>
-            </View>
-          </View>
-        </View>
+            <GlassButton style={styles.actionButton}>
+              <FontAwesome name="code-fork" size={16} color="#60a5fa" />
+              <Text style={styles.branchText}>{data.repo.defaultBranch}</Text>
+            </GlassButton>
+          </GlassGroup>
+        </GlassCard>
 
-        <View className="p-4">
-          {data.isEmpty ? (
-            <View className="rounded-xl bg-white p-6 dark:bg-gray-800">
-              <Text className="text-center text-gray-600 dark:text-gray-400">
-                This repository is empty
-              </Text>
-            </View>
-          ) : (
-            <View className="overflow-hidden rounded-xl bg-white dark:bg-gray-800">
-              {sortedFiles.map((file, index) => (
-                <Pressable
-                  key={file.oid}
-                  className={`flex-row items-center px-4 py-3 active:bg-gray-50 dark:active:bg-gray-700 ${
-                    index < sortedFiles.length - 1
-                      ? "border-b border-gray-100 dark:border-gray-700"
-                      : ""
-                  }`}
+        <Text style={styles.sectionTitle}>Files</Text>
+
+        {data.isEmpty ? (
+          <GlassCard style={styles.emptyCard}>
+            <FontAwesome
+              name="inbox"
+              size={32}
+              color="rgba(255,255,255,0.3)"
+            />
+            <Text style={styles.emptyText}>This repository is empty</Text>
+            <Text style={styles.emptyHint}>
+              Push some code to get started
+            </Text>
+          </GlassCard>
+        ) : (
+          <GlassCard style={styles.filesCard}>
+            {sortedFiles.map((file, index) => (
+              <Pressable
+                key={file.oid}
+                style={({ pressed }) => [
+                  styles.fileRow,
+                  index < sortedFiles.length - 1 && styles.fileRowBorder,
+                  pressed && styles.fileRowPressed,
+                ]}
+              >
+                <View
+                  style={[
+                    styles.fileIconContainer,
+                    file.type === "tree"
+                      ? styles.folderIconBg
+                      : styles.fileIconBg,
+                  ]}
                 >
                   <FontAwesome
                     name={getFileIcon(file)}
-                    size={16}
-                    color={file.type === "tree" ? "#3b82f6" : "#6b7280"}
+                    size={14}
+                    color={file.type === "tree" ? "#60a5fa" : "#a78bfa"}
                   />
-                  <Text className="ml-3 flex-1 text-gray-900 dark:text-white">
-                    {file.name}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          )}
-        </View>
+                </View>
+                <Text style={styles.fileName}>{file.name}</Text>
+                <FontAwesome
+                  name="chevron-right"
+                  size={12}
+                  color="rgba(255, 255, 255, 0.3)"
+                />
+              </Pressable>
+            ))}
+          </GlassCard>
+        )}
+
+        {data.readmeOid && (
+          <>
+            <Text style={styles.sectionTitle}>README</Text>
+            <GlassCard style={styles.readmeCard}>
+              <View style={styles.readmeHeader}>
+                <FontAwesome name="book" size={14} color="#60a5fa" />
+                <Text style={styles.readmeTitle}>README.md</Text>
+              </View>
+              <Text style={styles.readmeHint}>
+                Tap to view README content
+              </Text>
+            </GlassCard>
+          </>
+        )}
       </ScrollView>
-    </>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  errorContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  errorCard: {
+    padding: 32,
+    alignItems: "center",
+  },
+  errorText: {
+    color: "#f87171",
+    fontSize: 16,
+    marginTop: 16,
+    textAlign: "center",
+  },
+  scrollView: {
+    flex: 1,
+  },
+  content: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  headerCard: {
+    padding: 20,
+    marginBottom: 24,
+  },
+  repoNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+  },
+  ownerName: {
+    fontSize: 16,
+    color: "#60a5fa",
+    fontWeight: "500",
+  },
+  separator: {
+    fontSize: 16,
+    color: "rgba(255, 255, 255, 0.4)",
+    marginHorizontal: 6,
+  },
+  repoName: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#ffffff",
+  },
+  badgeRow: {
+    flexDirection: "row",
+    marginTop: 10,
+  },
+  visibilityBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 5,
+  },
+  privateBadge: {
+    backgroundColor: "rgba(251, 191, 36, 0.15)",
+  },
+  publicBadge: {
+    backgroundColor: "rgba(34, 197, 94, 0.15)",
+  },
+  visibilityText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  privateText: {
+    color: "#fbbf24",
+  },
+  publicText: {
+    color: "#22c55e",
+  },
+  description: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.7)",
+    marginTop: 14,
+    lineHeight: 20,
+  },
+  actionRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 18,
+  },
+  actionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  actionText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  starredText: {
+    color: "#fbbf24",
+  },
+  branchText: {
+    color: "#60a5fa",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#ffffff",
+    marginBottom: 12,
+  },
+  emptyCard: {
+    padding: 40,
+    alignItems: "center",
+  },
+  emptyText: {
+    color: "rgba(255, 255, 255, 0.6)",
+    fontSize: 16,
+    marginTop: 16,
+    fontWeight: "500",
+  },
+  emptyHint: {
+    color: "rgba(255, 255, 255, 0.4)",
+    fontSize: 13,
+    marginTop: 6,
+  },
+  filesCard: {
+    padding: 0,
+    overflow: "hidden",
+    marginBottom: 24,
+  },
+  fileRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  fileRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255, 255, 255, 0.06)",
+  },
+  fileRowPressed: {
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+  },
+  fileIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  folderIconBg: {
+    backgroundColor: "rgba(96, 165, 250, 0.15)",
+  },
+  fileIconBg: {
+    backgroundColor: "rgba(167, 139, 250, 0.15)",
+  },
+  fileName: {
+    fontSize: 14,
+    color: "#ffffff",
+    flex: 1,
+  },
+  readmeCard: {
+    padding: 16,
+  },
+  readmeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  readmeTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#ffffff",
+  },
+  readmeHint: {
+    fontSize: 13,
+    color: "rgba(255, 255, 255, 0.5)",
+    marginTop: 8,
+  },
+});
