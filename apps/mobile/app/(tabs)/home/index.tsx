@@ -1,7 +1,6 @@
 import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { Link } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { LinearGradient } from "expo-linear-gradient";
 import { useSession } from "@/lib/auth-client";
 import { usePublicRepositories } from "@/lib/hooks/use-repository";
 import { BlurView } from "expo-blur";
@@ -15,76 +14,76 @@ export default function HomeScreen() {
 
   if (isPending || isLoading) {
     return (
-      <View style={styles.container}>
+      <View className="flex-1 items-center justify-center">
         <ActivityIndicator size="large" color="#60a5fa" />
       </View>
     );
   }
 
   return (
-    <View style={styles.flex1}>
+    <View className="flex-1">
       <ScrollView
-        style={styles.flex1}
-        contentContainerStyle={styles.scrollContent}
+        className="flex-1"
+        contentContainerClassName="px-4 pt-4 pb-36"
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} tintColor="#60a5fa" />}
       >
         {session?.user ? (
-          <View style={styles.card}>
+          <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-3">
             <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-            <View style={styles.cardContent}>
-              <Text style={styles.welcomeTitle}>Welcome back, {session.user.name}!</Text>
-              <Text style={styles.welcomeSubtitle}>Check out the latest repositories below</Text>
+            <View className="p-5 relative z-10">
+              <Text className="text-white text-xl font-bold mb-1">Welcome back, {session.user.name}!</Text>
+              <Text className="text-white/60 text-sm">Check out the latest repositories below</Text>
             </View>
           </View>
         ) : (
-          <View style={[styles.card, styles.welcomeCard]}>
+          <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-blue-500/30 mb-3">
             <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-            <View style={styles.cardContent}>
-              <Text style={styles.welcomeTitle}>Welcome to GitBruv</Text>
-              <Text style={styles.welcomeSubtitle}>Sign in to start exploring and creating repositories</Text>
+            <View className="p-5 relative z-10">
+              <Text className="text-white text-xl font-bold mb-1">Welcome to GitBruv</Text>
+              <Text className="text-white/60 text-sm">Sign in to start exploring and creating repositories</Text>
               <Link href="/(auth)/login" asChild>
-                <Pressable style={styles.signInButton}>
+                <Pressable className="mt-4 py-3 px-6 rounded-xl self-start overflow-hidden bg-blue-600/30">
                   <BlurView intensity={30} tint="light" style={StyleSheet.absoluteFill} />
-                  <Text style={styles.signInText}>Sign In</Text>
+                  <Text className="text-white font-semibold text-[15px] relative z-10">Sign In</Text>
                 </Pressable>
               </Link>
             </View>
           </View>
         )}
 
-        <Text style={styles.sectionTitle}>Recent Repositories</Text>
+        <Text className="text-white text-lg font-semibold mb-4 mt-2">Recent Repositories</Text>
 
         {repos.length === 0 ? (
-          <View style={styles.card}>
+          <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-3">
             <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-            <View style={[styles.cardContent, styles.emptyState]}>
-              <Text style={styles.emptyText}>No repositories found</Text>
+            <View className="p-6 items-center relative z-10">
+              <Text className="text-white/60 text-[15px]">No repositories found</Text>
             </View>
           </View>
         ) : (
           repos.map((repo) => (
             <Link key={repo.id} href={`/${repo.owner.username}/${repo.name}`} asChild>
-              <Pressable style={styles.repoCardWrapper}>
-                <View style={styles.card}>
+              <Pressable className="mb-3">
+                <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
                   <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-                  <View style={styles.repoContent}>
-                    <View style={styles.repoIcon}>
+                  <View className="flex-row items-center p-4 relative z-10">
+                    <View className="w-10 h-10 rounded-full bg-blue-500/20 items-center justify-center mr-3">
                       <FontAwesome name="code-fork" size={18} color="#60a5fa" />
                     </View>
-                    <View style={styles.repoInfo}>
-                      <Text style={styles.repoName}>
+                    <View className="flex-1 mr-3">
+                      <Text className="text-white text-[15px] font-semibold">
                         {repo.owner.username}/{repo.name}
                       </Text>
                       {repo.description && (
-                        <Text style={styles.repoDescription} numberOfLines={1}>
+                        <Text className="text-white/50 text-[13px] mt-1" numberOfLines={1}>
                           {repo.description}
                         </Text>
                       )}
                     </View>
-                    <View style={styles.starBadge}>
+                    <View className="flex-row items-center bg-yellow-500/20 px-2.5 py-1.5 rounded-xl">
                       <FontAwesome name="star" size={12} color="#fbbf24" />
-                      <Text style={styles.starCount}>{repo.starCount}</Text>
+                      <Text className="text-yellow-400 text-xs font-semibold ml-1">{repo.starCount}</Text>
                     </View>
                   </View>
                 </View>
@@ -96,123 +95,3 @@ export default function HomeScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  flex1: {
-    flex: 1,
-  },
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 144,
-  },
-  card: {
-    borderRadius: 16,
-    overflow: "hidden",
-    backgroundColor: "rgba(30, 30, 50, 0.5)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
-    marginBottom: 12,
-  },
-  welcomeCard: {
-    borderColor: "rgba(59, 130, 246, 0.3)",
-  },
-  cardContent: {
-    padding: 20,
-    position: "relative",
-    zIndex: 1,
-  },
-  welcomeTitle: {
-    color: "#ffffff",
-    fontSize: 20,
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-  welcomeSubtitle: {
-    color: "rgba(255, 255, 255, 0.6)",
-    fontSize: 14,
-  },
-  signInButton: {
-    marginTop: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    alignSelf: "flex-start",
-    overflow: "hidden",
-    backgroundColor: "rgba(59, 130, 246, 0.3)",
-  },
-  signInText: {
-    color: "#ffffff",
-    fontWeight: "600",
-    fontSize: 15,
-    position: "relative",
-    zIndex: 1,
-  },
-  sectionTitle: {
-    color: "#ffffff",
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 16,
-    marginTop: 8,
-  },
-  emptyState: {
-    alignItems: "center",
-    padding: 24,
-  },
-  emptyText: {
-    color: "rgba(255, 255, 255, 0.6)",
-    fontSize: 15,
-  },
-  repoCardWrapper: {
-    marginBottom: 12,
-  },
-  repoContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    position: "relative",
-    zIndex: 1,
-  },
-  repoIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(96, 165, 250, 0.2)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  repoInfo: {
-    flex: 1,
-    marginRight: 12,
-  },
-  repoName: {
-    color: "#ffffff",
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  repoDescription: {
-    color: "rgba(255, 255, 255, 0.5)",
-    fontSize: 13,
-    marginTop: 4,
-  },
-  starBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(251, 191, 36, 0.2)",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  starCount: {
-    color: "#fbbf24",
-    fontSize: 12,
-    fontWeight: "600",
-    marginLeft: 4,
-  },
-});

@@ -33,7 +33,7 @@ export default function ProfileScreen() {
 
   if (isPending) {
     return (
-      <View style={styles.loadingContainer}>
+      <View className="flex-1 items-center justify-center">
         <ActivityIndicator size="large" color="#60a5fa" />
       </View>
     );
@@ -41,20 +41,20 @@ export default function ProfileScreen() {
 
   if (!session?.user) {
     return (
-      <View style={styles.flex1}>
-        <View style={styles.notSignedInContainer}>
-          <View style={styles.notSignedInCard}>
+      <View className="flex-1">
+        <View className="flex-1 items-center justify-center px-6">
+          <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 w-full max-w-[320px]">
             <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-            <View style={styles.notSignedInContent}>
-              <View style={styles.placeholderAvatar}>
+            <View className="p-8 items-center relative z-10">
+              <View className="w-20 h-20 rounded-full bg-white/10 items-center justify-center mb-5">
                 <FontAwesome name="user" size={40} color="rgba(255,255,255,0.5)" />
               </View>
-              <Text style={styles.notSignedInTitle}>Not signed in</Text>
-              <Text style={styles.notSignedInSubtitle}>Sign in to view your profile and repositories</Text>
+              <Text className="text-white text-[22px] font-bold mb-2">Not signed in</Text>
+              <Text className="text-white/50 text-sm text-center mb-6">Sign in to view your profile and repositories</Text>
               <Link href="/(auth)/login" asChild>
-                <Pressable style={styles.signInButton}>
+                <Pressable className="py-3.5 px-8 rounded-xl overflow-hidden bg-blue-600/30">
                   <BlurView intensity={30} tint="light" style={StyleSheet.absoluteFill} />
-                  <Text style={styles.signInButtonText}>Sign In</Text>
+                  <Text className="text-white font-semibold text-base relative z-10">Sign In</Text>
                 </Pressable>
               </Link>
             </View>
@@ -67,60 +67,60 @@ export default function ProfileScreen() {
   const user = session.user as { name?: string; email?: string; username?: string };
 
   return (
-    <View style={styles.flex1}>
+    <View className="flex-1">
       <ScrollView
-        style={styles.flex1}
-        contentContainerStyle={styles.scrollContent}
+        className="flex-1"
+        contentContainerClassName="px-4 pt-4 pb-36"
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} tintColor="#60a5fa" />}
       >
-        <View style={styles.profileCard}>
+        <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-6">
           <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-          <View style={styles.profileContent}>
-            <LinearGradient colors={["#8b5cf6", "#6366f1", "#3b82f6"]} style={styles.avatarGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+          <View className="p-6 items-center relative z-10">
+            <LinearGradient colors={["#8b5cf6", "#6366f1", "#3b82f6"]} className="w-20 h-20 rounded-full items-center justify-center mb-4" start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
               <FontAwesome name="user" size={36} color="#ffffff" />
             </LinearGradient>
-            <Text style={styles.userName}>{user.name}</Text>
-            <Text style={styles.userHandle}>@{user.username}</Text>
-            <Text style={styles.userEmail}>{user.email}</Text>
+            <Text className="text-white text-xl font-bold">{user.name}</Text>
+            <Text className="text-white/50 text-[15px] mt-1">@{user.username}</Text>
+            <Text className="text-white/30 text-[13px] mt-1">{user.email}</Text>
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Your Repositories</Text>
+        <Text className="text-white text-lg font-semibold mb-4">Your Repositories</Text>
 
         {isLoading ? (
           <ActivityIndicator size="small" color="#60a5fa" />
         ) : repos.length === 0 ? (
-          <View style={styles.emptyCard}>
+          <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-4">
             <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-            <View style={styles.emptyContent}>
+            <View className="p-8 items-center relative z-10">
               <FontAwesome name="inbox" size={32} color="rgba(255,255,255,0.3)" />
-              <Text style={styles.emptyText}>You haven't created any repositories yet</Text>
+              <Text className="text-white/40 text-sm mt-3 text-center">You haven't created any repositories yet</Text>
             </View>
           </View>
         ) : (
           repos.map((repo) => (
             <Link key={repo.id} href={`/${user.username}/${repo.name}`} asChild>
-              <Pressable style={styles.repoCardWrapper}>
-                <View style={styles.card}>
+              <Pressable className="mb-3">
+                <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
                   <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-                  <View style={styles.repoContent}>
-                    <View style={styles.repoInfo}>
-                      <View style={styles.repoTitleRow}>
-                        <Text style={styles.repoName}>{repo.name}</Text>
-                        <View style={[styles.visibilityBadge, repo.visibility === "private" ? styles.privateBadge : styles.publicBadge]}>
-                          <Text style={[styles.visibilityText, repo.visibility === "private" ? styles.privateText : styles.publicText]}>{repo.visibility}</Text>
+                  <View className="flex-row items-center p-4 relative z-10">
+                    <View className="flex-1 mr-3">
+                      <View className="flex-row items-center">
+                        <Text className="text-white text-[15px] font-semibold mr-2">{repo.name}</Text>
+                        <View className={`px-2 py-0.5 rounded-lg ${repo.visibility === "private" ? "bg-yellow-500/20" : "bg-green-500/20"}`}>
+                          <Text className={`text-[11px] font-semibold ${repo.visibility === "private" ? "text-yellow-400" : "text-green-500"}`}>{repo.visibility}</Text>
                         </View>
                       </View>
                       {repo.description && (
-                        <Text style={styles.repoDescription} numberOfLines={1}>
+                        <Text className="text-white/50 text-[13px] mt-1" numberOfLines={1}>
                           {repo.description}
                         </Text>
                       )}
                     </View>
-                    <View style={styles.starBadge}>
+                    <View className="flex-row items-center bg-yellow-500/20 px-2.5 py-1.5 rounded-xl">
                       <FontAwesome name="star" size={12} color="#fbbf24" />
-                      <Text style={styles.starCount}>{repo.starCount}</Text>
+                      <Text className="text-yellow-400 text-xs font-semibold ml-1">{repo.starCount}</Text>
                     </View>
                   </View>
                 </View>
@@ -129,12 +129,12 @@ export default function ProfileScreen() {
           ))
         )}
 
-        <Pressable onPress={handleSignOut} style={styles.signOutWrapper}>
-          <View style={styles.signOutCard}>
+        <Pressable onPress={handleSignOut} className="mt-2">
+          <View className="rounded-2xl overflow-hidden bg-red-500/15 border border-red-500/30">
             <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-            <View style={styles.signOutContent}>
+            <View className="flex-row items-center justify-center p-4 relative z-10">
               <FontAwesome name="sign-out" size={18} color="#f87171" />
-              <Text style={styles.signOutText}>Sign Out</Text>
+              <Text className="text-red-400 font-semibold text-[15px] ml-2">Sign Out</Text>
             </View>
           </View>
         </Pressable>
@@ -143,232 +143,3 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  flex1: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 144,
-  },
-  notSignedInContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 24,
-  },
-  notSignedInCard: {
-    borderRadius: 16,
-    overflow: "hidden",
-    backgroundColor: "rgba(30, 30, 50, 0.5)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
-    width: "100%",
-    maxWidth: 320,
-  },
-  notSignedInContent: {
-    padding: 32,
-    alignItems: "center",
-    position: "relative",
-    zIndex: 1,
-  },
-  placeholderAvatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 20,
-  },
-  notSignedInTitle: {
-    color: "#ffffff",
-    fontSize: 22,
-    fontWeight: "700",
-    marginBottom: 8,
-  },
-  notSignedInSubtitle: {
-    color: "rgba(255, 255, 255, 0.5)",
-    fontSize: 14,
-    textAlign: "center",
-    marginBottom: 24,
-  },
-  signInButton: {
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    borderRadius: 12,
-    overflow: "hidden",
-    backgroundColor: "rgba(59, 130, 246, 0.3)",
-  },
-  signInButtonText: {
-    color: "#ffffff",
-    fontWeight: "600",
-    fontSize: 16,
-    position: "relative",
-    zIndex: 1,
-  },
-  profileCard: {
-    borderRadius: 16,
-    overflow: "hidden",
-    backgroundColor: "rgba(30, 30, 50, 0.5)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
-    marginBottom: 24,
-  },
-  profileContent: {
-    padding: 24,
-    alignItems: "center",
-    position: "relative",
-    zIndex: 1,
-  },
-  avatarGradient: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-  },
-  userName: {
-    color: "#ffffff",
-    fontSize: 20,
-    fontWeight: "700",
-  },
-  userHandle: {
-    color: "rgba(255, 255, 255, 0.5)",
-    fontSize: 15,
-    marginTop: 4,
-  },
-  userEmail: {
-    color: "rgba(255, 255, 255, 0.3)",
-    fontSize: 13,
-    marginTop: 4,
-  },
-  sectionTitle: {
-    color: "#ffffff",
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 16,
-  },
-  emptyCard: {
-    borderRadius: 16,
-    overflow: "hidden",
-    backgroundColor: "rgba(30, 30, 50, 0.5)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
-    marginBottom: 16,
-  },
-  emptyContent: {
-    padding: 32,
-    alignItems: "center",
-    position: "relative",
-    zIndex: 1,
-  },
-  emptyText: {
-    color: "rgba(255, 255, 255, 0.4)",
-    fontSize: 14,
-    marginTop: 12,
-    textAlign: "center",
-  },
-  repoCardWrapper: {
-    marginBottom: 12,
-  },
-  card: {
-    borderRadius: 16,
-    overflow: "hidden",
-    backgroundColor: "rgba(30, 30, 50, 0.5)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
-  },
-  repoContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    position: "relative",
-    zIndex: 1,
-  },
-  repoInfo: {
-    flex: 1,
-    marginRight: 12,
-  },
-  repoTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  repoName: {
-    color: "#ffffff",
-    fontSize: 15,
-    fontWeight: "600",
-    marginRight: 8,
-  },
-  visibilityBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  privateBadge: {
-    backgroundColor: "rgba(251, 191, 36, 0.2)",
-  },
-  publicBadge: {
-    backgroundColor: "rgba(34, 197, 94, 0.2)",
-  },
-  visibilityText: {
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  privateText: {
-    color: "#fbbf24",
-  },
-  publicText: {
-    color: "#22c55e",
-  },
-  repoDescription: {
-    color: "rgba(255, 255, 255, 0.5)",
-    fontSize: 13,
-    marginTop: 4,
-  },
-  starBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(251, 191, 36, 0.2)",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  starCount: {
-    color: "#fbbf24",
-    fontSize: 12,
-    fontWeight: "600",
-    marginLeft: 4,
-  },
-  signOutWrapper: {
-    marginTop: 8,
-  },
-  signOutCard: {
-    borderRadius: 16,
-    overflow: "hidden",
-    backgroundColor: "rgba(239, 68, 68, 0.15)",
-    borderWidth: 1,
-    borderColor: "rgba(239, 68, 68, 0.3)",
-  },
-  signOutContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
-    position: "relative",
-    zIndex: 1,
-  },
-  signOutText: {
-    color: "#f87171",
-    fontWeight: "600",
-    fontSize: 15,
-    marginLeft: 8,
-  },
-});

@@ -40,7 +40,7 @@ export default function RegisterScreen() {
   };
 
   return (
-    <View className="flex-1 bg-gray-900">
+    <View className="flex-1">
       <SafeAreaView className="flex-1">
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1">
           <ScrollView contentContainerClassName="flex-1 justify-center px-6 py-6" keyboardShouldPersistTaps="handled">
