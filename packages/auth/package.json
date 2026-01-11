@@ -13,14 +13,15 @@
     "./queries": "./src/queries.ts"
   },
   "dependencies": {
+    "@better-auth/expo": "^1.4.10",
     "@gitbruv/db": "workspace:*",
     "bcryptjs": "^3.0.3",
-    "better-auth": "^1.2.8",
+    "better-auth": "^1.4.10",
     "drizzle-orm": "^0.45.1"
   },
   "devDependencies": {
     "@types/bcryptjs": "^3.0.0",
-    "@types/node": "^20",
+    "@types/node": "^25",
     "typescript": "^5"
   }
 }

@@ -9,6 +9,7 @@ import { registerR2Routes } from "./routes/r2";
 import { registerRepositoryRoutes } from "./routes/repositories";
 import { registerSettingsRoutes } from "./routes/settings";
 import { registerUserRoutes } from "./routes/users";
+import { registerAuthRoutes } from "./routes/auth";
 import { getEnv } from "./env";
 import { createS3Client } from "./r2-fs";
 import { createDb } from "./db";
@@ -39,6 +40,7 @@ app.use(
 );
 
 registerHealthRoutes(app);
+registerAuthRoutes(app);
 registerAvatarRoutes(app);
 registerR2Routes(app);
 registerRepositoryRoutes(app);

@@ -18,12 +18,12 @@
   "dependencies": {
     "drizzle-orm": "^0.45.1",
     "dotenv": "^16.4.5",
-    "postgres": "^3.4.7"
+    "postgres": "^3.4.8"
   },
   "devDependencies": {
-    "@types/node": "^20",
+    "@types/node": "^25",
     "drizzle-kit": "^0.31.8",
-    "tsx": "^4.19.2",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }
