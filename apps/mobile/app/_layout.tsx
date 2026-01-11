@@ -10,7 +10,6 @@ import "../global.css";
 import { useColorScheme } from "@/components/useColorScheme";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { QueryProvider } from "@/lib/query-client";
-import { Text } from "react-native";
 import { useSession } from "@/lib/auth-client";
 
 export { ErrorBoundary } from "expo-router";
@@ -67,14 +66,15 @@ function RootLayoutNav() {
                 name="(tabs)"
                 options={{
                   headerShown: false,
+                  title: "",
                 }}
               />
-              <Stack.Screen
+              {/* <Stack.Screen
                 name="[username]"
                 options={{
                   headerShown: false,
                 }}
-              />
+              /> */}
             </Stack.Protected>
           </Stack>
         </ThemeProvider>

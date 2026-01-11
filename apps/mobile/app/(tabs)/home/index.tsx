@@ -16,7 +16,6 @@ export default function HomeScreen() {
   if (isPending || isLoading) {
     return (
       <View style={styles.container}>
-        <LinearGradient colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]} style={StyleSheet.absoluteFill} />
         <ActivityIndicator size="large" color="#60a5fa" />
       </View>
     );
@@ -24,7 +23,6 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.flex1}>
-      <LinearGradient colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
       <ScrollView
         style={styles.flex1}
         contentContainerStyle={styles.scrollContent}
@@ -75,9 +73,13 @@ export default function HomeScreen() {
                       <FontAwesome name="code-fork" size={18} color="#60a5fa" />
                     </View>
                     <View style={styles.repoInfo}>
-                      <Text style={styles.repoName}>{repo.owner.username}/{repo.name}</Text>
+                      <Text style={styles.repoName}>
+                        {repo.owner.username}/{repo.name}
+                      </Text>
                       {repo.description && (
-                        <Text style={styles.repoDescription} numberOfLines={1}>{repo.description}</Text>
+                        <Text style={styles.repoDescription} numberOfLines={1}>
+                          {repo.description}
+                        </Text>
                       )}
                     </View>
                     <View style={styles.starBadge}>

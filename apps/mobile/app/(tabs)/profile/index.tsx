@@ -26,7 +26,6 @@ export default function ProfileScreen() {
         onPress: async () => {
           await signOut();
           queryClient.clear();
-          router.replace("/(auth)/login");
         },
       },
     ]);
@@ -35,7 +34,6 @@ export default function ProfileScreen() {
   if (isPending) {
     return (
       <View style={styles.loadingContainer}>
-        <LinearGradient colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]} style={StyleSheet.absoluteFill} />
         <ActivityIndicator size="large" color="#60a5fa" />
       </View>
     );
@@ -44,7 +42,6 @@ export default function ProfileScreen() {
   if (!session?.user) {
     return (
       <View style={styles.flex1}>
-        <LinearGradient colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]} style={StyleSheet.absoluteFill} />
         <View style={styles.notSignedInContainer}>
           <View style={styles.notSignedInCard}>
             <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
@@ -71,7 +68,6 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.flex1}>
-      <LinearGradient colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
       <ScrollView
         style={styles.flex1}
         contentContainerStyle={styles.scrollContent}
@@ -117,7 +113,9 @@ export default function ProfileScreen() {
                         </View>
                       </View>
                       {repo.description && (
-                        <Text style={styles.repoDescription} numberOfLines={1}>{repo.description}</Text>
+                        <Text style={styles.repoDescription} numberOfLines={1}>
+                          {repo.description}
+                        </Text>
                       )}
                     </View>
                     <View style={styles.starBadge}>

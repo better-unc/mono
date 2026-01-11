@@ -12,21 +12,8 @@ const gradients = {
   profile: ["#0d1117", "#161b22", "#0d1117"],
 };
 
-export function GradientBackground({
-  children,
-  variant = "default",
-}: GradientBackgroundProps) {
-  return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={gradients[variant] as [string, string, ...string[]]}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      />
-      {children}
-    </View>
-  );
+export function GradientBackground({ children, variant = "default" }: GradientBackgroundProps) {
+  return <View style={styles.container}>{children}</View>;
 }
 
 const styles = StyleSheet.create({

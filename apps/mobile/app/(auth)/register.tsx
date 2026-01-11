@@ -1,10 +1,8 @@
 import { useState } from "react";
-import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform, ScrollView, Alert, StyleSheet } from "react-native";
+import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform, ScrollView, Alert } from "react-native";
 import { Link, router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { LinearGradient } from "expo-linear-gradient";
-import { BlurView } from "expo-blur";
 import { signUpWithUsername } from "@/lib/auth-client";
 
 export default function RegisterScreen() {
@@ -42,30 +40,28 @@ export default function RegisterScreen() {
   };
 
   return (
-    <View style={styles.flex1}>
-      <LinearGradient colors={["#0a0a1a", "#1a0a2e", "#0a1a2e"]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-      <SafeAreaView style={styles.flex1}>
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.flex1}>
-          <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-            <View style={styles.header}>
-              <LinearGradient colors={["#8b5cf6", "#ec4899"]} style={styles.logoGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+    <View className="flex-1 bg-gray-900">
+      <SafeAreaView className="flex-1">
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1">
+          <ScrollView contentContainerClassName="flex-1 justify-center px-6 py-6" keyboardShouldPersistTaps="handled">
+            <View className="items-center mb-8">
+              <View className="w-[72px] h-[72px] rounded-2xl bg-purple-600 items-center justify-center mb-5">
                 <FontAwesome name="user-plus" size={32} color="white" />
-              </LinearGradient>
-              <Text style={styles.title}>Create account</Text>
-              <Text style={styles.subtitle}>Join the GitBruv community</Text>
+              </View>
+              <Text className="text-white text-3xl font-bold mb-2">Create account</Text>
+              <Text className="text-gray-400 text-base">Join the GitBruv community</Text>
             </View>
 
-            <View style={styles.card}>
-              <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-              <View style={styles.cardContent}>
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Name</Text>
-                  <View style={styles.inputContainer}>
-                    <View style={styles.inputIcon}>
+            <View className="rounded-2xl bg-gray-800/50 border border-gray-700/50 overflow-hidden">
+              <View className="p-6">
+                <View className="mb-5">
+                  <Text className="text-gray-200 text-sm font-semibold mb-2">Name</Text>
+                  <View className="flex-row items-center bg-white/5 rounded-xl border border-gray-700/50">
+                    <View className="pl-4">
                       <FontAwesome name="user" size={16} color="rgba(255,255,255,0.4)" />
                     </View>
                     <TextInput
-                      style={styles.input}
+                      className="flex-1 py-3.5 px-3 text-base text-white"
                       placeholder="John Doe"
                       placeholderTextColor="rgba(255, 255, 255, 0.3)"
                       value={name}
@@ -76,14 +72,14 @@ export default function RegisterScreen() {
                   </View>
                 </View>
 
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Username</Text>
-                  <View style={styles.inputContainer}>
-                    <View style={styles.inputIcon}>
+                <View className="mb-5">
+                  <Text className="text-gray-200 text-sm font-semibold mb-2">Username</Text>
+                  <View className="flex-row items-center bg-white/5 rounded-xl border border-gray-700/50">
+                    <View className="pl-4">
                       <FontAwesome name="at" size={16} color="rgba(255,255,255,0.4)" />
                     </View>
                     <TextInput
-                      style={styles.input}
+                      className="flex-1 py-3.5 px-3 text-base text-white"
                       placeholder="johndoe"
                       placeholderTextColor="rgba(255, 255, 255, 0.3)"
                       value={username}
@@ -94,14 +90,14 @@ export default function RegisterScreen() {
                   </View>
                 </View>
 
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Email</Text>
-                  <View style={styles.inputContainer}>
-                    <View style={styles.inputIcon}>
+                <View className="mb-5">
+                  <Text className="text-gray-200 text-sm font-semibold mb-2">Email</Text>
+                  <View className="flex-row items-center bg-white/5 rounded-xl border border-gray-700/50">
+                    <View className="pl-4">
                       <FontAwesome name="envelope" size={16} color="rgba(255,255,255,0.4)" />
                     </View>
                     <TextInput
-                      style={styles.input}
+                      className="flex-1 py-3.5 px-3 text-base text-white"
                       placeholder="you@example.com"
                       placeholderTextColor="rgba(255, 255, 255, 0.3)"
                       value={email}
@@ -113,14 +109,14 @@ export default function RegisterScreen() {
                   </View>
                 </View>
 
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Password</Text>
-                  <View style={styles.inputContainer}>
-                    <View style={styles.inputIcon}>
+                <View className="mb-5">
+                  <Text className="text-gray-200 text-sm font-semibold mb-2">Password</Text>
+                  <View className="flex-row items-center bg-white/5 rounded-xl border border-gray-700/50">
+                    <View className="pl-4">
                       <FontAwesome name="lock" size={18} color="rgba(255,255,255,0.4)" />
                     </View>
                     <TextInput
-                      style={styles.input}
+                      className="flex-1 py-3.5 px-3 text-base text-white"
                       placeholder="••••••••"
                       placeholderTextColor="rgba(255, 255, 255, 0.3)"
                       value={password}
@@ -128,27 +124,26 @@ export default function RegisterScreen() {
                       secureTextEntry={!showPassword}
                       autoComplete="password-new"
                     />
-                    <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
+                    <Pressable onPress={() => setShowPassword(!showPassword)} className="p-3.5">
                       <FontAwesome name={showPassword ? "eye-slash" : "eye"} size={18} color="rgba(255, 255, 255, 0.4)" />
                     </Pressable>
                   </View>
-                  <Text style={styles.hint}>At least 8 characters</Text>
+                  <Text className="text-gray-500 text-xs mt-2">At least 8 characters</Text>
                 </View>
 
                 <Pressable onPress={handleRegister} disabled={loading}>
-                  <View style={[styles.submitButton, loading && styles.submitButtonDisabled]}>
-                    <BlurView intensity={30} tint="light" style={StyleSheet.absoluteFill} />
-                    <Text style={styles.submitButtonText}>{loading ? "Creating account..." : "Create Account"}</Text>
+                  <View className={`py-4 rounded-xl items-center mt-2 bg-purple-600 border border-purple-500 ${loading ? "opacity-60" : ""}`}>
+                    <Text className="text-white text-base font-semibold">{loading ? "Creating account..." : "Create Account"}</Text>
                   </View>
                 </Pressable>
               </View>
             </View>
 
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>Already have an account? </Text>
+            <View className="flex-row justify-center mt-8">
+              <Text className="text-gray-400 text-base">Already have an account? </Text>
               <Link href="/(auth)/login" asChild>
                 <Pressable>
-                  <Text style={styles.footerLink}>Sign in</Text>
+                  <Text className="text-blue-400 text-base font-semibold">Sign in</Text>
                 </Pressable>
               </Link>
             </View>
@@ -158,117 +153,3 @@ export default function RegisterScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  flex1: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: "center",
-    padding: 24,
-  },
-  header: {
-    alignItems: "center",
-    marginBottom: 32,
-  },
-  logoGradient: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 20,
-  },
-  title: {
-    color: "#ffffff",
-    fontSize: 28,
-    fontWeight: "700",
-    marginBottom: 8,
-  },
-  subtitle: {
-    color: "rgba(255, 255, 255, 0.6)",
-    fontSize: 15,
-  },
-  card: {
-    borderRadius: 16,
-    overflow: "hidden",
-    backgroundColor: "rgba(30, 30, 50, 0.5)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
-  },
-  cardContent: {
-    padding: 24,
-    position: "relative",
-    zIndex: 1,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    color: "rgba(255, 255, 255, 0.8)",
-    fontSize: 14,
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
-  },
-  inputIcon: {
-    paddingLeft: 16,
-  },
-  input: {
-    flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    fontSize: 16,
-    color: "#ffffff",
-  },
-  eyeButton: {
-    padding: 14,
-  },
-  hint: {
-    color: "rgba(255, 255, 255, 0.4)",
-    fontSize: 12,
-    marginTop: 8,
-  },
-  submitButton: {
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    marginTop: 8,
-    overflow: "hidden",
-    backgroundColor: "rgba(139, 92, 246, 0.3)",
-    borderWidth: 1,
-    borderColor: "rgba(139, 92, 246, 0.4)",
-  },
-  submitButtonDisabled: {
-    opacity: 0.6,
-  },
-  submitButtonText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "600",
-    position: "relative",
-    zIndex: 1,
-  },
-  footer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: 32,
-  },
-  footerText: {
-    color: "rgba(255, 255, 255, 0.6)",
-    fontSize: 15,
-  },
-  footerLink: {
-    color: "#60a5fa",
-    fontSize: 15,
-    fontWeight: "600",
-  },
-});

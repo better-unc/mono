@@ -29,7 +29,6 @@ export default function ExploreScreen() {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <LinearGradient colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]} style={StyleSheet.absoluteFill} />
         <ActivityIndicator size="large" color="#60a5fa" />
       </View>
     );
@@ -37,7 +36,6 @@ export default function ExploreScreen() {
 
   return (
     <View style={styles.flex1}>
-      <LinearGradient colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
       <ScrollView
         style={styles.flex1}
         contentContainerStyle={styles.scrollContent}
@@ -85,9 +83,13 @@ export default function ExploreScreen() {
                         <FontAwesome name="code-fork" size={18} color="#60a5fa" />
                       </View>
                       <View style={styles.itemInfo}>
-                        <Text style={styles.itemTitle}>{repo.owner.username}/{repo.name}</Text>
+                        <Text style={styles.itemTitle}>
+                          {repo.owner.username}/{repo.name}
+                        </Text>
                         {repo.description && (
-                          <Text style={styles.itemSubtitle} numberOfLines={2}>{repo.description}</Text>
+                          <Text style={styles.itemSubtitle} numberOfLines={2}>
+                            {repo.description}
+                          </Text>
                         )}
                       </View>
                       <View style={styles.starBadge}>
@@ -112,7 +114,9 @@ export default function ExploreScreen() {
                         <Text style={styles.itemTitle}>{user.name}</Text>
                         <Text style={styles.username}>@{user.username}</Text>
                         {user.bio && (
-                          <Text style={styles.bio} numberOfLines={1}>{user.bio}</Text>
+                          <Text style={styles.bio} numberOfLines={1}>
+                            {user.bio}
+                          </Text>
                         )}
                       </View>
                       <View style={styles.repoBadge}>

@@ -87,6 +87,26 @@ function isBlockedEmailDomain(email: string): boolean {
   return BLOCKED_EMAIL_DOMAINS.includes(domain);
 }
 
+const getBaseURL = (): string => {
+  if (process.env.BETTER_AUTH_URL) {
+    return normalizeUrl(process.env.BETTER_AUTH_URL);
+  }
+
+  if (process.env.API_URL) {
+    return normalizeUrl(process.env.API_URL);
+  }
+
+  if (process.env.RAILWAY_PUBLIC_DOMAIN) {
+    return normalizeUrl(process.env.RAILWAY_PUBLIC_DOMAIN);
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("BETTER_AUTH_URL, API_URL, or RAILWAY_PUBLIC_DOMAIN must be set in production");
+  }
+
+  return "http://localhost:3001";
+};
+
 const getTrustedOrigins = (): string[] => {
   const origins: string[] = [
     "http://localhost:3000",
@@ -95,6 +115,7 @@ const getTrustedOrigins = (): string[] => {
     "http://10.0.2.2:3001",
     "exp://localhost:8081",
     "exp://192.168.*.*:8081",
+    "exp://*",
   ];
 
   if (process.env.RAILWAY_PUBLIC_DOMAIN) {
@@ -113,6 +134,7 @@ const getTrustedOrigins = (): string[] => {
 };
 
 export const auth = betterAuth({
+  baseURL: getBaseURL(),
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
@@ -132,7 +154,7 @@ export const auth = betterAuth({
     apiKey({
       defaultPrefix: "gitbruv_",
     }),
-    expo(),
+    expo({}),
   ],
   user: {
     additionalFields: {
@@ -143,6 +165,7 @@ export const auth = betterAuth({
       },
     },
   },
+  advanced: { disableOriginCheck: true },
   databaseHooks: {
     user: {
       create: {

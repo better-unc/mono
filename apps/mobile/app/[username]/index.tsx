@@ -25,7 +25,6 @@ export default function UserProfileScreen() {
     return (
       <View style={styles.loadingContainer}>
         <Stack.Screen options={{ title: "" }} />
-        <LinearGradient colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]} style={StyleSheet.absoluteFill} />
         <ActivityIndicator size="large" color="#60a5fa" />
       </View>
     );
@@ -35,7 +34,6 @@ export default function UserProfileScreen() {
     return (
       <View style={styles.errorContainer}>
         <Stack.Screen options={{ title: "Error" }} />
-        <LinearGradient colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]} style={StyleSheet.absoluteFill} />
         <View style={styles.card}>
           <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
           <View style={styles.errorContent}>
@@ -50,9 +48,8 @@ export default function UserProfileScreen() {
   return (
     <View style={styles.flex1}>
       <Stack.Screen
-        options={{ headerTitle: user.name, headerShown: true, headerBackButtonDisplayMode: "minimal", headerTransparent: true, headerLargeTitle: false }}
+        options={{ title: user.username, headerShown: true, headerBackButtonDisplayMode: "minimal", headerTransparent: true, headerLargeTitle: false }}
       />
-      <LinearGradient colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
       <ScrollView
         style={styles.flex1}
         contentContainerStyle={styles.scrollContent}

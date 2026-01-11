@@ -6,7 +6,6 @@ import { BlurView } from "expo-blur";
 import { type FileEntry } from "@/lib/api";
 import { useRepositoryPageData, useToggleStar } from "@/lib/hooks/use-repository";
 import { useQueryClient } from "@tanstack/react-query";
-import { Icon } from "expo-router/unstable-native-tabs";
 
 export default function RepositoryScreen() {
   const { username, repo } = useLocalSearchParams<{ username: string; repo: string }>();
@@ -51,9 +50,8 @@ export default function RepositoryScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <Stack.Screen options={{ title: "" }} />
-        <LinearGradient colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]} style={StyleSheet.absoluteFill} />
+      <View className="flex-1 items-center justify-center">
+        <Stack.Screen options={{ title: "", headerShown: true, headerBackButtonDisplayMode: "minimal", headerTransparent: true, headerLargeTitle: false }} />
         <ActivityIndicator size="large" color="#60a5fa" />
       </View>
     );
@@ -61,14 +59,13 @@ export default function RepositoryScreen() {
 
   if (error || !data) {
     return (
-      <View style={styles.errorContainer}>
+      <View className="flex-1 items-center justify-center px-6">
         <Stack.Screen options={{ title: "Error" }} />
-        <LinearGradient colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]} style={StyleSheet.absoluteFill} />
-        <View style={styles.card}>
+        <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
           <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-          <View style={styles.errorContent}>
+          <View className="p-8 items-center relative z-10">
             <FontAwesome name="exclamation-circle" size={48} color="#f87171" />
-            <Text style={styles.errorText}>{error?.message || "Repository not found"}</Text>
+            <Text className="text-red-400 text-base mt-4 text-center">{error?.message || "Repository not found"}</Text>
           </View>
         </View>
       </View>
@@ -81,88 +78,88 @@ export default function RepositoryScreen() {
   });
 
   return (
-    <View style={styles.flex1}>
+    <View className="flex-1">
       <Stack.Screen
-        options={{
-          headerShown: true,
-          title: data.repo.name,
-          headerTransparent: true,
-          headerLargeTitle: false,
-        }}
+        options={{ title: data.repo.name, headerShown: true, headerBackButtonDisplayMode: "minimal", headerTransparent: true, headerLargeTitle: false }}
       />
-      <LinearGradient colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
       <ScrollView
-        style={styles.flex1}
-        contentContainerStyle={styles.scrollContent}
+        className="flex-1"
+        contentContainerClassName="flex-1 px-4 pt-4 pb-20"
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} tintColor="#60a5fa" />}
       >
-        <View style={styles.repoHeaderCard}>
+        <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-6">
           <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-          <View style={styles.repoHeaderContent}>
-            <View style={styles.repoTitleRow}>
+          <View className="p-4 relative z-10">
+            <View className="flex-row items-center flex-wrap">
               <Link href={`/${username}`} asChild>
                 <Pressable>
-                  <Text style={styles.ownerLink}>{username}</Text>
+                  <Text className="text-blue-400 text-[15px] font-medium">{username}</Text>
                 </Pressable>
               </Link>
-              <Text style={styles.separator}>/</Text>
-              <Text style={styles.repoTitle}>{data.repo.name}</Text>
+              <Text className="text-gray-400 text-sm mx-1">/</Text>
+              <Text className="text-white text-sm font-medium">{data.repo.name}</Text>
             </View>
 
-            <View style={styles.visibilityRow}>
-              <View style={[styles.visibilityBadge, data.repo.visibility === "private" ? styles.privateBadge : styles.publicBadge]}>
+            <View className="flex-row mt-2">
+              <View className={`flex-row items-center px-2 py-1 rounded-xl ${data.repo.visibility === "private" ? "bg-yellow-500/20" : "bg-green-500/20"}`}>
                 <FontAwesome
                   name={data.repo.visibility === "private" ? "lock" : "globe"}
                   size={10}
                   color={data.repo.visibility === "private" ? "#fbbf24" : "#22c55e"}
                 />
-                <Text style={[styles.visibilityText, data.repo.visibility === "private" ? styles.privateText : styles.publicText]}>{data.repo.visibility}</Text>
+                <Text className={`text-[11px] font-semibold ml-1 ${data.repo.visibility === "private" ? "text-yellow-400" : "text-green-500"}`}>
+                  {data.repo.visibility}
+                </Text>
               </View>
             </View>
 
-            {data.repo.description && <Text style={styles.description}>{data.repo.description}</Text>}
+            {data.repo.description && <Text className="text-white/60 text-[13px] mt-3 leading-5">{data.repo.description}</Text>}
 
-            <View style={styles.actionsRow}>
-              <Pressable onPress={handleStar} disabled={toggleStar.isPending} style={styles.actionButtonWrapper}>
-                <View style={[styles.actionButton, data.repo.starred && styles.starredButton]}>
+            <View className="flex-row mt-4">
+              <Pressable onPress={handleStar} disabled={toggleStar.isPending} className="mr-2">
+                <View
+                  className={`rounded-[10px] overflow-hidden border ${
+                    data.repo.starred ? "bg-yellow-500/20 border-yellow-500/30" : "bg-[rgba(60,60,90,0.4)] border-white/10"
+                  }`}
+                >
                   <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
-                  <View style={styles.actionButtonInner}>
+                  <View className="flex-row items-center py-2 px-3 relative z-10">
                     <FontAwesome name={data.repo.starred ? "star" : "star-o"} size={16} color={data.repo.starred ? "#fbbf24" : "#ffffff"} />
-                    <Text style={[styles.actionButtonText, data.repo.starred && styles.starredText]}>{data.repo.starCount}</Text>
+                    <Text className={`text-[13px] font-semibold ml-1.5 ${data.repo.starred ? "text-yellow-400" : "text-white"}`}>{data.repo.starCount}</Text>
                   </View>
                 </View>
               </Pressable>
-              <View style={styles.actionButton}>
+              <View className="rounded-[10px] overflow-hidden bg-[rgba(60,60,90,0.4)] border border-white/10">
                 <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
-                <View style={styles.actionButtonInner}>
+                <View className="flex-row items-center py-2 px-3 relative z-10">
                   <FontAwesome name="code-fork" size={16} color="#60a5fa" />
-                  <Text style={styles.branchText}>{data.repo.defaultBranch}</Text>
+                  <Text className="text-blue-400 text-[13px] font-semibold ml-1.5">{data.repo.defaultBranch}</Text>
                 </View>
               </View>
             </View>
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Files</Text>
+        <Text className="text-white text-base font-semibold mb-3">Files</Text>
 
         {data.isEmpty ? (
-          <View style={styles.card}>
+          <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
             <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-            <View style={styles.emptyContent}>
+            <View className="p-8 items-center relative z-10">
               <FontAwesome name="inbox" size={32} color="rgba(255,255,255,0.3)" />
-              <Text style={styles.emptyTitle}>This repository is empty</Text>
-              <Text style={styles.emptySubtitle}>Push some code to get started</Text>
+              <Text className="text-white/50 text-[15px] font-medium mt-3">This repository is empty</Text>
+              <Text className="text-white/30 text-xs mt-1">Push some code to get started</Text>
             </View>
           </View>
         ) : (
-          <View style={styles.filesCard}>
+          <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-6">
             <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-            <View style={styles.filesContent}>
+            <View className="relative z-10">
               {sortedFiles.map((file, index) => (
-                <Pressable key={file.oid} style={[styles.fileRow, index < sortedFiles.length - 1 && styles.fileRowBorder]}>
+                <Pressable key={file.oid} className={`flex-row items-center py-3 px-4 ${index < sortedFiles.length - 1 ? "border-b border-white/6" : ""}`}>
                   <FontAwesome name={getFileIcon(file)} size={16} color={file.type === "tree" ? "#60a5fa" : "#a78bfa"} />
-                  <Text style={styles.fileName}>{file.name}</Text>
+                  <Text className="text-white text-sm ml-3 flex-1">{file.name}</Text>
                 </Pressable>
               ))}
             </View>
@@ -171,15 +168,15 @@ export default function RepositoryScreen() {
 
         {data.readmeOid && (
           <>
-            <Text style={styles.sectionTitle}>README</Text>
-            <View style={styles.card}>
+            <Text className="text-white text-base font-semibold mb-3">README</Text>
+            <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
               <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-              <View style={styles.readmeContent}>
-                <View style={styles.readmeHeader}>
+              <View className="p-4 relative z-10">
+                <View className="flex-row items-center">
                   <FontAwesome name="book" size={14} color="#60a5fa" />
-                  <Text style={styles.readmeTitle}>README.md</Text>
+                  <Text className="text-white text-sm font-semibold ml-2">README.md</Text>
                 </View>
-                <Text style={styles.readmeHint}>Tap to view README content</Text>
+                <Text className="text-white/40 text-xs mt-2">Tap to view README content</Text>
               </View>
             </View>
           </>
@@ -188,223 +185,3 @@ export default function RepositoryScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  flex1: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  errorContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 24,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 40,
-  },
-  card: {
-    borderRadius: 16,
-    overflow: "hidden",
-    backgroundColor: "rgba(30, 30, 50, 0.5)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
-  },
-  errorContent: {
-    padding: 32,
-    alignItems: "center",
-    position: "relative",
-    zIndex: 1,
-  },
-  errorText: {
-    color: "#f87171",
-    fontSize: 16,
-    marginTop: 16,
-    textAlign: "center",
-  },
-  repoHeaderCard: {
-    borderRadius: 16,
-    overflow: "hidden",
-    backgroundColor: "rgba(30, 30, 50, 0.5)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
-    marginBottom: 24,
-  },
-  repoHeaderContent: {
-    padding: 16,
-    position: "relative",
-    zIndex: 1,
-  },
-  repoTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-  },
-  ownerLink: {
-    color: "#60a5fa",
-    fontSize: 15,
-    fontWeight: "500",
-  },
-  separator: {
-    color: "rgba(255, 255, 255, 0.3)",
-    marginHorizontal: 4,
-    fontSize: 15,
-  },
-  repoTitle: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  visibilityRow: {
-    flexDirection: "row",
-    marginTop: 8,
-  },
-  visibilityBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  privateBadge: {
-    backgroundColor: "rgba(251, 191, 36, 0.2)",
-  },
-  publicBadge: {
-    backgroundColor: "rgba(34, 197, 94, 0.2)",
-  },
-  visibilityText: {
-    fontSize: 11,
-    fontWeight: "600",
-    marginLeft: 4,
-  },
-  privateText: {
-    color: "#fbbf24",
-  },
-  publicText: {
-    color: "#22c55e",
-  },
-  description: {
-    color: "rgba(255, 255, 255, 0.6)",
-    fontSize: 13,
-    marginTop: 12,
-    lineHeight: 20,
-  },
-  actionsRow: {
-    flexDirection: "row",
-    marginTop: 16,
-  },
-  actionButtonWrapper: {
-    marginRight: 8,
-  },
-  actionButton: {
-    borderRadius: 10,
-    overflow: "hidden",
-    backgroundColor: "rgba(60, 60, 90, 0.4)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
-  },
-  starredButton: {
-    backgroundColor: "rgba(234, 179, 8, 0.2)",
-    borderColor: "rgba(234, 179, 8, 0.3)",
-  },
-  actionButtonInner: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    position: "relative",
-    zIndex: 1,
-  },
-  actionButtonText: {
-    color: "#ffffff",
-    fontSize: 13,
-    fontWeight: "600",
-    marginLeft: 6,
-  },
-  starredText: {
-    color: "#fbbf24",
-  },
-  branchText: {
-    color: "#60a5fa",
-    fontSize: 13,
-    fontWeight: "600",
-    marginLeft: 6,
-  },
-  sectionTitle: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 12,
-  },
-  emptyContent: {
-    padding: 32,
-    alignItems: "center",
-    position: "relative",
-    zIndex: 1,
-  },
-  emptyTitle: {
-    color: "rgba(255, 255, 255, 0.5)",
-    fontSize: 15,
-    fontWeight: "500",
-    marginTop: 12,
-  },
-  emptySubtitle: {
-    color: "rgba(255, 255, 255, 0.3)",
-    fontSize: 12,
-    marginTop: 4,
-  },
-  filesCard: {
-    borderRadius: 16,
-    overflow: "hidden",
-    backgroundColor: "rgba(30, 30, 50, 0.5)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
-    marginBottom: 24,
-  },
-  filesContent: {
-    position: "relative",
-    zIndex: 1,
-  },
-  fileRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  fileRowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.06)",
-  },
-  fileName: {
-    color: "#ffffff",
-    fontSize: 14,
-    marginLeft: 12,
-    flex: 1,
-  },
-  readmeContent: {
-    padding: 16,
-    position: "relative",
-    zIndex: 1,
-  },
-  readmeHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  readmeTitle: {
-    color: "#ffffff",
-    fontSize: 14,
-    fontWeight: "600",
-    marginLeft: 8,
-  },
-  readmeHint: {
-    color: "rgba(255, 255, 255, 0.4)",
-    fontSize: 12,
-    marginTop: 8,
-  },
-});
