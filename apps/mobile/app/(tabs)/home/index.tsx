@@ -1,119 +1,83 @@
-import {
-  View,
-  Text,
-  ScrollView,
-  RefreshControl,
-  Pressable,
-  ActivityIndicator,
-  StyleSheet,
-} from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { Link } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSession } from "@/lib/auth-client";
-import { GlassCard, GlassButton } from "@/components/ui/glass";
 import { usePublicRepositories } from "@/lib/hooks/use-repository";
+import { BlurView } from "expo-blur";
 
 export default function HomeScreen() {
   const { data: session, isPending } = useSession();
-
-  const {
-    data: reposData,
-    isLoading,
-    refetch,
-    isRefetching,
-  } = usePublicRepositories("updated", 10);
+  const { data: reposData, isLoading, refetch, isRefetching } = usePublicRepositories("updated", 10);
 
   const repos = reposData?.repos || [];
-
-  const handleRefresh = () => {
-    refetch();
-  };
+  const handleRefresh = () => refetch();
 
   if (isPending || isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <LinearGradient
-          colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]}
-          style={StyleSheet.absoluteFill}
-        />
+      <View style={styles.container}>
+        <LinearGradient colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]} style={StyleSheet.absoluteFill} />
         <ActivityIndicator size="large" color="#60a5fa" />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      />
+    <View style={styles.flex1}>
+      <LinearGradient colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
       <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
+        style={styles.flex1}
+        contentContainerStyle={styles.scrollContent}
         contentInsetAdjustmentBehavior="automatic"
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={handleRefresh}
-            tintColor="#60a5fa"
-          />
-        }
+        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} tintColor="#60a5fa" />}
       >
         {session?.user ? (
-          <GlassCard style={styles.welcomeCard}>
-            <Text style={styles.welcomeTitle}>
-              Welcome back, {session.user.name}!
-            </Text>
-            <Text style={styles.welcomeSubtitle}>
-              Check out the latest repositories below
-            </Text>
-          </GlassCard>
+          <View style={styles.card}>
+            <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+            <View style={styles.cardContent}>
+              <Text style={styles.welcomeTitle}>Welcome back, {session.user.name}!</Text>
+              <Text style={styles.welcomeSubtitle}>Check out the latest repositories below</Text>
+            </View>
+          </View>
         ) : (
-          <GlassCard style={styles.welcomeCard} tintColor="#3b82f6">
-            <Text style={styles.welcomeTitle}>Welcome to GitBruv</Text>
-            <Text style={styles.welcomeSubtitle}>
-              Sign in to start exploring and creating repositories
-            </Text>
-            <Link href="/(auth)/login" asChild>
-              <Pressable>
-                <GlassButton style={styles.signInButton} interactive>
-                  <Text style={styles.signInButtonText}>Sign In</Text>
-                </GlassButton>
-              </Pressable>
-            </Link>
-          </GlassCard>
+          <View style={[styles.card, styles.welcomeCard]}>
+            <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+            <View style={styles.cardContent}>
+              <Text style={styles.welcomeTitle}>Welcome to GitBruv</Text>
+              <Text style={styles.welcomeSubtitle}>Sign in to start exploring and creating repositories</Text>
+              <Link href="/(auth)/login" asChild>
+                <Pressable style={styles.signInButton}>
+                  <BlurView intensity={30} tint="light" style={StyleSheet.absoluteFill} />
+                  <Text style={styles.signInText}>Sign In</Text>
+                </Pressable>
+              </Link>
+            </View>
+          </View>
         )}
 
         <Text style={styles.sectionTitle}>Recent Repositories</Text>
 
         {repos.length === 0 ? (
-          <GlassCard style={styles.emptyCard}>
-            <Text style={styles.emptyText}>No repositories found</Text>
-          </GlassCard>
+          <View style={styles.card}>
+            <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+            <View style={[styles.cardContent, styles.emptyState]}>
+              <Text style={styles.emptyText}>No repositories found</Text>
+            </View>
+          </View>
         ) : (
           repos.map((repo) => (
-            <Link
-              key={repo.id}
-              href={`/${repo.owner.username}/${repo.name}`}
-              asChild
-            >
-              <Pressable>
-                <GlassCard style={styles.repoCard} interactive>
-                  <View style={styles.repoHeader}>
+            <Link key={repo.id} href={`/${repo.owner.username}/${repo.name}`} asChild>
+              <Pressable style={styles.repoCardWrapper}>
+                <View style={styles.card}>
+                  <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+                  <View style={styles.repoContent}>
                     <View style={styles.repoIcon}>
                       <FontAwesome name="code-fork" size={18} color="#60a5fa" />
                     </View>
                     <View style={styles.repoInfo}>
-                      <Text style={styles.repoName}>
-                        {repo.owner.username}/{repo.name}
-                      </Text>
+                      <Text style={styles.repoName}>{repo.owner.username}/{repo.name}</Text>
                       {repo.description && (
-                        <Text style={styles.repoDescription} numberOfLines={1}>
-                          {repo.description}
-                        </Text>
+                        <Text style={styles.repoDescription} numberOfLines={1}>{repo.description}</Text>
                       )}
                     </View>
                     <View style={styles.starBadge}>
@@ -121,7 +85,7 @@ export default function HomeScreen() {
                       <Text style={styles.starCount}>{repo.starCount}</Text>
                     </View>
                   </View>
-                </GlassCard>
+                </View>
               </Pressable>
             </Link>
           ))
@@ -132,102 +96,121 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  flex1: {
     flex: 1,
   },
-  loadingContainer: {
+  container: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-  scrollView: {
-    flex: 1,
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 144,
   },
-  content: {
-    padding: 16,
-    paddingBottom: 120,
+  card: {
+    borderRadius: 16,
+    overflow: "hidden",
+    backgroundColor: "rgba(30, 30, 50, 0.5)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+    marginBottom: 12,
   },
   welcomeCard: {
+    borderColor: "rgba(59, 130, 246, 0.3)",
+  },
+  cardContent: {
     padding: 20,
-    marginBottom: 24,
+    position: "relative",
+    zIndex: 1,
   },
   welcomeTitle: {
+    color: "#ffffff",
     fontSize: 20,
     fontWeight: "700",
-    color: "#ffffff",
-    marginBottom: 6,
+    marginBottom: 4,
   },
   welcomeSubtitle: {
+    color: "rgba(255, 255, 255, 0.6)",
     fontSize: 14,
-    color: "rgba(255, 255, 255, 0.7)",
   },
   signInButton: {
     marginTop: 16,
     paddingVertical: 12,
     paddingHorizontal: 24,
-    alignItems: "center",
+    borderRadius: 12,
+    alignSelf: "flex-start",
+    overflow: "hidden",
+    backgroundColor: "rgba(59, 130, 246, 0.3)",
   },
-  signInButtonText: {
+  signInText: {
     color: "#ffffff",
     fontWeight: "600",
     fontSize: 15,
+    position: "relative",
+    zIndex: 1,
   },
   sectionTitle: {
+    color: "#ffffff",
     fontSize: 18,
     fontWeight: "600",
-    color: "#ffffff",
-    marginBottom: 12,
+    marginBottom: 16,
+    marginTop: 8,
   },
-  emptyCard: {
-    padding: 24,
+  emptyState: {
     alignItems: "center",
+    padding: 24,
   },
   emptyText: {
     color: "rgba(255, 255, 255, 0.6)",
     fontSize: 15,
   },
-  repoCard: {
-    padding: 16,
+  repoCardWrapper: {
     marginBottom: 12,
   },
-  repoHeader: {
+  repoContent: {
     flexDirection: "row",
     alignItems: "center",
+    padding: 16,
+    position: "relative",
+    zIndex: 1,
   },
   repoIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(96, 165, 250, 0.15)",
+    backgroundColor: "rgba(96, 165, 250, 0.2)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
   },
   repoInfo: {
     flex: 1,
+    marginRight: 12,
   },
   repoName: {
+    color: "#ffffff",
     fontSize: 15,
     fontWeight: "600",
-    color: "#ffffff",
   },
   repoDescription: {
+    color: "rgba(255, 255, 255, 0.5)",
     fontSize: 13,
-    color: "rgba(255, 255, 255, 0.6)",
-    marginTop: 2,
+    marginTop: 4,
   },
   starBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(251, 191, 36, 0.15)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    backgroundColor: "rgba(251, 191, 36, 0.2)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 12,
   },
   starCount: {
-    fontSize: 12,
     color: "#fbbf24",
-    marginLeft: 4,
+    fontSize: 12,
     fontWeight: "600",
+    marginLeft: 4,
   },
 });

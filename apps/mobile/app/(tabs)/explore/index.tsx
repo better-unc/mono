@@ -1,17 +1,9 @@
 import { useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  RefreshControl,
-  Pressable,
-  ActivityIndicator,
-  StyleSheet,
-} from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { Link } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { LinearGradient } from "expo-linear-gradient";
-import { GlassCard, GlassButton, GlassGroup } from "@/components/ui/glass";
+import { BlurView } from "expo-blur";
 import { usePublicRepositories } from "@/lib/hooks/use-repository";
 import { usePublicUsers } from "@/lib/hooks/use-user";
 
@@ -21,19 +13,8 @@ export default function ExploreScreen() {
   const [sortBy, setSortBy] = useState<SortOption>("stars");
   const [tab, setTab] = useState<"repos" | "users">("repos");
 
-  const {
-    data: reposData,
-    isLoading: reposLoading,
-    refetch: refetchRepos,
-    isRefetching: isRefetchingRepos,
-  } = usePublicRepositories(sortBy, 20);
-
-  const {
-    data: usersData,
-    isLoading: usersLoading,
-    refetch: refetchUsers,
-    isRefetching: isRefetchingUsers,
-  } = usePublicUsers("newest", 20);
+  const { data: reposData, isLoading: reposLoading, refetch: refetchRepos, isRefetching: isRefetchingRepos } = usePublicRepositories(sortBy, 20);
+  const { data: usersData, isLoading: usersLoading, refetch: refetchUsers, isRefetching: isRefetchingUsers } = usePublicUsers("newest", 20);
 
   const repos = reposData?.repos || [];
   const users = usersData?.users || [];
@@ -48,93 +29,46 @@ export default function ExploreScreen() {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <LinearGradient
-          colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]}
-          style={StyleSheet.absoluteFill}
-        />
+        <LinearGradient colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]} style={StyleSheet.absoluteFill} />
         <ActivityIndicator size="large" color="#60a5fa" />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      />
-
+    <View style={styles.flex1}>
+      <LinearGradient colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
       <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
+        style={styles.flex1}
+        contentContainerStyle={styles.scrollContent}
         contentInsetAdjustmentBehavior="automatic"
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={handleRefresh}
-            tintColor="#60a5fa"
-          />
-        }
+        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} tintColor="#60a5fa" />}
       >
-        <View style={styles.header}>
-          <GlassGroup style={styles.tabGroup} spacing={4}>
-            <Pressable onPress={() => setTab("repos")}>
-              <GlassButton
-                style={[styles.tabButton, tab === "repos" && styles.tabActive]}
-                interactive
-                tintColor={tab === "repos" ? "#3b82f6" : undefined}
-              >
-                <Text
-                  style={[
-                    styles.tabText,
-                    tab === "repos" && styles.tabTextActive,
-                  ]}
-                >
-                  Repositories
-                </Text>
-              </GlassButton>
-            </Pressable>
-            <Pressable onPress={() => setTab("users")}>
-              <GlassButton
-                style={[styles.tabButton, tab === "users" && styles.tabActive]}
-                interactive
-                tintColor={tab === "users" ? "#3b82f6" : undefined}
-              >
-                <Text
-                  style={[
-                    styles.tabText,
-                    tab === "users" && styles.tabTextActive,
-                  ]}
-                >
-                  Users
-                </Text>
-              </GlassButton>
-            </Pressable>
-          </GlassGroup>
+        <View style={styles.tabRow}>
+          <Pressable onPress={() => setTab("repos")} style={styles.tabButtonWrapper}>
+            <View style={[styles.tabButton, tab === "repos" && styles.tabButtonActive]}>
+              <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+              <Text style={[styles.tabButtonText, tab === "repos" && styles.tabButtonTextActive]}>Repositories</Text>
+            </View>
+          </Pressable>
+          <Pressable onPress={() => setTab("users")}>
+            <View style={[styles.tabButton, tab === "users" && styles.tabButtonActive]}>
+              <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+              <Text style={[styles.tabButtonText, tab === "users" && styles.tabButtonTextActive]}>Users</Text>
+            </View>
+          </Pressable>
         </View>
 
         {tab === "repos" && (
-          <View style={styles.filterRow}>
-            {(["stars", "updated", "created"] as SortOption[]).map((option) => (
-              <Pressable key={option} onPress={() => setSortBy(option)}>
-                <GlassButton
-                  style={[
-                    styles.filterButton,
-                    sortBy === option && styles.filterActive,
-                  ]}
-                  tintColor={sortBy === option ? "#8b5cf6" : undefined}
-                >
-                  <Text
-                    style={[
-                      styles.filterText,
-                      sortBy === option && styles.filterTextActive,
-                    ]}
-                  >
+          <View style={styles.sortRow}>
+            {(["stars", "updated", "created"] as SortOption[]).map((option, index) => (
+              <Pressable key={option} onPress={() => setSortBy(option)} style={index < 2 ? styles.sortButtonWrapper : undefined}>
+                <View style={[styles.sortButton, sortBy === option && styles.sortButtonActive]}>
+                  <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+                  <Text style={[styles.sortButtonText, sortBy === option && styles.sortButtonTextActive]}>
                     {option.charAt(0).toUpperCase() + option.slice(1)}
                   </Text>
-                </GlassButton>
+                </View>
               </Pressable>
             ))}
           </View>
@@ -142,29 +76,18 @@ export default function ExploreScreen() {
 
         {tab === "repos"
           ? repos.map((repo) => (
-              <Link
-                key={repo.id}
-                href={`/${repo.owner.username}/${repo.name}`}
-                asChild
-              >
-                <Pressable>
-                  <GlassCard style={styles.card} interactive>
-                    <View style={styles.cardHeader}>
-                      <View style={styles.cardIcon}>
-                        <FontAwesome
-                          name="code-fork"
-                          size={18}
-                          color="#60a5fa"
-                        />
+              <Link key={repo.id} href={`/${repo.owner.username}/${repo.name}`} asChild>
+                <Pressable style={styles.cardWrapper}>
+                  <View style={styles.card}>
+                    <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+                    <View style={styles.cardContent}>
+                      <View style={styles.repoIcon}>
+                        <FontAwesome name="code-fork" size={18} color="#60a5fa" />
                       </View>
-                      <View style={styles.cardInfo}>
-                        <Text style={styles.cardTitle}>
-                          {repo.owner.username}/{repo.name}
-                        </Text>
+                      <View style={styles.itemInfo}>
+                        <Text style={styles.itemTitle}>{repo.owner.username}/{repo.name}</Text>
                         {repo.description && (
-                          <Text style={styles.cardSubtitle} numberOfLines={2}>
-                            {repo.description}
-                          </Text>
+                          <Text style={styles.itemSubtitle} numberOfLines={2}>{repo.description}</Text>
                         )}
                       </View>
                       <View style={styles.starBadge}>
@@ -172,37 +95,32 @@ export default function ExploreScreen() {
                         <Text style={styles.starCount}>{repo.starCount}</Text>
                       </View>
                     </View>
-                  </GlassCard>
+                  </View>
                 </Pressable>
               </Link>
             ))
           : users.map((user) => (
               <Link key={user.id} href={`/${user.username}`} asChild>
-                <Pressable>
-                  <GlassCard style={styles.card} interactive>
-                    <View style={styles.cardHeader}>
-                      <View style={styles.userAvatar}>
+                <Pressable style={styles.cardWrapper}>
+                  <View style={styles.card}>
+                    <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+                    <View style={styles.cardContent}>
+                      <View style={styles.userIcon}>
                         <FontAwesome name="user" size={22} color="#a78bfa" />
                       </View>
-                      <View style={styles.cardInfo}>
-                        <Text style={styles.cardTitle}>{user.name}</Text>
-                        <Text style={styles.cardSubtitle}>@{user.username}</Text>
+                      <View style={styles.itemInfo}>
+                        <Text style={styles.itemTitle}>{user.name}</Text>
+                        <Text style={styles.username}>@{user.username}</Text>
                         {user.bio && (
-                          <Text style={styles.userBio} numberOfLines={1}>
-                            {user.bio}
-                          </Text>
+                          <Text style={styles.bio} numberOfLines={1}>{user.bio}</Text>
                         )}
                       </View>
                       <View style={styles.repoBadge}>
-                        <FontAwesome
-                          name="code-fork"
-                          size={12}
-                          color="#60a5fa"
-                        />
+                        <FontAwesome name="code-fork" size={12} color="#60a5fa" />
                         <Text style={styles.repoCount}>{user.repoCount}</Text>
                       </View>
                     </View>
-                  </GlassCard>
+                  </View>
                 </Pressable>
               </Link>
             ))}
@@ -212,7 +130,7 @@ export default function ExploreScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  flex1: {
     flex: 1,
   },
   loadingContainer: {
@@ -220,121 +138,156 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  scrollView: {
-    flex: 1,
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 144,
   },
-  content: {
-    padding: 16,
-    paddingBottom: 120,
-  },
-  header: {
-    marginBottom: 16,
-  },
-  tabGroup: {
+  tabRow: {
     flexDirection: "row",
-    gap: 8,
+    marginBottom: 20,
+  },
+  tabButtonWrapper: {
+    marginRight: 8,
   },
   tabButton: {
     paddingVertical: 10,
     paddingHorizontal: 20,
+    borderRadius: 12,
+    overflow: "hidden",
+    backgroundColor: "rgba(60, 60, 90, 0.4)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
   },
-  tabActive: {},
-  tabText: {
-    color: "rgba(255, 255, 255, 0.6)",
+  tabButtonActive: {
+    backgroundColor: "rgba(59, 130, 246, 0.3)",
+    borderColor: "rgba(59, 130, 246, 0.4)",
+  },
+  tabButtonText: {
     fontWeight: "600",
     fontSize: 14,
+    color: "rgba(255, 255, 255, 0.6)",
+    position: "relative",
+    zIndex: 1,
   },
-  tabTextActive: {
+  tabButtonTextActive: {
     color: "#ffffff",
   },
-  filterRow: {
+  sortRow: {
     flexDirection: "row",
-    gap: 8,
-    marginBottom: 16,
+    marginBottom: 20,
   },
-  filterButton: {
+  sortButtonWrapper: {
+    marginRight: 8,
+  },
+  sortButton: {
     paddingVertical: 6,
     paddingHorizontal: 14,
+    borderRadius: 10,
+    overflow: "hidden",
+    backgroundColor: "rgba(60, 60, 90, 0.3)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.08)",
   },
-  filterActive: {},
-  filterText: {
-    color: "rgba(255, 255, 255, 0.5)",
+  sortButtonActive: {
+    backgroundColor: "rgba(139, 92, 246, 0.3)",
+    borderColor: "rgba(139, 92, 246, 0.4)",
+  },
+  sortButtonText: {
     fontSize: 13,
     fontWeight: "500",
+    color: "rgba(255, 255, 255, 0.5)",
+    position: "relative",
+    zIndex: 1,
   },
-  filterTextActive: {
+  sortButtonTextActive: {
     color: "#ffffff",
   },
-  card: {
-    padding: 16,
+  cardWrapper: {
     marginBottom: 12,
   },
-  cardHeader: {
+  card: {
+    borderRadius: 16,
+    overflow: "hidden",
+    backgroundColor: "rgba(30, 30, 50, 0.5)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+  },
+  cardContent: {
     flexDirection: "row",
     alignItems: "center",
+    padding: 16,
+    position: "relative",
+    zIndex: 1,
   },
-  cardIcon: {
+  repoIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(96, 165, 250, 0.15)",
+    backgroundColor: "rgba(96, 165, 250, 0.2)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
   },
-  userAvatar: {
+  userIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "rgba(167, 139, 250, 0.15)",
+    backgroundColor: "rgba(167, 139, 250, 0.2)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
   },
-  cardInfo: {
+  itemInfo: {
     flex: 1,
+    marginRight: 12,
   },
-  cardTitle: {
+  itemTitle: {
+    color: "#ffffff",
     fontSize: 15,
     fontWeight: "600",
-    color: "#ffffff",
   },
-  cardSubtitle: {
+  itemSubtitle: {
+    color: "rgba(255, 255, 255, 0.5)",
     fontSize: 13,
-    color: "rgba(255, 255, 255, 0.6)",
+    marginTop: 4,
+  },
+  username: {
+    color: "rgba(255, 255, 255, 0.5)",
+    fontSize: 13,
     marginTop: 2,
   },
-  userBio: {
+  bio: {
+    color: "rgba(255, 255, 255, 0.4)",
     fontSize: 12,
-    color: "rgba(255, 255, 255, 0.5)",
     marginTop: 4,
   },
   starBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(251, 191, 36, 0.15)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    backgroundColor: "rgba(251, 191, 36, 0.2)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 12,
   },
   starCount: {
-    fontSize: 12,
     color: "#fbbf24",
-    marginLeft: 4,
+    fontSize: 12,
     fontWeight: "600",
+    marginLeft: 4,
   },
   repoBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(96, 165, 250, 0.15)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    backgroundColor: "rgba(96, 165, 250, 0.2)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 12,
   },
   repoCount: {
-    fontSize: 12,
     color: "#60a5fa",
-    marginLeft: 4,
+    fontSize: 12,
     fontWeight: "600",
+    marginLeft: 4,
   },
 });

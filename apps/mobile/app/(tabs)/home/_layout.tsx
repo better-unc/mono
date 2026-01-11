@@ -1,28 +1,19 @@
 import { Stack } from "expo-router";
+import { useColorScheme } from "react-native";
 
 export default function HomeLayout() {
+  const colorScheme = useColorScheme();
+  const titleColor = colorScheme === "dark" ? "#ffffff" : "#000000";
+
   return (
     <Stack
       screenOptions={{
         headerLargeTitle: true,
         headerTransparent: true,
-        headerBlurEffect: "systemMaterial",
-        headerLargeTitleShadowVisible: false,
-        headerStyle: {
-          backgroundColor: "transparent",
-        },
-        headerTintColor: "#ffffff",
-        contentStyle: {
-          backgroundColor: "transparent",
-        },
+        headerBackButtonDisplayMode: "minimal",
       }}
     >
-      <Stack.Screen
-        name="index"
-        options={{
-          title: "Home",
-        }}
-      />
+      <Stack.Screen name="index" options={{ title: "Home" }} />
     </Stack>
   );
 }

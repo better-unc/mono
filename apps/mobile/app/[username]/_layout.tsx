@@ -4,20 +4,15 @@ export default function UserLayout() {
   return (
     <Stack
       screenOptions={{
+        headerLargeTitle: true,
         headerTransparent: true,
-        headerBlurEffect: "systemMaterial",
-        headerShadowVisible: false,
-        headerStyle: {
-          backgroundColor: "transparent",
-        },
-        headerTintColor: "#ffffff",
-        contentStyle: {
-          backgroundColor: "transparent",
-        },
+        headerBackButtonDisplayMode: "minimal",
+        title: "Profile",
+        headerTitle: "Profile",
       }}
     >
-      <Stack.Screen name="index" options={{ headerLargeTitle: true }} />
-      <Stack.Screen name="[repo]" options={{ headerShown: false }} />
+      <Stack.Screen name="index" />
+      <Stack.Screen name="[repo]/index" />
     </Stack>
   );
 }

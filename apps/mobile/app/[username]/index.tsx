@@ -1,36 +1,16 @@
-import {
-  View,
-  Text,
-  ScrollView,
-  RefreshControl,
-  Pressable,
-  ActivityIndicator,
-  StyleSheet,
-} from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { useLocalSearchParams, Link, Stack } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { LinearGradient } from "expo-linear-gradient";
-import { GlassCard } from "@/components/ui/glass";
+import { BlurView } from "expo-blur";
 import { useUserProfile } from "@/lib/hooks/use-user";
 import { useUserRepositories } from "@/lib/hooks/use-repository";
 
 export default function UserProfileScreen() {
   const { username } = useLocalSearchParams<{ username: string }>();
 
-  const {
-    data: user,
-    isLoading: userLoading,
-    error: userError,
-    refetch: refetchUser,
-    isRefetching: isRefetchingUser,
-  } = useUserProfile(username || "");
-
-  const {
-    data: reposData,
-    isLoading: reposLoading,
-    refetch: refetchRepos,
-    isRefetching: isRefetchingRepos,
-  } = useUserRepositories(username || "");
+  const { data: user, isLoading: userLoading, error: userError, refetch: refetchUser, isRefetching: isRefetchingUser } = useUserProfile(username || "");
+  const { data: reposData, isLoading: reposLoading, refetch: refetchRepos, isRefetching: isRefetchingRepos } = useUserRepositories(username || "");
 
   const repos = reposData?.repos || [];
   const isLoading = userLoading || reposLoading;
@@ -45,10 +25,7 @@ export default function UserProfileScreen() {
     return (
       <View style={styles.loadingContainer}>
         <Stack.Screen options={{ title: "" }} />
-        <LinearGradient
-          colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]}
-          style={StyleSheet.absoluteFill}
-        />
+        <LinearGradient colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]} style={StyleSheet.absoluteFill} />
         <ActivityIndicator size="large" color="#60a5fa" />
       </View>
     );
@@ -58,96 +35,85 @@ export default function UserProfileScreen() {
     return (
       <View style={styles.errorContainer}>
         <Stack.Screen options={{ title: "Error" }} />
-        <LinearGradient
-          colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]}
-          style={StyleSheet.absoluteFill}
-        />
-        <GlassCard style={styles.errorCard}>
-          <FontAwesome name="exclamation-circle" size={48} color="#f87171" />
-          <Text style={styles.errorText}>
-            {userError?.message || "User not found"}
-          </Text>
-        </GlassCard>
+        <LinearGradient colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]} style={StyleSheet.absoluteFill} />
+        <View style={styles.card}>
+          <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+          <View style={styles.errorContent}>
+            <FontAwesome name="exclamation-circle" size={48} color="#f87171" />
+            <Text style={styles.errorText}>{userError?.message || "User not found"}</Text>
+          </View>
+        </View>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Stack.Screen options={{ title: user.name }} />
-      <LinearGradient
-        colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      />
+    <View style={styles.flex1}>
+      <Stack.Screen options={{ headerTitle: user.name, headerShown: false }} />
+      <LinearGradient colors={["#0f0f23", "#1a1a3e", "#0d1b2a"]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
       <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
+        style={styles.flex1}
+        contentContainerStyle={styles.scrollContent}
         contentInsetAdjustmentBehavior="automatic"
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={handleRefresh}
-            tintColor="#60a5fa"
-          />
-        }
+        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} tintColor="#60a5fa" />}
       >
-        <GlassCard style={styles.profileCard}>
-          <View style={styles.avatarContainer}>
-            <LinearGradient
-              colors={["#a78bfa", "#8b5cf6", "#6366f1"]}
-              style={styles.avatarGradient}
-            >
+        <View style={styles.profileCard}>
+          <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+          <View style={styles.profileContent}>
+            <LinearGradient colors={["#a78bfa", "#8b5cf6", "#6366f1"]} style={styles.avatarGradient}>
               <FontAwesome name="user" size={40} color="#ffffff" />
             </LinearGradient>
-          </View>
-          <Text style={styles.profileName}>{user.name}</Text>
-          <Text style={styles.profileUsername}>@{user.username}</Text>
-          {user.bio && <Text style={styles.profileBio}>{user.bio}</Text>}
+            <Text style={styles.userName}>{user.name}</Text>
+            <Text style={styles.userHandle}>@{user.username}</Text>
+            {user.bio && <Text style={styles.userBio}>{user.bio}</Text>}
 
-          {(user.location || user.website) && (
-            <View style={styles.metaContainer}>
-              {user.location && (
-                <View style={styles.metaItem}>
-                  <View style={styles.metaIconBg}>
-                    <FontAwesome name="map-marker" size={12} color="#60a5fa" />
+            {(user.location || user.website) && (
+              <View style={styles.metaRow}>
+                {user.location && (
+                  <View style={styles.metaItem}>
+                    <View style={styles.metaIcon}>
+                      <FontAwesome name="map-marker" size={12} color="#60a5fa" />
+                    </View>
+                    <Text style={styles.metaText}>{user.location}</Text>
                   </View>
-                  <Text style={styles.metaText}>{user.location}</Text>
-                </View>
-              )}
-              {user.website && (
-                <View style={styles.metaItem}>
-                  <View style={styles.metaIconBg}>
-                    <FontAwesome name="link" size={12} color="#60a5fa" />
+                )}
+                {user.website && (
+                  <View style={styles.metaItem}>
+                    <View style={styles.metaIcon}>
+                      <FontAwesome name="link" size={12} color="#60a5fa" />
+                    </View>
+                    <Text style={styles.metaLink}>{user.website}</Text>
                   </View>
-                  <Text style={styles.metaLink}>{user.website}</Text>
-                </View>
-              )}
-            </View>
-          )}
+                )}
+              </View>
+            )}
 
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{repos.length}</Text>
-              <Text style={styles.statLabel}>Repositories</Text>
+            <View style={styles.statsRow}>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{repos.length}</Text>
+                <Text style={styles.statLabel}>Repositories</Text>
+              </View>
             </View>
           </View>
-        </GlassCard>
+        </View>
 
         <Text style={styles.sectionTitle}>Repositories</Text>
 
         {repos.length === 0 ? (
-          <GlassCard style={styles.emptyCard}>
-            <FontAwesome name="inbox" size={32} color="rgba(255,255,255,0.3)" />
-            <Text style={styles.emptyText}>No public repositories</Text>
-          </GlassCard>
+          <View style={styles.card}>
+            <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+            <View style={styles.emptyContent}>
+              <FontAwesome name="inbox" size={32} color="rgba(255,255,255,0.3)" />
+              <Text style={styles.emptyText}>No public repositories</Text>
+            </View>
+          </View>
         ) : (
           repos.map((repo) => (
             <Link key={repo.id} href={`/${username}/${repo.name}`} asChild>
-              <Pressable>
-                <GlassCard style={styles.repoCard} interactive>
-                  <View style={styles.repoHeader}>
+              <Pressable style={styles.repoCardWrapper}>
+                <View style={styles.card}>
+                  <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+                  <View style={styles.repoContent}>
                     <View style={styles.repoIcon}>
                       <FontAwesome name="code-fork" size={16} color="#60a5fa" />
                     </View>
@@ -164,7 +130,7 @@ export default function UserProfileScreen() {
                       <Text style={styles.starCount}>{repo.starCount}</Text>
                     </View>
                   </View>
-                </GlassCard>
+                </View>
               </Pressable>
             </Link>
           ))
@@ -175,7 +141,7 @@ export default function UserProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  flex1: {
     flex: 1,
   },
   loadingContainer: {
@@ -187,31 +153,44 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: 24,
+    paddingHorizontal: 24,
   },
-  errorCard: {
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 40,
+  },
+  card: {
+    borderRadius: 16,
+    overflow: "hidden",
+    backgroundColor: "rgba(30, 30, 50, 0.5)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+  },
+  errorContent: {
     padding: 32,
     alignItems: "center",
+    position: "relative",
+    zIndex: 1,
   },
   errorText: {
     color: "#f87171",
     fontSize: 16,
     marginTop: 16,
   },
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 40,
-  },
   profileCard: {
-    padding: 24,
-    alignItems: "center",
+    borderRadius: 16,
+    overflow: "hidden",
+    backgroundColor: "rgba(30, 30, 50, 0.5)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
     marginBottom: 24,
   },
-  avatarContainer: {
-    marginBottom: 16,
+  profileContent: {
+    padding: 24,
+    alignItems: "center",
+    position: "relative",
+    zIndex: 1,
   },
   avatarGradient: {
     width: 88,
@@ -219,52 +198,53 @@ const styles = StyleSheet.create({
     borderRadius: 44,
     alignItems: "center",
     justifyContent: "center",
+    marginBottom: 16,
   },
-  profileName: {
+  userName: {
+    color: "#ffffff",
     fontSize: 24,
     fontWeight: "700",
-    color: "#ffffff",
   },
-  profileUsername: {
+  userHandle: {
+    color: "rgba(255, 255, 255, 0.5)",
     fontSize: 16,
-    color: "rgba(255, 255, 255, 0.6)",
     marginTop: 4,
   },
-  profileBio: {
+  userBio: {
+    color: "rgba(255, 255, 255, 0.6)",
     fontSize: 14,
-    color: "rgba(255, 255, 255, 0.7)",
     textAlign: "center",
-    marginTop: 14,
+    marginTop: 16,
     lineHeight: 20,
     paddingHorizontal: 8,
   },
-  metaContainer: {
+  metaRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
-    gap: 16,
     marginTop: 16,
   },
   metaItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    marginRight: 16,
   },
-  metaIconBg: {
+  metaIcon: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: "rgba(96, 165, 250, 0.15)",
+    backgroundColor: "rgba(96, 165, 250, 0.2)",
     alignItems: "center",
     justifyContent: "center",
+    marginRight: 8,
   },
   metaText: {
+    color: "rgba(255, 255, 255, 0.5)",
     fontSize: 13,
-    color: "rgba(255, 255, 255, 0.6)",
   },
   metaLink: {
-    fontSize: 13,
     color: "#60a5fa",
+    fontSize: 13,
   },
   statsRow: {
     flexDirection: "row",
@@ -278,72 +258,77 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   statValue: {
+    color: "#ffffff",
     fontSize: 20,
     fontWeight: "700",
-    color: "#ffffff",
   },
   statLabel: {
+    color: "rgba(255, 255, 255, 0.4)",
     fontSize: 12,
-    color: "rgba(255, 255, 255, 0.5)",
     marginTop: 2,
   },
   sectionTitle: {
+    color: "#ffffff",
     fontSize: 18,
     fontWeight: "600",
-    color: "#ffffff",
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  emptyCard: {
+  emptyContent: {
     padding: 32,
     alignItems: "center",
+    position: "relative",
+    zIndex: 1,
   },
   emptyText: {
-    color: "rgba(255, 255, 255, 0.5)",
+    color: "rgba(255, 255, 255, 0.4)",
     fontSize: 14,
     marginTop: 12,
   },
-  repoCard: {
-    padding: 16,
+  repoCardWrapper: {
     marginBottom: 12,
   },
-  repoHeader: {
+  repoContent: {
     flexDirection: "row",
     alignItems: "center",
+    padding: 16,
+    position: "relative",
+    zIndex: 1,
   },
   repoIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "rgba(96, 165, 250, 0.15)",
+    backgroundColor: "rgba(96, 165, 250, 0.2)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
   },
   repoInfo: {
     flex: 1,
+    marginRight: 12,
   },
   repoName: {
+    color: "#ffffff",
     fontSize: 15,
     fontWeight: "600",
-    color: "#ffffff",
   },
   repoDescription: {
+    color: "rgba(255, 255, 255, 0.5)",
     fontSize: 13,
-    color: "rgba(255, 255, 255, 0.6)",
     marginTop: 4,
   },
   starBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(251, 191, 36, 0.15)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    backgroundColor: "rgba(251, 191, 36, 0.2)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 12,
   },
   starCount: {
-    fontSize: 12,
     color: "#fbbf24",
-    marginLeft: 4,
+    fontSize: 12,
     fontWeight: "600",
+    marginLeft: 4,
   },
 });
