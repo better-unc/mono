@@ -12,11 +12,12 @@ export function useUserProfile(username: string) {
 
 export function usePublicUsers(
   sortBy: "newest" | "oldest" = "newest",
-  limit: number = 20
+  limit: number = 20,
+  offset: number = 0
 ) {
   return useQuery({
-    queryKey: ["users", "public", sortBy, limit],
-    queryFn: () => api.users.getPublic(sortBy, limit),
+    queryKey: ["users", "public", sortBy, limit, offset],
+    queryFn: () => api.users.getPublic(sortBy, limit, offset),
     staleTime: 1000 * 60 * 5,
   });
 }

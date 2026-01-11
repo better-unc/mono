@@ -1,29 +1,82 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { Link } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { BlurView } from "expo-blur";
-import { usePublicRepositories } from "@/lib/hooks/use-repository";
-import { usePublicUsers } from "@/lib/hooks/use-user";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
 
 type SortOption = "stars" | "updated" | "created";
+
+const PAGE_SIZE = 20;
 
 export default function ExploreScreen() {
   const [sortBy, setSortBy] = useState<SortOption>("stars");
   const [tab, setTab] = useState<"repos" | "users">("repos");
 
-  const { data: reposData, isLoading: reposLoading, refetch: refetchRepos, isRefetching: isRefetchingRepos } = usePublicRepositories(sortBy, 20);
-  const { data: usersData, isLoading: usersLoading, refetch: refetchUsers, isRefetching: isRefetchingUsers } = usePublicUsers("newest", 20);
+  const {
+    data: reposData,
+    isLoading: reposLoading,
+    refetch: refetchRepos,
+    isRefetching: isRefetchingRepos,
+    fetchNextPage: fetchNextRepos,
+    hasNextPage: hasNextRepos,
+    isFetchingNextPage: isFetchingNextRepos,
+  } = useInfiniteQuery({
+    queryKey: ["repositories", "public", sortBy],
+    queryFn: ({ pageParam = 0 }) => api.repositories.getPublic(sortBy, PAGE_SIZE, pageParam),
+    getNextPageParam: (lastPage, allPages) => {
+      if (lastPage.hasMore) {
+        return allPages.length * PAGE_SIZE;
+      }
+      return undefined;
+    },
+    initialPageParam: 0,
+    staleTime: 1000 * 60 * 2,
+  });
 
-  const repos = reposData?.repos || [];
-  const users = usersData?.users || [];
-  const isLoading = reposLoading || usersLoading;
-  const isRefetching = isRefetchingRepos || isRefetchingUsers;
+  const {
+    data: usersData,
+    isLoading: usersLoading,
+    refetch: refetchUsers,
+    isRefetching: isRefetchingUsers,
+    fetchNextPage: fetchNextUsers,
+    hasNextPage: hasNextUsers,
+    isFetchingNextPage: isFetchingNextUsers,
+  } = useInfiniteQuery({
+    queryKey: ["users", "public", "newest"],
+    queryFn: ({ pageParam = 0 }) => api.users.getPublic("newest", PAGE_SIZE, pageParam),
+    getNextPageParam: (lastPage, allPages) => {
+      if (lastPage.hasMore) {
+        return allPages.length * PAGE_SIZE;
+      }
+      return undefined;
+    },
+    initialPageParam: 0,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const repos = reposData?.pages.flatMap((page) => page.repos) || [];
+  const users = usersData?.pages.flatMap((page) => page.users) || [];
+  const isLoading = (tab === "repos" ? reposLoading : usersLoading) && repos.length === 0 && users.length === 0;
+  const isRefetching = tab === "repos" ? isRefetchingRepos : isRefetchingUsers;
+  const isFetchingNext = tab === "repos" ? isFetchingNextRepos : isFetchingNextUsers;
+  const hasNext = tab === "repos" ? hasNextRepos : hasNextUsers;
 
   const handleRefresh = () => {
     refetchRepos();
     refetchUsers();
   };
+
+  const handleLoadMore = useCallback(() => {
+    if (hasNext && !isFetchingNext) {
+      if (tab === "repos") {
+        fetchNextRepos();
+      } else {
+        fetchNextUsers();
+      }
+    }
+  }, [hasNext, isFetchingNext, tab, fetchNextRepos, fetchNextUsers]);
 
   if (isLoading) {
     return (
@@ -40,6 +93,14 @@ export default function ExploreScreen() {
         contentContainerClassName="px-4 pt-4 pb-36"
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} tintColor="#60a5fa" />}
+        onScroll={({ nativeEvent }) => {
+          const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+          const paddingToBottom = 20;
+          if (layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom) {
+            handleLoadMore();
+          }
+        }}
+        scrollEventThrottle={400}
       >
         <View className="flex-row mb-5">
           <Pressable onPress={() => setTab("repos")} className="mr-2">
@@ -127,6 +188,21 @@ export default function ExploreScreen() {
                 </Pressable>
               </Link>
             ))}
+
+        {hasNext && (
+          <View className="py-4 items-center">
+            {isFetchingNext ? (
+              <ActivityIndicator size="small" color="#60a5fa" />
+            ) : (
+              <Pressable onPress={handleLoadMore}>
+                <View className="rounded-xl overflow-hidden bg-[rgba(60,60,90,0.4)] border border-white/10 px-4 py-2">
+                  <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+                  <Text className="text-white/70 text-sm font-medium relative z-10">Load More</Text>
+                </View>
+              </Pressable>
+            )}
+          </View>
+        )}
       </ScrollView>
     </View>
   );

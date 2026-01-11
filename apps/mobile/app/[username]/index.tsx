@@ -1,10 +1,10 @@
-import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator, StyleSheet, Image } from "react-native";
 import { useLocalSearchParams, Link, Stack } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import { useUserProfile } from "@/lib/hooks/use-user";
 import { useUserRepositories } from "@/lib/hooks/use-repository";
+import { formatDistanceToNow } from "date-fns";
 
 export default function UserProfileScreen() {
   const { username } = useLocalSearchParams<{ username: string }>();
@@ -56,76 +56,103 @@ export default function UserProfileScreen() {
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} tintColor="#60a5fa" />}
       >
-        <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-6">
+        <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-4">
           <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-          <View className="p-6 items-center relative z-10">
-            <LinearGradient colors={["#a78bfa", "#8b5cf6", "#6366f1"]} className="w-[88px] h-[88px] rounded-full items-center justify-center mb-4">
-              <FontAwesome name="user" size={40} color="#ffffff" />
-            </LinearGradient>
-            <Text className="text-white text-2xl font-bold">{user.name}</Text>
-            <Text className="text-white/50 text-base mt-1">@{user.username}</Text>
-            {user.bio && <Text className="text-white/60 text-sm text-center mt-4 leading-5 px-2">{user.bio}</Text>}
-
-            {(user.location || user.website) && (
-              <View className="flex-row flex-wrap justify-center mt-4">
-                {user.location && (
-                  <View className="flex-row items-center mr-4">
-                    <View className="w-6 h-6 rounded-full bg-blue-500/20 items-center justify-center mr-2">
-                      <FontAwesome name="map-marker" size={12} color="#60a5fa" />
-                    </View>
-                    <Text className="text-white/50 text-[13px]">{user.location}</Text>
-                  </View>
-                )}
-                {user.website && (
-                  <View className="flex-row items-center">
-                    <View className="w-6 h-6 rounded-full bg-blue-500/20 items-center justify-center mr-2">
-                      <FontAwesome name="link" size={12} color="#60a5fa" />
-                    </View>
-                    <Text className="text-blue-400 text-[13px]">{user.website}</Text>
-                  </View>
+          <View className="p-4 relative z-10">
+            <View className="flex-row items-start mb-4">
+              {user.avatarUrl ? (
+                <Image source={{ uri: user.avatarUrl }} className="w-16 h-16 rounded-full mr-3" />
+              ) : (
+                <View className="w-16 h-16 rounded-full bg-blue-500/20 items-center justify-center mr-3">
+                  <FontAwesome name="user" size={28} color="#60a5fa" />
+                </View>
+              )}
+              <View className="flex-1">
+                <Text className="text-white text-[18px] font-semibold">{user.name}</Text>
+                <Text className="text-white/60 text-[14px] mt-0.5">@{user.username}</Text>
+                {user.pronouns && (
+                  <Text className="text-white/40 text-[12px] mt-0.5">{user.pronouns}</Text>
                 )}
               </View>
+            </View>
+
+            {user.bio && (
+              <Text className="text-white/80 text-[14px] leading-5 mb-3">{user.bio}</Text>
             )}
 
-            <View className="flex-row mt-5 pt-5 border-t border-white/10">
-              <View className="items-center px-6">
-                <Text className="text-white text-xl font-bold">{repos.length}</Text>
-                <Text className="text-white/40 text-xs mt-0.5">Repositories</Text>
+            <View className="flex-row flex-wrap gap-3 mb-3">
+              {user.location && (
+                <View className="flex-row items-center">
+                  <FontAwesome name="map-marker" size={12} color="#60a5fa" />
+                  <Text className="text-white/60 text-[13px] ml-1.5">{user.location}</Text>
+                </View>
+              )}
+              {user.website && (
+                <View className="flex-row items-center">
+                  <FontAwesome name="link" size={12} color="#60a5fa" />
+                  <Text className="text-blue-400 text-[13px] ml-1.5">{user.website}</Text>
+                </View>
+              )}
+              {user.createdAt && (
+                <View className="flex-row items-center">
+                  <FontAwesome name="calendar" size={12} color="#60a5fa" />
+                  <Text className="text-white/60 text-[13px] ml-1.5">
+                    Joined {formatDistanceToNow(new Date(user.createdAt), { addSuffix: true })}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            <View className="flex-row pt-3 border-t border-white/10">
+              <View className="flex-row items-center mr-6">
+                <FontAwesome name="code-fork" size={14} color="#60a5fa" />
+                <Text className="text-white text-[16px] font-semibold ml-2">{repos.length}</Text>
+                <Text className="text-white/50 text-[13px] ml-1">repositories</Text>
               </View>
             </View>
           </View>
         </View>
 
-        <Text className="text-white text-lg font-semibold mb-4">Repositories</Text>
+        <View className="flex-row items-center justify-between mb-3">
+          <Text className="text-white text-base font-semibold">Repositories</Text>
+          {repos.length > 0 && (
+            <Text className="text-white/40 text-xs">{repos.length}</Text>
+          )}
+        </View>
 
         {repos.length === 0 ? (
           <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
             <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-            <View className="p-8 items-center relative z-10">
-              <FontAwesome name="inbox" size={32} color="rgba(255,255,255,0.3)" />
-              <Text className="text-white/40 text-sm mt-3">No public repositories</Text>
+            <View className="p-6 items-center relative z-10">
+              <FontAwesome name="inbox" size={28} color="rgba(255,255,255,0.3)" />
+              <Text className="text-white/40 text-sm mt-2">No public repositories</Text>
             </View>
           </View>
         ) : (
-          repos.map((repo) => (
+          repos.map((repo, index) => (
             <Link key={repo.id} href={`/${username}/${repo.name}`} asChild>
-              <Pressable className="mb-3">
+              <Pressable className={index < repos.length - 1 ? "mb-2" : ""}>
                 <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
                   <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-                  <View className="flex-row items-center p-4 relative z-10">
-                    <View className="w-9 h-9 rounded-full bg-blue-500/20 items-center justify-center mr-3">
+                  <View className="flex-row items-center p-3.5 relative z-10">
+                    <View className="w-10 h-10 rounded-full bg-blue-500/20 items-center justify-center mr-3">
                       <FontAwesome name="code-fork" size={16} color="#60a5fa" />
                     </View>
                     <View className="flex-1 mr-3">
-                      <Text className="text-white text-[15px] font-semibold">{repo.name}</Text>
+                      <View className="flex-row items-center mb-1">
+                        <Text className="text-white text-[15px] font-semibold mr-2">{repo.name}</Text>
+                        <View className={`px-1.5 py-0.5 rounded-md ${repo.visibility === "private" ? "bg-yellow-500/20" : "bg-green-500/20"}`}>
+                          <Text className={`text-[10px] font-semibold ${repo.visibility === "private" ? "text-yellow-400" : "text-green-500"}`}>{repo.visibility}</Text>
+                        </View>
+                      </View>
                       {repo.description && (
-                        <Text className="text-white/50 text-[13px] mt-1" numberOfLines={2}>
+                        <Text className="text-white/50 text-[13px]" numberOfLines={1}>
                           {repo.description}
                         </Text>
                       )}
                     </View>
-                    <View className="flex-row items-center bg-yellow-500/20 px-2.5 py-1.5 rounded-xl">
-                      <FontAwesome name="star" size={12} color="#fbbf24" />
+                    <View className="flex-row items-center bg-yellow-500/20 px-2 py-1 rounded-lg">
+                      <FontAwesome name="star" size={11} color="#fbbf24" />
                       <Text className="text-yellow-400 text-xs font-semibold ml-1">{repo.starCount}</Text>
                     </View>
                   </View>

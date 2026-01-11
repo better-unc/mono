@@ -1,7 +1,6 @@
 import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator, Alert, StyleSheet } from "react-native";
 import { Link, router } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import { useSession, signOut } from "@/lib/auth-client";
 import { useUserRepositories } from "@/lib/hooks/use-repository";
@@ -74,52 +73,63 @@ export default function ProfileScreen() {
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} tintColor="#60a5fa" />}
       >
-        <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-6">
+        <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-4">
           <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-          <View className="p-6 items-center relative z-10">
-            <LinearGradient colors={["#8b5cf6", "#6366f1", "#3b82f6"]} className="w-20 h-20 rounded-full items-center justify-center mb-4" start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-              <FontAwesome name="user" size={36} color="#ffffff" />
-            </LinearGradient>
-            <Text className="text-white text-xl font-bold">{user.name}</Text>
-            <Text className="text-white/50 text-[15px] mt-1">@{user.username}</Text>
-            <Text className="text-white/30 text-[13px] mt-1">{user.email}</Text>
+          <View className="p-4 relative z-10">
+            <View className="flex-row items-center">
+              <View className="w-14 h-14 rounded-full bg-blue-500/20 items-center justify-center mr-3">
+                <FontAwesome name="user" size={24} color="#60a5fa" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-white text-[17px] font-semibold">{user.name}</Text>
+                <Text className="text-white/60 text-[14px] mt-0.5">@{user.username}</Text>
+                <Text className="text-white/40 text-[12px] mt-1">{user.email}</Text>
+              </View>
+            </View>
           </View>
         </View>
 
-        <Text className="text-white text-lg font-semibold mb-4">Your Repositories</Text>
+        <View className="flex-row items-center justify-between mb-3 mt-2">
+          <Text className="text-white text-base font-semibold">Your Repositories</Text>
+          {repos.length > 0 && (
+            <Text className="text-white/40 text-xs">{repos.length}</Text>
+          )}
+        </View>
 
         {isLoading ? (
-          <ActivityIndicator size="small" color="#60a5fa" />
+          <View className="py-8">
+            <ActivityIndicator size="small" color="#60a5fa" />
+          </View>
         ) : repos.length === 0 ? (
           <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-4">
             <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-            <View className="p-8 items-center relative z-10">
-              <FontAwesome name="inbox" size={32} color="rgba(255,255,255,0.3)" />
-              <Text className="text-white/40 text-sm mt-3 text-center">You haven't created any repositories yet</Text>
+            <View className="p-6 items-center relative z-10">
+              <FontAwesome name="inbox" size={28} color="rgba(255,255,255,0.3)" />
+              <Text className="text-white/40 text-sm mt-2 text-center">You haven't created any repositories yet</Text>
             </View>
           </View>
         ) : (
-          repos.map((repo) => (
+          repos.map((repo, index) => (
             <Link key={repo.id} href={`/${user.username}/${repo.name}`} asChild>
-              <Pressable className="mb-3">
+              <Pressable className={index < repos.length - 1 ? "mb-2" : "mb-4"}>
                 <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
                   <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-                  <View className="flex-row items-center p-4 relative z-10">
+                  <View className="flex-row items-center p-3.5 relative z-10">
                     <View className="flex-1 mr-3">
-                      <View className="flex-row items-center">
+                      <View className="flex-row items-center mb-1">
                         <Text className="text-white text-[15px] font-semibold mr-2">{repo.name}</Text>
-                        <View className={`px-2 py-0.5 rounded-lg ${repo.visibility === "private" ? "bg-yellow-500/20" : "bg-green-500/20"}`}>
-                          <Text className={`text-[11px] font-semibold ${repo.visibility === "private" ? "text-yellow-400" : "text-green-500"}`}>{repo.visibility}</Text>
+                        <View className={`px-1.5 py-0.5 rounded-md ${repo.visibility === "private" ? "bg-yellow-500/20" : "bg-green-500/20"}`}>
+                          <Text className={`text-[10px] font-semibold ${repo.visibility === "private" ? "text-yellow-400" : "text-green-500"}`}>{repo.visibility}</Text>
                         </View>
                       </View>
                       {repo.description && (
-                        <Text className="text-white/50 text-[13px] mt-1" numberOfLines={1}>
+                        <Text className="text-white/50 text-[13px]" numberOfLines={1}>
                           {repo.description}
                         </Text>
                       )}
                     </View>
-                    <View className="flex-row items-center bg-yellow-500/20 px-2.5 py-1.5 rounded-xl">
-                      <FontAwesome name="star" size={12} color="#fbbf24" />
+                    <View className="flex-row items-center bg-yellow-500/20 px-2 py-1 rounded-lg">
+                      <FontAwesome name="star" size={11} color="#fbbf24" />
                       <Text className="text-yellow-400 text-xs font-semibold ml-1">{repo.starCount}</Text>
                     </View>
                   </View>
@@ -129,11 +139,11 @@ export default function ProfileScreen() {
           ))
         )}
 
-        <Pressable onPress={handleSignOut} className="mt-2">
+        <Pressable onPress={handleSignOut} className="mt-4">
           <View className="rounded-2xl overflow-hidden bg-red-500/15 border border-red-500/30">
             <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-            <View className="flex-row items-center justify-center p-4 relative z-10">
-              <FontAwesome name="sign-out" size={18} color="#f87171" />
+            <View className="flex-row items-center justify-center p-3.5 relative z-10">
+              <FontAwesome name="sign-out" size={16} color="#f87171" />
               <Text className="text-red-400 font-semibold text-[15px] ml-2">Sign Out</Text>
             </View>
           </View>

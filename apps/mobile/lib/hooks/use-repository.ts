@@ -54,11 +54,12 @@ export function useRepositoryCommits(
 
 export function usePublicRepositories(
   sortBy: "stars" | "updated" | "created" = "updated",
-  limit: number = 20
+  limit: number = 20,
+  offset: number = 0
 ) {
   return useQuery({
-    queryKey: ["repositories", "public", sortBy, limit],
-    queryFn: () => api.repositories.getPublic(sortBy, limit),
+    queryKey: ["repositories", "public", sortBy, limit, offset],
+    queryFn: () => api.repositories.getPublic(sortBy, limit, offset),
     staleTime: 1000 * 60 * 2,
   });
 }
