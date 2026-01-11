@@ -61,9 +61,9 @@ function StarredTab({ username }: { username: string }) {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="flex flex-col gap-4">
       {repos.map((repo) => (
-        <RepositoryCard key={repo.id} repository={repo} />
+        <RepositoryCard key={repo.id} repository={repo} showOwner />
       ))}
     </div>
   );
@@ -71,9 +71,9 @@ function StarredTab({ username }: { username: string }) {
 
 function TabSkeleton() {
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {[...Array(6)].map((_, i) => (
-        <div key={i} className="h-48 bg-[#171717] border border-[#404040] animate-pulse" />
+    <div className="flex flex-col gap-4">
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="h-28 bg-card border border-border animate-pulse" />
       ))}
     </div>
   );
@@ -117,11 +117,11 @@ function ProfilePage() {
           </Avatar>
 
           <div className="space-y-1">
-            <h1 className="text-xl font-bold tracking-tight text-foreground">{user.name}</h1>
-            <p className="text-lg text-muted-foreground">@{user.username}</p>
+            <h1 className="text-xl font-semibold">{user.name}</h1>
+            <p className="text-base text-muted-foreground">@{user.username}</p>
           </div>
 
-          {user.bio && <p className="text-sm leading-relaxed text-foreground/90">{user.bio}</p>}
+          {user.bio && <p className="text-sm leading-relaxed text-muted-foreground">{user.bio}</p>}
 
           <div className="space-y-3 pt-2">
             {user.location && (
@@ -133,7 +133,7 @@ function ProfilePage() {
             {user.website && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Globe className="h-4 w-4" />
-                <a href={user.website} target="_blank" rel="noopener noreferrer" className="hover:text-accent-foreground hover:underline truncate">
+                <a href={user.website} target="_blank" rel="noopener noreferrer" className="hover:text-primary hover:underline truncate">
                   {user.website.replace(/^https?:\/\//, "")}
                 </a>
               </div>

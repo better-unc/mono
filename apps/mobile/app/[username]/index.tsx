@@ -61,9 +61,9 @@ export default function UserProfileScreen() {
           <View className="p-4 relative z-10">
             <View className="flex-row items-start mb-4">
               {user.avatarUrl ? (
-                <Image source={{ uri: user.avatarUrl }} className="w-16 h-16 rounded-full mr-3" />
+                <Image source={{ uri: user.avatarUrl }} className="w-16 h-16 mr-3" />
               ) : (
-                <View className="w-16 h-16 rounded-full bg-blue-500/20 items-center justify-center mr-3">
+                <View className="w-16 h-16 bg-blue-500/20 items-center justify-center mr-3">
                   <FontAwesome name="user" size={28} color="#60a5fa" />
                 </View>
               )}
@@ -127,13 +127,13 @@ export default function UserProfileScreen() {
                 <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
                   <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
                   <View className="flex-row items-center p-3.5 relative z-10">
-                    <View className="w-10 h-10 rounded-full bg-blue-500/20 items-center justify-center mr-3">
+                    <View className="w-10 h-10 bg-blue-500/20 items-center justify-center mr-3">
                       <FontAwesome name="code-fork" size={16} color="#60a5fa" />
                     </View>
                     <View style={{ flex: 1 }} className="mr-3">
                       <View className="flex-row items-center mb-1">
                         <Text className="text-white text-[15px] font-semibold mr-2">{repo.name}</Text>
-                        <View className={`px-1.5 py-0.5 rounded-md ${repo.visibility === "private" ? "bg-yellow-500/20" : "bg-green-500/20"}`}>
+                        <View className={`px-1.5 py-0.5 ${repo.visibility === "private" ? "bg-yellow-500/20" : "bg-green-500/20"}`}>
                           <Text className={`text-[10px] font-semibold ${repo.visibility === "private" ? "text-yellow-400" : "text-green-500"}`}>
                             {repo.visibility}
                           </Text>

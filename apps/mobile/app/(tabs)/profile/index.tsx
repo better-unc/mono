@@ -45,7 +45,7 @@ export default function ProfileScreen() {
           <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 w-full max-w-[320px]">
             <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
             <View className="p-8 items-center relative z-10">
-              <View className="w-20 h-20 rounded-full bg-white/10 items-center justify-center mb-5">
+              <View className="w-20 h-20 bg-white/10 items-center justify-center mb-5">
                 <FontAwesome name="user" size={40} color="rgba(255,255,255,0.5)" />
               </View>
               <Text className="text-white text-[22px] font-bold mb-2">Not signed in</Text>
@@ -77,7 +77,7 @@ export default function ProfileScreen() {
           <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
           <View className="p-4 relative z-10">
             <View className="flex-row items-center">
-              <View className="w-14 h-14 rounded-full bg-blue-500/20 items-center justify-center mr-3">
+              <View className="w-14 h-14 bg-blue-500/20 items-center justify-center mr-3">
                 <FontAwesome name="user" size={24} color="#60a5fa" />
               </View>
               <View style={{ flex: 1 }}>
@@ -116,7 +116,7 @@ export default function ProfileScreen() {
                     <View style={{ flex: 1 }} className="mr-3">
                       <View className="flex-row items-center mb-1">
                         <Text className="text-white text-[15px] font-semibold mr-2">{repo.name}</Text>
-                        <View className={`px-1.5 py-0.5 rounded-md ${repo.visibility === "private" ? "bg-yellow-500/20" : "bg-green-500/20"}`}>
+                        <View className={`px-1.5 py-0.5 ${repo.visibility === "private" ? "bg-yellow-500/20" : "bg-green-500/20"}`}>
                           <Text className={`text-[10px] font-semibold ${repo.visibility === "private" ? "text-yellow-400" : "text-green-500"}`}>
                             {repo.visibility}
                           </Text>

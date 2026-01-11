@@ -150,7 +150,7 @@ export default function ExploreScreen() {
                   <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
                     <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
                     <View className="flex-row items-center p-4 relative z-10">
-                      <View className="w-10 h-10 rounded-full bg-blue-500/20 items-center justify-center mr-3">
+                      <View className="w-10 h-10 bg-blue-500/20 items-center justify-center mr-3">
                         <FontAwesome name="code-fork" size={18} color="#60a5fa" />
                       </View>
                       <View style={{ flex: 1 }} className="mr-3">
@@ -178,7 +178,7 @@ export default function ExploreScreen() {
                   <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
                     <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
                     <View className="flex-row items-center p-4 relative z-10">
-                      <View className="w-12 h-12 rounded-full bg-purple-500/20 items-center justify-center mr-3">
+                      <View className="w-12 h-12 bg-purple-500/20 items-center justify-center mr-3">
                         <FontAwesome name="user" size={22} color="#a78bfa" />
                       </View>
                       <View style={{ flex: 1 }} className="mr-3">

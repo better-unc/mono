@@ -60,7 +60,7 @@ export function AvatarUpload({ currentAvatar, name }: AvatarUploadProps) {
           <AvatarFallback className="text-2xl bg-accent rounded-none">{name.charAt(0).toUpperCase()}</AvatarFallback>
         </Avatar>
         {isMutating && (
-          <div className="absolute inset-0 bg-background/80 rounded-full flex items-center justify-center">
+          <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
             <Loader2 className="w-6 h-6 animate-spin" />
           </div>
         )}

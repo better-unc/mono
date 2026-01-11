@@ -44,29 +44,13 @@ export function EmailForm({ currentEmail }: EmailFormProps) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="email">Email Address</Label>
-        <Input
-          id="email"
-          name="email"
-          type="email"
-          defaultValue={currentEmail}
-          required
-        />
-        <p className="text-xs text-muted-foreground">
-          Your email is used for account notifications and git authentication
-        </p>
+        <Input id="email" name="email" type="email" defaultValue={currentEmail} required />
+        <p className="text-xs text-muted-foreground">Your email is used for account notifications and git authentication</p>
       </div>
 
-      {error && (
-        <div className="text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2">
-          {error}
-        </div>
-      )}
+      {error && <div className="text-sm text-red-500 bg-red-500/10 border border-red-500/20 px-3 py-2">{error}</div>}
 
-      {success && (
-        <div className="text-sm text-green-500 bg-green-500/10 border border-green-500/20 rounded-md px-3 py-2">
-          Email updated successfully!
-        </div>
-      )}
+      {success && <div className="text-sm text-green-500 bg-green-500/10 border border-green-500/20 px-3 py-2">Email updated successfully!</div>}
 
       <Button type="submit" disabled={isMutating}>
         {isMutating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}

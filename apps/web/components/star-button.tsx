@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Star, ChevronDown } from "lucide-react";
+import { Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToggleStar } from "@/lib/hooks/use-repositories";
 import { cn } from "@/lib/utils";
@@ -40,14 +40,14 @@ export function StarButton({
       onClick={handleClick}
       disabled={isMutating}
       className={cn(
-        "h-7 px-2.5 rounded-md border-r-0 text-xs font-semibold bg-secondary hover:bg-muted border border-border shadow-sm flex items-center gap-2",
-        starred && "text-accent",
+        "gap-2 border border-border transition-all",
+        starred && "bg-primary/10 border-primary/30 hover:bg-primary/20",
         className
       )}
     >
-      <Star className={cn("h-3.5 w-3.5 text-muted-foreground", starred && "fill-accent text-accent")} />
-      <span className="text-foreground">{starred ? "Starred" : "Star"}</span>
-      <span className="px-1.5 py-0.5 rounded-full bg-muted-foreground/20 text-foreground font-medium text-[10px]">{count}</span>
+      <Star className={cn("h-4 w-4", starred ? "fill-primary text-primary" : "text-muted-foreground")} />
+      <span>{starred ? "Starred" : "Star"}</span>
+      <span className="font-mono text-xs px-1.5 py-0.5 bg-foreground/5">{count}</span>
     </Button>
   );
 }

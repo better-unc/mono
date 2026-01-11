@@ -31,16 +31,16 @@ export function Header() {
       <div className="px-4 md:px-6 flex h-14 items-center justify-between">
         <div className="flex items-center gap-4 flex-1">
           <Link to="/" className="flex items-center gap-2.5 group shrink-0">
-            <div className="h-8 w-8 bg-foreground rounded-full flex items-center justify-center text-background font-bold text-lg" />
+            <div className="h-8 w-8 bg-foreground flex items-center justify-center text-background font-bold text-lg" />
           </Link>
 
           {isRepoPage && username && repoName && (
-            <div className="flex items-center gap-1 text-sm">
-              <Link to="/$username" params={{ username }} className="text-accent hover:underline">
+            <div className="flex items-center gap-1.5 text-sm">
+              <Link to="/$username" params={{ username }} className="text-primary hover:underline">
                 {username}
               </Link>
               <span className="text-muted-foreground">/</span>
-              <Link to="/$username/$repo" params={{ username, repo: repoName }} className="text-accent hover:underline font-semibold">
+              <Link to="/$username/$repo" params={{ username, repo: repoName }} className="text-primary hover:underline font-semibold">
                 {repoName}
               </Link>
             </div>

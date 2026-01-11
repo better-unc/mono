@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router"
-import { Folder, FileCode, FileText, FileJson, File, FileImage, FileAudio, FileVideo } from "lucide-react"
+import { Folder, FileCode, FileText, FileJson, File, FileImage, FileAudio, FileVideo, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 type FileEntry = {
@@ -63,9 +63,13 @@ export function FileTree({
   branch: string
   basePath?: string
 }) {
+  const folders = files.filter(f => f.type === "tree").sort((a, b) => a.name.localeCompare(b.name))
+  const fileItems = files.filter(f => f.type === "blob").sort((a, b) => a.name.localeCompare(b.name))
+  const sortedFiles = [...folders, ...fileItems]
+
   return (
-    <div className="bg-background">
-      {files.map((file) => {
+    <div className="divide-y divide-border">
+      {sortedFiles.map((file) => {
         const Icon = getFileIcon(file.name, file.type)
         const route =
           file.type === "tree"
@@ -74,37 +78,26 @@ export function FileTree({
         const splat = `${branch}/${file.path}`
 
         return (
-          <div
+          <Link
             key={file.oid + file.name}
-            className="flex items-center h-10 px-4 border-b border-border/50 last:border-0 hover:bg-secondary/50 transition-colors group"
+            to={route}
+            params={{ username, repo: repoName, _splat: splat }}
+            className="flex items-center gap-3 px-5 py-2.5 hover:bg-secondary/50 transition-colors group"
           >
-            <div className="flex items-center justify-center w-5 h-5 shrink-0 mr-3">
-              <Icon
-                className={cn(
-                  "h-4 w-4",
-                  file.type === "tree" ? "text-accent fill-accent/20" : "text-muted-foreground"
-                )}
-              />
-            </div>
-            
-            <div className="flex-1 flex items-center min-w-0">
-              <Link
-                to={route}
-                params={{ username, repo: repoName, _splat: splat }}
-                className="text-sm text-foreground hover:text-accent hover:underline truncate mr-4"
-              >
-                {file.name}
-              </Link>
-              
-              <span className="hidden md:block text-sm text-muted-foreground truncate flex-1 font-normal opacity-80 group-hover:opacity-100 transition-opacity">
-                {file.name === ".kamal" ? "well" : file.name.includes("apps/web") ? "fix webhook" : file.name === "cmd" ? "fix" : "hmm"}
-              </span>
-            </div>
-
-            <div className="text-sm text-muted-foreground shrink-0 tabular-nums font-normal ml-4">
-              last month
-            </div>
-          </div>
+            <Icon
+              className={cn(
+                "h-4 w-4 shrink-0",
+                file.type === "tree" ? "text-primary" : "text-muted-foreground"
+              )}
+            />
+            <span className={cn(
+              "text-sm flex-1",
+              file.type === "tree" ? "font-medium" : ""
+            )}>
+              {file.name}
+            </span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+          </Link>
         )
       })}
     </div>

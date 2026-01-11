@@ -93,9 +93,9 @@ export function SocialLinksForm({ socialLinks }: SocialLinksFormProps) {
         <p className="text-xs text-muted-foreground">Add up to 3 custom links to your profile</p>
       </div>
 
-      {error && <div className="text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2">{error}</div>}
+      {error && <div className="text-sm text-red-500 bg-red-500/10 border border-red-500/20 px-3 py-2">{error}</div>}
 
-      {success && <div className="text-sm text-green-500 bg-green-500/10 border border-green-500/20 rounded-md px-3 py-2">Social links updated!</div>}
+      {success && <div className="text-sm text-green-500 bg-green-500/10 border border-green-500/20 px-3 py-2">Social links updated!</div>}
 
       <Button type="submit" disabled={isMutating}>
         {isMutating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
