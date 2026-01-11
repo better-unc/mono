@@ -21,6 +21,7 @@ FROM oven/bun:1-alpine AS runner
 WORKDIR /app
 
 COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/bun.lock ./bun.lock
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
@@ -28,6 +29,6 @@ COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
 
 ENV NODE_ENV=production
 EXPOSE 3001
-WORKDIR /app
+WORKDIR /app/apps/api
 
-CMD ["bun", "run", "apps/api/dist/server.js"]
+CMD ["bun", "run", "dist/server.js"]
