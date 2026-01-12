@@ -99,7 +99,7 @@ async fn get_repo_and_store(
 
     let row: RepoUserRow = sqlx::query_as(
         r#"
-        SELECT r.id, r.name, r.description, r.owner_id, r.visibility, r.default_branch, 
+        SELECT r.id, r.name, r.description, r.owner_id, r.visibility, r.default_branch,
                r.created_at, r.updated_at, u.id as user_id
         FROM repositories r
         JOIN users u ON u.id = r.owner_id
@@ -123,7 +123,7 @@ async fn get_repo_and_store(
         created_at: row.created_at,
         updated_at: row.updated_at,
     };
-    
+
     let repo_prefix = S3Client::get_repo_prefix(&row.user_id, &repo.name);
     let store = R2GitStore::new(state.s3.clone(), repo_prefix);
 
@@ -158,7 +158,7 @@ async fn debug_refs(
 
     let debug_info = if let Some(ref commit_oid) = main_resolved {
         let commit_obj = store.get_object(commit_oid).await;
-        
+
         let (commit_content, tree_oid) = if let Some(ref data) = commit_obj {
             use std::io::Read;
             let mut decoder = flate2::read::ZlibDecoder::new(data.as_slice());
@@ -176,17 +176,17 @@ async fn debug_refs(
         } else {
             (None, None)
         };
-        
+
         let pack_dir = format!("{}/objects/pack", prefix);
         let pack_files = state.s3.list_objects(&pack_dir).await;
         let idx_files: Vec<_> = pack_files.iter().filter(|f| f.ends_with(".idx")).cloned().collect();
-        
+
         let commit_bytes = hex::decode(commit_oid).unwrap_or_default();
         let tree_bytes = tree_oid.as_ref().and_then(|t| hex::decode(t).ok()).unwrap_or_default();
-        
+
         let mut commit_found_in: Option<String> = None;
         let mut tree_found_in: Option<String> = None;
-        
+
         for idx_path in &idx_files {
             if let Some(idx_data) = state.s3.get_object(idx_path).await {
                 if commit_found_in.is_none() {
@@ -204,13 +204,13 @@ async fn debug_refs(
                 }
             }
         }
-        
+
         let tree_via_get_object = if let Some(ref t_oid) = tree_oid {
             store.get_object(t_oid).await
         } else {
             None
         };
-        
+
         serde_json::json!({
             "commit_oid": commit_oid,
             "commit_exists": commit_obj.is_some(),
@@ -373,7 +373,7 @@ async fn get_repo_info(
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let row: RepoWithUserRow = sqlx::query_as(
         r#"
-        SELECT r.id, r.name, r.description, r.owner_id, r.visibility, r.default_branch, 
+        SELECT r.id, r.name, r.description, r.owner_id, r.visibility, r.default_branch,
                r.created_at, r.updated_at, u.username, u.name as user_name, u.avatar_url
         FROM repositories r
         JOIN users u ON u.id = r.owner_id
@@ -447,7 +447,7 @@ async fn get_page_data(
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let row: RepoWithUserRow = sqlx::query_as(
         r#"
-        SELECT r.id, r.name, r.description, r.owner_id, r.visibility, r.default_branch, 
+        SELECT r.id, r.name, r.description, r.owner_id, r.visibility, r.default_branch,
                r.created_at, r.updated_at, u.username, u.name as user_name, u.avatar_url
         FROM repositories r
         JOIN users u ON u.id = r.owner_id
@@ -473,16 +473,6 @@ async fn get_page_data(
 
     let branches = list_branches(&store).await;
     tracing::info!("page-data: found {} branches", branches.len());
-    
-    let files = get_tree(&store, &row.default_branch, "").await;
-    tracing::info!("page-data: get_tree returned {:?} files", files.as_ref().map(|f| f.len()));
-    
-    let is_empty = files.is_none();
-    let files = files.unwrap_or_default();
-    
-    let readme_oid = files.iter()
-        .find(|f| f.name.to_lowercase() == "readme.md" && f.entry_type == "blob")
-        .map(|f| f.oid.clone());
 
     let star_count: (i64,) = sqlx::query_as(
         "SELECT COUNT(*) FROM stars WHERE repository_id = $1"
@@ -527,10 +517,7 @@ async fn get_page_data(
             "starCount": star_count.0,
             "starred": starred,
         },
-        "files": files,
-        "isEmpty": is_empty,
         "branches": branches,
-        "readmeOid": readme_oid,
         "isOwner": is_owner,
     })))
 }
@@ -542,7 +529,7 @@ async fn info_refs(
     Query(query): Query<ServiceQuery>,
 ) -> Result<Response, (StatusCode, String)> {
     let service = query.service.ok_or((StatusCode::NOT_FOUND, "Service not specified".to_string()))?;
-    
+
     if service != "git-upload-pack" && service != "git-receive-pack" {
         return Err((StatusCode::NOT_FOUND, "Invalid service".to_string()));
     }
@@ -565,7 +552,7 @@ async fn info_refs(
 
     let packet = format!("# service={}\n", service);
     let packet_len = format!("{:04x}", packet.len() + 4);
-    
+
     let mut response = Vec::new();
     response.extend(packet_len.as_bytes());
     response.extend(packet.as_bytes());

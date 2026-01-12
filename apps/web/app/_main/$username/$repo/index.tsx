@@ -25,7 +25,7 @@ function RepoPage() {
   const { data: treeData, isLoading: isLoadingTree } = useRepoTree(username, repoName, defaultBranch);
   const { data: branchesData, isLoading: isLoadingBranches } = useRepoBranches(username, repoName);
   const { data: commitData } = useRepoCommits(username, repoName, defaultBranch, 1);
-  const { data: commitCountData } = useRepoCommitCount(username, repoName, defaultBranch);
+  const { data: commitCountData, isLoading: isLoadingCommitCount } = useRepoCommitCount(username, repoName, defaultBranch);
 
   const repo = repoInfo?.repo;
   const files = treeData?.files || [];
@@ -56,7 +56,9 @@ function RepoPage() {
                 className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 <History className="h-4 w-4" />
-                <span className="font-mono">{commitCount} commits</span>
+                <span className="font-mono flex items-center gap-2">
+                  {isLoadingCommitCount ? <Loader2 className="h-4 w-4 animate-spin" /> : commitCount} commits
+                </span>
               </Link>
             )}
           </div>

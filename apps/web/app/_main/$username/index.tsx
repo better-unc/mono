@@ -109,7 +109,6 @@ function ProfilePage() {
   return (
     <div className="container max-w-7xl mx-auto px-4 py-12">
       <div className="flex flex-col lg:flex-row gap-12 items-start">
-        {/* Sidebar */}
         <aside className="lg:w-72 shrink-0 space-y-6">
           <Avatar className="w-64 h-64 border shadow-sm rounded-none">
             <AvatarImage src={user.avatarUrl || undefined} className="object-cover rounded-none" />
@@ -180,7 +179,6 @@ function ProfilePage() {
           )}
         </aside>
 
-        {/* Content */}
         <div className="flex-1 min-w-0">
           <Tabs value={tab} onValueChange={(value) => setTab(value === "repositories" ? null : (value as "starred"))}>
             <TabsList variant="default" className="w-full mb-6 h-12">
