@@ -6,12 +6,7 @@ pub struct R2GitStore {
     pub s3: S3Client,
     pub prefix: String,
     object_cache: tokio::sync::RwLock<HashMap<String, Vec<u8>>>,
-    pack_cache: tokio::sync::RwLock<Option<PackCache>>,
-}
-
-struct PackCache {
-    pack_data: Vec<u8>,
-    idx_data: Vec<u8>,
+    pack_list_cache: tokio::sync::RwLock<Option<Vec<String>>>,
 }
 
 impl R2GitStore {
@@ -20,7 +15,7 @@ impl R2GitStore {
             s3,
             prefix,
             object_cache: tokio::sync::RwLock::new(HashMap::new()),
-            pack_cache: tokio::sync::RwLock::new(None),
+            pack_list_cache: tokio::sync::RwLock::new(None),
         }
     }
 
@@ -68,49 +63,219 @@ impl R2GitStore {
         Ok(())
     }
 
-    async fn ensure_pack_loaded(&self) -> bool {
+    async fn get_pack_idx_files(&self) -> Vec<String> {
         {
-            let cache = self.pack_cache.read().await;
-            if cache.is_some() {
-                return true;
+            let cache = self.pack_list_cache.read().await;
+            if let Some(ref list) = *cache {
+                return list.clone();
             }
         }
 
         let pack_dir = format!("{}/objects/pack", self.prefix);
-        tracing::debug!("Looking for pack files in: {}", pack_dir);
         let pack_files = self.s3.list_objects(&pack_dir).await;
-        tracing::debug!("Found {} files in pack dir", pack_files.len());
         
-        for pack_file in &pack_files {
-            tracing::debug!("Pack file: {}", pack_file);
-            if pack_file.ends_with(".idx") {
-                if let Some(idx_data) = self.s3.get_object(pack_file).await {
-                    let pack_path = pack_file.replace(".idx", ".pack");
-                    if let Some(pack_data) = self.s3.get_object(&pack_path).await {
-                        tracing::info!("Loaded pack file: {} ({} bytes idx, {} bytes pack)", 
-                            pack_file, idx_data.len(), pack_data.len());
-                        let mut cache = self.pack_cache.write().await;
-                        *cache = Some(PackCache { pack_data, idx_data });
-                        return true;
+        let idx_files: Vec<String> = pack_files
+            .into_iter()
+            .filter(|f| f.ends_with(".idx"))
+            .collect();
+        
+        tracing::debug!("Found {} pack idx files", idx_files.len());
+        
+        let mut cache = self.pack_list_cache.write().await;
+        *cache = Some(idx_files.clone());
+        
+        idx_files
+    }
+
+    async fn get_from_pack(&self, oid: &str) -> Option<Vec<u8>> {
+        let target_bytes = hex::decode(oid).ok()?;
+        let idx_files = self.get_pack_idx_files().await;
+        
+        for idx_path in &idx_files {
+            let idx_data = match self.s3.get_object(idx_path).await {
+                Some(data) => data,
+                None => continue,
+            };
+            
+            if let Some(offset) = find_object_in_index(&idx_data, &target_bytes) {
+                tracing::info!("Found {} in index {} at offset {}", oid, idx_path, offset);
+                let pack_path = idx_path.replace(".idx", ".pack");
+                let pack_data = match self.s3.get_object(&pack_path).await {
+                    Some(data) => {
+                        tracing::info!("Loaded pack {} ({} bytes)", pack_path, data.len());
+                        data
+                    },
+                    None => {
+                        tracing::warn!("Failed to load pack {}", pack_path);
+                        continue;
+                    }
+                };
+                
+                match read_pack_object_header(&pack_data, offset) {
+                    Some((obj_type, _, header_end)) if obj_type == 7 => {
+                        tracing::info!("Object {} is REF_DELTA, resolving cross-pack", oid);
+                        if let Some(obj) = self.resolve_ref_delta(&pack_data, header_end).await {
+                            tracing::info!("Extracted REF_DELTA object {} ({} bytes)", oid, obj.len());
+                            return Some(obj);
+                        }
+                    }
+                    _ => {
+                        match extract_object_with_deltas(&pack_data, &idx_data, offset) {
+                            Some(obj) => {
+                                tracing::info!("Extracted object {} ({} bytes)", oid, obj.len());
+                                return Some(obj);
+                            }
+                            None => {
+                                tracing::warn!("Failed to extract object {} from pack at offset {}", oid, offset);
+                            }
+                        }
                     }
                 }
             }
         }
-
-        tracing::debug!("No pack files found");
-        false
+        
+        tracing::warn!("Object {} not found in any pack", oid);
+        None
     }
 
-    async fn get_from_pack(&self, oid: &str) -> Option<Vec<u8>> {
-        self.ensure_pack_loaded().await;
+    async fn resolve_ref_delta(&self, pack_data: &[u8], header_end: usize) -> Option<Vec<u8>> {
+        if header_end + 20 > pack_data.len() {
+            tracing::warn!("REF_DELTA: not enough data for base OID");
+            return None;
+        }
         
-        let cache = self.pack_cache.read().await;
-        let pack_cache = cache.as_ref()?;
+        let base_oid_bytes = &pack_data[header_end..header_end + 20];
+        let base_oid = hex::encode(base_oid_bytes);
+        let delta_start = header_end + 20;
+        let compressed = &pack_data[delta_start..];
+        let delta = decompress_zlib(compressed)?;
         
-        let target_bytes = hex::decode(oid).ok()?;
-        let offset = find_object_in_index(&pack_cache.idx_data, &target_bytes)?;
+        tracing::info!("REF_DELTA: need base {}, delta {} bytes", base_oid, delta.len());
         
-        extract_object_with_deltas(&pack_cache.pack_data, &pack_cache.idx_data, offset)
+        let (base_type, base_content) = self.resolve_object_iterative(&base_oid).await?;
+        tracing::info!("REF_DELTA: got base type={}, size={}", base_type, base_content.len());
+        
+        let result = apply_delta(&base_content, &delta)?;
+        
+        let type_str = match base_type.as_str() {
+            "commit" => "commit",
+            "tree" => "tree",
+            "blob" => "blob",
+            "tag" => "tag",
+            _ => return None,
+        };
+        
+        let header = format!("{} {}\0", type_str, result.len());
+        let mut final_obj = header.into_bytes();
+        final_obj.extend(result);
+        
+        compress_zlib(&final_obj)
+    }
+
+    async fn resolve_object_iterative(&self, start_oid: &str) -> Option<(String, Vec<u8>)> {
+        let mut delta_chain: Vec<(String, Vec<u8>)> = Vec::new();
+        let mut current_oid = start_oid.to_string();
+        
+        for depth in 0..100 {
+            tracing::info!("resolve_object_iterative: depth={}, oid={}", depth, current_oid);
+            
+            if let Some(cached) = self.object_cache.read().await.get(&current_oid) {
+                if let Some((obj_type, content)) = parse_git_object(cached) {
+                    tracing::info!("Found cached base at depth {}: type={}", depth, obj_type);
+                    return Some(self.apply_delta_chain((obj_type, content), &delta_chain));
+                }
+            }
+            
+            let target_bytes = match hex::decode(&current_oid) {
+                Ok(b) => b,
+                Err(_) => return None,
+            };
+            
+            let idx_files = self.get_pack_idx_files().await;
+            let mut found = false;
+            
+            for idx_path in &idx_files {
+                let idx_data = match self.s3.get_object(idx_path).await {
+                    Some(data) => data,
+                    None => continue,
+                };
+                
+                if let Some(offset) = find_object_in_index(&idx_data, &target_bytes) {
+                    let pack_path = idx_path.replace(".idx", ".pack");
+                    let pack_data = match self.s3.get_object(&pack_path).await {
+                        Some(data) => data,
+                        None => continue,
+                    };
+                    
+                    if let Some((obj_type, size, header_end)) = read_pack_object_header(&pack_data, offset) {
+                        if obj_type == 7 {
+                            if header_end + 20 > pack_data.len() {
+                                continue;
+                            }
+                            let base_oid_bytes = &pack_data[header_end..header_end + 20];
+                            let base_oid = hex::encode(base_oid_bytes);
+                            let delta_start = header_end + 20;
+                            let compressed = &pack_data[delta_start..];
+                            
+                            if let Some(delta) = decompress_zlib(compressed) {
+                                tracing::info!("Depth {}: REF_DELTA -> base {}", depth, base_oid);
+                                delta_chain.push((current_oid.clone(), delta));
+                                current_oid = base_oid;
+                                found = true;
+                                break;
+                            }
+                        } else if obj_type >= 1 && obj_type <= 4 {
+                            if let Some(obj) = extract_object_with_deltas(&pack_data, &idx_data, offset) {
+                                if let Some((obj_type_str, content)) = parse_git_object(&obj) {
+                                    tracing::info!("Found base at depth {}: type={}, size={}", depth, obj_type_str, content.len());
+                                    return Some(self.apply_delta_chain((obj_type_str, content), &delta_chain));
+                                }
+                            }
+                        } else if obj_type == 6 {
+                            if let Some(obj) = extract_object_with_deltas(&pack_data, &idx_data, offset) {
+                                if let Some((obj_type_str, content)) = parse_git_object(&obj) {
+                                    tracing::info!("Found OFS_DELTA base at depth {}: type={}", depth, obj_type_str);
+                                    return Some(self.apply_delta_chain((obj_type_str, content), &delta_chain));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if !found {
+                let path = format!("{}/objects/{}/{}", self.prefix, &current_oid[..2], &current_oid[2..]);
+                if let Some(data) = self.s3.get_object(&path).await {
+                    if let Some((obj_type, content)) = parse_git_object(&data) {
+                        tracing::info!("Found loose object base at depth {}: type={}", depth, obj_type);
+                        return Some(self.apply_delta_chain((obj_type, content), &delta_chain));
+                    }
+                }
+                tracing::warn!("Could not find object {} at depth {}", current_oid, depth);
+                return None;
+            }
+        }
+        
+        tracing::warn!("Delta chain too deep (>100)");
+        None
+    }
+    
+    fn apply_delta_chain(&self, base: (String, Vec<u8>), delta_chain: &[(String, Vec<u8>)]) -> (String, Vec<u8>) {
+        let (obj_type, mut content) = base;
+        
+        for (oid, delta) in delta_chain.iter().rev() {
+            match apply_delta(&content, delta) {
+                Some(new_content) => {
+                    tracing::info!("Applied delta for {}: {} -> {} bytes", oid, content.len(), new_content.len());
+                    content = new_content;
+                }
+                None => {
+                    tracing::warn!("Failed to apply delta for {}", oid);
+                }
+            }
+        }
+        
+        (obj_type, content)
     }
 
     pub async fn read_ref(&self, ref_name: &str) -> Option<String> {
@@ -215,6 +380,10 @@ impl R2GitStore {
             None
         })
     }
+}
+
+pub fn find_object_in_index_pub(idx_data: &[u8], target_oid: &[u8]) -> Option<u64> {
+    find_object_in_index(idx_data, target_oid)
 }
 
 fn find_object_in_index(idx_data: &[u8], target_oid: &[u8]) -> Option<u64> {
@@ -322,25 +491,7 @@ fn find_object_in_index(idx_data: &[u8], target_oid: &[u8]) -> Option<u64> {
     None
 }
 
-fn extract_object_with_deltas(pack_data: &[u8], idx_data: &[u8], offset: u64) -> Option<Vec<u8>> {
-    let (obj_type, content) = read_pack_object(pack_data, idx_data, offset)?;
-    
-    let type_str = match obj_type {
-        1 => "commit",
-        2 => "tree",
-        3 => "blob",
-        4 => "tag",
-        _ => return None,
-    };
-
-    let header = format!("{} {}\0", type_str, content.len());
-    let mut result = header.into_bytes();
-    result.extend(content);
-    
-    compress_zlib(&result)
-}
-
-fn read_pack_object(pack_data: &[u8], idx_data: &[u8], offset: u64) -> Option<(u8, Vec<u8>)> {
+fn read_pack_object_header(pack_data: &[u8], offset: u64) -> Option<(u8, usize, usize)> {
     let offset = offset as usize;
     if offset >= pack_data.len() {
         return None;
@@ -354,49 +505,177 @@ fn read_pack_object(pack_data: &[u8], idx_data: &[u8], offset: u64) -> Option<(u
     let mut size = (first_byte & 0x0f) as usize;
     let mut shift = 4;
 
-    while pack_data.get(pos - 1).map(|b| b & 0x80 != 0).unwrap_or(false) && pos < pack_data.len() {
-        let byte = pack_data[pos];
+    let mut continuation_byte = first_byte;
+    while continuation_byte & 0x80 != 0 && pos < pack_data.len() {
+        continuation_byte = pack_data[pos];
         pos += 1;
-        size |= ((byte & 0x7f) as usize) << shift;
+        size |= ((continuation_byte & 0x7f) as usize) << shift;
         shift += 7;
     }
+
+    Some((obj_type, size, pos))
+}
+
+fn parse_git_object(data: &[u8]) -> Option<(String, Vec<u8>)> {
+    let decompressed = decompress_zlib(data)?;
+    let null_pos = decompressed.iter().position(|&b| b == 0)?;
+    let header = std::str::from_utf8(&decompressed[..null_pos]).ok()?;
+    let parts: Vec<&str> = header.splitn(2, ' ').collect();
+    if parts.len() != 2 {
+        return None;
+    }
+    let obj_type = parts[0].to_string();
+    let content = decompressed[null_pos + 1..].to_vec();
+    Some((obj_type, content))
+}
+
+fn extract_object_with_deltas(pack_data: &[u8], idx_data: &[u8], offset: u64) -> Option<Vec<u8>> {
+    let result = read_pack_object(pack_data, idx_data, offset);
+    if result.is_none() {
+        tracing::warn!("read_pack_object returned None for offset {}", offset);
+        return None;
+    }
+    let (obj_type, content) = result.unwrap();
+    
+    let type_str = match obj_type {
+        1 => "commit",
+        2 => "tree",
+        3 => "blob",
+        4 => "tag",
+        _ => {
+            tracing::warn!("Unknown object type {} at offset {}", obj_type, offset);
+            return None;
+        }
+    };
+
+    let header = format!("{} {}\0", type_str, content.len());
+    let mut result = header.into_bytes();
+    result.extend(content);
+    
+    compress_zlib(&result)
+}
+
+fn read_pack_object(pack_data: &[u8], idx_data: &[u8], offset: u64) -> Option<(u8, Vec<u8>)> {
+    let offset = offset as usize;
+    if offset >= pack_data.len() {
+        tracing::warn!("Offset {} >= pack_data.len() {}", offset, pack_data.len());
+        return None;
+    }
+
+    let mut pos = offset;
+    let first_byte = pack_data[pos];
+    pos += 1;
+
+    let obj_type = (first_byte >> 4) & 0x07;
+    let mut size = (first_byte & 0x0f) as usize;
+    let mut shift = 4;
+
+    let mut continuation_byte = first_byte;
+    while continuation_byte & 0x80 != 0 && pos < pack_data.len() {
+        continuation_byte = pack_data[pos];
+        pos += 1;
+        size |= ((continuation_byte & 0x7f) as usize) << shift;
+        shift += 7;
+    }
+
+    tracing::info!("read_pack_object: offset={}, first_byte=0x{:02x}, obj_type={}, size={}, data_pos={}", offset, first_byte, obj_type, size, pos);
 
     match obj_type {
         1 | 2 | 3 | 4 => {
             let compressed = &pack_data[pos..];
-            let content = decompress_zlib(compressed)?;
-            Some((obj_type, content))
+            let content = decompress_zlib(compressed);
+            if content.is_none() {
+                tracing::warn!("Failed to decompress object type {} at offset {}", obj_type, offset);
+                return None;
+            }
+            Some((obj_type, content.unwrap()))
         }
         6 => {
-            let (base_offset, bytes_read) = read_ofs_delta_offset(&pack_data[pos..])?;
+            tracing::info!("OFS_DELTA at offset {}", offset);
+            let delta_result = read_ofs_delta_offset(&pack_data[pos..]);
+            if delta_result.is_none() {
+                tracing::warn!("Failed to read OFS_DELTA offset at pos {}", pos);
+                return None;
+            }
+            let (base_offset, bytes_read) = delta_result.unwrap();
             pos += bytes_read;
             
             let base_abs_offset = offset as u64 - base_offset;
-            let (base_type, base_content) = read_pack_object(pack_data, idx_data, base_abs_offset)?;
+            tracing::info!("OFS_DELTA: base_offset={}, base_abs_offset={}", base_offset, base_abs_offset);
+            let base_result = read_pack_object(pack_data, idx_data, base_abs_offset);
+            if base_result.is_none() {
+                tracing::warn!("Failed to read base object at offset {}", base_abs_offset);
+                return None;
+            }
+            let (base_type, base_content) = base_result.unwrap();
+            tracing::info!("OFS_DELTA: got base type={}, base_content_len={}", base_type, base_content.len());
             
             let compressed = &pack_data[pos..];
-            let delta = decompress_zlib(compressed)?;
+            let delta = decompress_zlib(compressed);
+            if delta.is_none() {
+                tracing::warn!("Failed to decompress delta at pos {}", pos);
+                return None;
+            }
+            let delta_data = delta.unwrap();
+            tracing::info!("OFS_DELTA: delta decompressed to {} bytes", delta_data.len());
             
-            let result = apply_delta(&base_content, &delta)?;
-            Some((base_type, result))
+            let result = apply_delta(&base_content, &delta_data);
+            if result.is_none() {
+                tracing::warn!("Failed to apply delta");
+                return None;
+            }
+            Some((base_type, result.unwrap()))
         }
         7 => {
+            tracing::info!("REF_DELTA at offset {}", offset);
             if pos + 20 > pack_data.len() {
+                tracing::warn!("REF_DELTA: not enough data for base OID at pos {}", pos);
                 return None;
             }
             let base_oid = &pack_data[pos..pos + 20];
+            let base_oid_hex = hex::encode(base_oid);
             pos += 20;
+            tracing::info!("REF_DELTA: base_oid={}", base_oid_hex);
             
-            let base_offset = find_object_in_index(idx_data, base_oid)?;
-            let (base_type, base_content) = read_pack_object(pack_data, idx_data, base_offset)?;
+            let base_offset = match find_object_in_index(idx_data, base_oid) {
+                Some(o) => o,
+                None => {
+                    tracing::warn!("REF_DELTA: base object {} not found in index", base_oid_hex);
+                    return None;
+                }
+            };
+            let (base_type, base_content) = match read_pack_object(pack_data, idx_data, base_offset) {
+                Some(r) => r,
+                None => {
+                    tracing::warn!("REF_DELTA: failed to read base object at offset {}", base_offset);
+                    return None;
+                }
+            };
+            tracing::info!("REF_DELTA: got base type={}, base_content_len={}", base_type, base_content.len());
             
             let compressed = &pack_data[pos..];
-            let delta = decompress_zlib(compressed)?;
+            let delta = match decompress_zlib(compressed) {
+                Some(d) => d,
+                None => {
+                    tracing::warn!("REF_DELTA: failed to decompress delta");
+                    return None;
+                }
+            };
+            tracing::info!("REF_DELTA: delta decompressed to {} bytes", delta.len());
             
-            let result = apply_delta(&base_content, &delta)?;
+            let result = match apply_delta(&base_content, &delta) {
+                Some(r) => r,
+                None => {
+                    tracing::warn!("REF_DELTA: failed to apply delta");
+                    return None;
+                }
+            };
             Some((base_type, result))
         }
-        _ => None,
+        _ => {
+            tracing::warn!("Unknown/unsupported object type {} at offset {}", obj_type, offset);
+            None
+        }
     }
 }
 

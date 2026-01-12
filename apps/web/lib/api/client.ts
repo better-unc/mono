@@ -61,6 +61,17 @@ export type FileEntry = {
   path: string;
 };
 
+export type RepoInfo = {
+  repo: RepositoryWithOwner;
+  isOwner: boolean;
+};
+
+export type TreeResponse = {
+  files: FileEntry[];
+  isEmpty: boolean;
+  readmeOid: string | null;
+};
+
 export type RepoPageData = {
   repo: RepositoryWithOwner;
   files: FileEntry[];
@@ -127,6 +138,8 @@ export const api = {
     get: (owner: string, name: string) => apiFetch<RepositoryWithOwner>(`/api/repositories/${owner}/${name}`),
 
     getWithStars: (owner: string, name: string) => apiFetch<RepositoryWithOwner>(`/api/repositories/${owner}/${name}/with-stars`),
+
+    getInfo: (owner: string, name: string) => apiFetch<RepoInfo>(`/api/repositories/${owner}/${name}/info`),
 
     getPageData: (owner: string, name: string) => apiFetch<RepoPageData>(`/api/repositories/${owner}/${name}/page-data`),
 

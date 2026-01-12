@@ -147,6 +147,91 @@ async fn get_branches(
     Ok(Json(serde_json::json!({ "branches": branches })))
 }
 
+async fn debug_refs(
+    State(state): State<AppState>,
+    Path((owner, name)): Path<(String, String)>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let (repo, store, user_id) = get_repo_and_store(&state, &owner, &name).await?;
+
+    let prefix = &store.prefix;
+    let main_resolved = store.resolve_ref("refs/heads/main").await;
+
+    let debug_info = if let Some(ref commit_oid) = main_resolved {
+        let commit_obj = store.get_object(commit_oid).await;
+        
+        let (commit_content, tree_oid) = if let Some(ref data) = commit_obj {
+            use std::io::Read;
+            let mut decoder = flate2::read::ZlibDecoder::new(data.as_slice());
+            let mut result = Vec::new();
+            if decoder.read_to_end(&mut result).is_ok() {
+                let null_pos = result.iter().position(|&b| b == 0);
+                let content = null_pos.and_then(|p| std::str::from_utf8(&result[p + 1..]).ok());
+                let tree_oid = content.and_then(|c| {
+                    c.lines().find(|l| l.starts_with("tree ")).map(|l| l[5..].to_string())
+                });
+                (Some(String::from_utf8_lossy(&result).to_string()), tree_oid)
+            } else {
+                (Some("decompress failed".to_string()), None)
+            }
+        } else {
+            (None, None)
+        };
+        
+        let pack_dir = format!("{}/objects/pack", prefix);
+        let pack_files = state.s3.list_objects(&pack_dir).await;
+        let idx_files: Vec<_> = pack_files.iter().filter(|f| f.ends_with(".idx")).cloned().collect();
+        
+        let commit_bytes = hex::decode(commit_oid).unwrap_or_default();
+        let tree_bytes = tree_oid.as_ref().and_then(|t| hex::decode(t).ok()).unwrap_or_default();
+        
+        let mut commit_found_in: Option<String> = None;
+        let mut tree_found_in: Option<String> = None;
+        
+        for idx_path in &idx_files {
+            if let Some(idx_data) = state.s3.get_object(idx_path).await {
+                if commit_found_in.is_none() {
+                    if crate::git::objects::find_object_in_index_pub(&idx_data, &commit_bytes).is_some() {
+                        commit_found_in = Some(idx_path.split('/').last().unwrap_or("").to_string());
+                    }
+                }
+                if tree_found_in.is_none() && !tree_bytes.is_empty() {
+                    if crate::git::objects::find_object_in_index_pub(&idx_data, &tree_bytes).is_some() {
+                        tree_found_in = Some(idx_path.split('/').last().unwrap_or("").to_string());
+                    }
+                }
+                if commit_found_in.is_some() && tree_found_in.is_some() {
+                    break;
+                }
+            }
+        }
+        
+        let tree_via_get_object = if let Some(ref t_oid) = tree_oid {
+            store.get_object(t_oid).await
+        } else {
+            None
+        };
+        
+        serde_json::json!({
+            "commit_oid": commit_oid,
+            "commit_exists": commit_obj.is_some(),
+            "tree_oid": tree_oid,
+            "total_packs": idx_files.len(),
+            "commit_found_in_pack": commit_found_in,
+            "tree_found_in_pack": tree_found_in,
+            "tree_via_get_object_len": tree_via_get_object.as_ref().map(|d| d.len()),
+        })
+    } else {
+        serde_json::json!({ "error": "could not resolve main ref" })
+    };
+
+    Ok(Json(serde_json::json!({
+        "prefix": prefix,
+        "user_id": user_id,
+        "repo_name": repo.name,
+        "debug_info": debug_info,
+    })))
+}
+
 async fn get_commits_route(
     State(state): State<AppState>,
     Extension(auth): Extension<AuthUser>,
@@ -213,13 +298,24 @@ async fn get_tree_route(
     let files = get_tree(&store, branch, path).await;
 
     match files {
-        Some(entries) => Ok(Json(serde_json::json!({
-            "files": entries,
-            "isEmpty": false,
-        }))),
+        Some(entries) => {
+            let readme_oid = if path.is_empty() {
+                entries.iter()
+                    .find(|f| f.name.to_lowercase() == "readme.md" && f.entry_type == "blob")
+                    .map(|f| f.oid.clone())
+            } else {
+                None
+            };
+            Ok(Json(serde_json::json!({
+                "files": entries,
+                "isEmpty": false,
+                "readmeOid": readme_oid,
+            })))
+        },
         None => Ok(Json(serde_json::json!({
             "files": [],
             "isEmpty": true,
+            "readmeOid": null,
         }))),
     }
 }
@@ -268,6 +364,80 @@ async fn get_readme(
         Some(content) => Ok(Json(serde_json::json!({ "content": content }))),
         None => Err((StatusCode::NOT_FOUND, "Readme not found".to_string())),
     }
+}
+
+async fn get_repo_info(
+    State(state): State<AppState>,
+    Extension(auth): Extension<AuthUser>,
+    Path((owner, name)): Path<(String, String)>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let row: RepoWithUserRow = sqlx::query_as(
+        r#"
+        SELECT r.id, r.name, r.description, r.owner_id, r.visibility, r.default_branch, 
+               r.created_at, r.updated_at, u.username, u.name as user_name, u.avatar_url
+        FROM repositories r
+        JOIN users u ON u.id = r.owner_id
+        WHERE u.username = $1 AND r.name = $2
+        "#
+    )
+    .bind(&owner)
+    .bind(&name)
+    .fetch_optional(&state.db.pool)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+    .ok_or((StatusCode::NOT_FOUND, "Repository not found".to_string()))?;
+
+    if row.visibility == "private" {
+        if auth.0.as_ref().map(|u| u.id != row.owner_id).unwrap_or(true) {
+            return Err((StatusCode::NOT_FOUND, "Repository not found".to_string()));
+        }
+    }
+
+    let star_count: (i64,) = sqlx::query_as(
+        "SELECT COUNT(*) FROM stars WHERE repository_id = $1"
+    )
+    .bind(row.id)
+    .fetch_one(&state.db.pool)
+    .await
+    .unwrap_or((0,));
+
+    let starred = if let Some(user) = &auth.0 {
+        let existing: Option<(String,)> = sqlx::query_as(
+            "SELECT user_id FROM stars WHERE user_id = $1 AND repository_id = $2"
+        )
+        .bind(&user.id)
+        .bind(row.id)
+        .fetch_optional(&state.db.pool)
+        .await
+        .ok()
+        .flatten();
+        existing.is_some()
+    } else {
+        false
+    };
+
+    let is_owner = auth.0.as_ref().map(|u| u.id == row.owner_id).unwrap_or(false);
+
+    Ok(Json(serde_json::json!({
+        "repo": {
+            "id": row.id,
+            "name": row.name,
+            "description": row.description,
+            "visibility": row.visibility,
+            "defaultBranch": row.default_branch,
+            "createdAt": format!("{}Z", row.created_at.format("%Y-%m-%dT%H:%M:%S%.3f")),
+            "updatedAt": format!("{}Z", row.updated_at.format("%Y-%m-%dT%H:%M:%S%.3f")),
+            "owner": {
+                "id": row.owner_id,
+                "username": row.username,
+                "name": row.user_name,
+                "avatarUrl": row.avatar_url,
+            },
+            "starCount": star_count.0,
+            "starred": starred,
+        },
+        "isOwner": is_owner,
+    })))
 }
 
 async fn get_page_data(
@@ -466,7 +636,9 @@ pub fn router() -> Router<AppState> {
         .route("/api/repositories/{owner}/{name}/tree", get(get_tree_route))
         .route("/api/repositories/{owner}/{name}/file", get(get_file_route))
         .route("/api/repositories/{owner}/{name}/readme", get(get_readme))
+        .route("/api/repositories/{owner}/{name}/info", get(get_repo_info))
         .route("/api/repositories/{owner}/{name}/page-data", get(get_page_data))
+        .route("/api/repositories/{owner}/{name}/debug-refs", get(debug_refs))
         .route("/{owner}/{name}/info/refs", get(info_refs))
         .route("/{owner}/{name}/git-upload-pack", post(upload_pack))
         .route("/{owner}/{name}/git-receive-pack", post(receive_pack))

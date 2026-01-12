@@ -9,13 +9,13 @@ import { getPublicServerUrl } from "@/lib/utils";
 
 export function CloneUrl({ username, repoName }: { username: string; repoName: string }) {
   const [copied, setCopied] = useState(false);
-  // const [protocol, setProtocol] = useState<"https" | "ssh">("https");
+  const [protocol, setProtocol] = useState<"https" | "ssh">("https");
 
   const httpsUrl = `${getPublicServerUrl()}/${username}/${repoName}.git`;
-  // const sshUrl = `git@gitbruv.local:${username}/${repoName}.git`;
+  const sshUrl = `git@gitbruv.local:${username}/${repoName}.git`;
 
-  const url = httpsUrl;
-  // const url = protocol === "https" ? httpsUrl : sshUrl;
+  // const url = httpsUrl;
+  const url = protocol === "https" ? httpsUrl : sshUrl;
 
   async function copyToClipboard() {
     await navigator.clipboard.writeText(url);
@@ -26,7 +26,7 @@ export function CloneUrl({ username, repoName }: { username: string; repoName: s
   return (
     <div className="flex items-center gap-2">
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+        <DropdownMenuTrigger>
           <Button variant="outline" size="sm" className="gap-1">
             {/* {protocol.toUpperCase()} */}
             HTTPS
@@ -34,8 +34,8 @@ export function CloneUrl({ username, repoName }: { username: string; repoName: s
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
-          {/* <DropdownMenuItem onClick={() => setProtocol("https")}>HTTPS</DropdownMenuItem> */}
-          {/* <DropdownMenuItem onClick={() => setProtocol("ssh")}>SSH</DropdownMenuItem> */}
+          <DropdownMenuItem onClick={() => setProtocol("https")}>HTTPS</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setProtocol("ssh")}>SSH</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
       <div className="relative flex-1 min-w-[280px]">
