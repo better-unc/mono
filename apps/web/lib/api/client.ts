@@ -195,7 +195,7 @@ export const api = {
   },
 
   settings: {
-    getCurrentUser: () => apiFetch<UserProfile>(`/api/settings/current-user`),
+    getCurrentUser: () => apiFetch<{ user: UserProfile }>(`/api/settings`),
 
     updateProfile: (data: { name: string; username: string; bio?: string; location?: string; website?: string; pronouns?: string }) =>
       apiFetch<{ success: boolean; username: string }>(`/api/settings/profile`, {

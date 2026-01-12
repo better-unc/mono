@@ -3,7 +3,7 @@ import useSWRMutation from "swr/mutation";
 import { api, fetcher, type UserProfile } from "@/lib/api/client";
 
 export function useCurrentUser() {
-  return useSWR<UserProfile>("/api/settings/current-user", fetcher);
+  return useSWR<{ user: UserProfile }>("/api/settings", fetcher);
 }
 
 export function useUpdateProfile() {
