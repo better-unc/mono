@@ -5,7 +5,7 @@ import { useUserRepositories } from "@/lib/hooks/use-repositories";
 import RepositoryCard from "@/components/repository-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarDays, GitBranch, MapPin, Star, BookOpen, Globe } from "lucide-react";
+import { CalendarDays, GitBranch, MapPin, Star, BookOpen, Globe, Link } from "lucide-react";
 import { format } from "date-fns";
 import { GithubIcon, XIcon, LinkedInIcon } from "@/components/icons";
 
@@ -175,6 +175,17 @@ function ProfilePage() {
                   <LinkedInIcon className="h-5 w-5" />
                 </a>
               )}
+              {user.socialLinks.custom?.map((url, i) => (
+                <a
+                  key={i}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Link className="h-5 w-5" />
+                </a>
+              ))}
             </div>
           )}
         </aside>

@@ -45,6 +45,7 @@ pub struct User {
     pub website: Option<String>,
     pub pronouns: Option<String>,
     pub avatar_url: Option<String>,
+    pub social_links: Option<serde_json::Value>,
     #[serde(with = "naive_datetime_as_utc")]
     pub created_at: NaiveDateTime,
     #[serde(with = "naive_datetime_as_utc")]
@@ -97,7 +98,7 @@ async fn get_user_from_session(pool: &sqlx::PgPool, token: &str) -> Option<User>
     sqlx::query_as::<_, User>(
         r#"
         SELECT u.id, u.name, u.email, u.username, u.bio, u.location, 
-               u.website, u.pronouns, u.avatar_url, u.created_at, u.updated_at
+               u.website, u.pronouns, u.avatar_url, u.social_links, u.created_at, u.updated_at
         FROM users u
         JOIN sessions s ON s.user_id = u.id
         WHERE s.token = $1 AND s.expires_at > NOW()
