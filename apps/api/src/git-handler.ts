@@ -16,7 +16,7 @@ export async function getRefsAdvertisement(fs: R2Fs, gitdir: string, service: st
       const oid = await git.resolveRef({ fs, gitdir, ref: branch });
       refs.push({ name: `refs/heads/${branch}`, oid });
     }
-  } catch {}
+  } catch { }
 
   try {
     const tags = await git.listTags({ fs, gitdir });
@@ -24,12 +24,12 @@ export async function getRefsAdvertisement(fs: R2Fs, gitdir: string, service: st
       const oid = await git.resolveRef({ fs, gitdir, ref: tag });
       refs.push({ name: `refs/tags/${tag}`, oid });
     }
-  } catch {}
+  } catch { }
 
   let head = "";
   try {
     head = await git.resolveRef({ fs, gitdir, ref: "HEAD" });
-  } catch {}
+  } catch { }
 
   const lines: string[] = [];
 
@@ -38,13 +38,24 @@ export async function getRefsAdvertisement(fs: R2Fs, gitdir: string, service: st
     const capsLine = `${zeroId} capabilities^{}\0${capabilities.join(" ")}\n`;
     lines.push(capsLine);
   } else {
-    const firstRef = head ? { name: "HEAD", oid: head } : refs[0];
-    const capsLine = `${firstRef.oid} ${firstRef.name}\0${capabilities.join(" ")}\n`;
-    lines.push(capsLine);
+    // First, advertise HEAD with capabilities if we have a HEAD
+    if (head) {
+      const capsLine = `${head} HEAD\0${capabilities.join(" ")}\n`;
+      lines.push(capsLine);
 
-    for (const ref of refs) {
-      if (ref.name !== firstRef.name || !head) {
+      // Then add all refs (no duplicates since HEAD is a special ref)
+      for (const ref of refs) {
         lines.push(`${ref.oid} ${ref.name}\n`);
+      }
+    } else {
+      // No HEAD, use first ref with capabilities
+      const firstRef = refs[0];
+      const capsLine = `${firstRef.oid} ${firstRef.name}\0${capabilities.join(" ")}\n`;
+      lines.push(capsLine);
+
+      // Add remaining refs
+      for (let i = 1; i < refs.length; i++) {
+        lines.push(`${refs[i].oid} ${refs[i].name}\n`);
       }
     }
   }
@@ -174,8 +185,8 @@ export async function handleReceivePack(fs: R2Fs, gitdir: string, body: Uint8Arr
   }
 
   try {
-    await fs.promises.mkdir("/objects").catch(() => {});
-    await fs.promises.mkdir("/objects/pack").catch(() => {});
+    await fs.promises.mkdir("/objects").catch(() => { });
+    await fs.promises.mkdir("/objects/pack").catch(() => { });
 
     const packHash = createHash("sha1").update(packData).digest("hex");
     const packFileName = `pack-${packHash}`;
@@ -189,10 +200,10 @@ export async function handleReceivePack(fs: R2Fs, gitdir: string, body: Uint8Arr
       const refPath = update.ref.startsWith("refs/") ? update.ref : `refs/heads/${update.ref}`;
 
       if (update.newOid === "0".repeat(40)) {
-        await fs.promises.unlink(`/${refPath}`).catch(() => {});
+        await fs.promises.unlink(`/${refPath}`).catch(() => { });
       } else {
         const refDir = "/" + refPath.split("/").slice(0, -1).join("/");
-        await fs.promises.mkdir(refDir).catch(() => {});
+        await fs.promises.mkdir(refDir).catch(() => { });
         await fs.promises.writeFile(`/${refPath}`, update.newOid + "\n");
       }
     }

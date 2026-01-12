@@ -10,6 +10,7 @@ import { registerRepositoryRoutes } from "./routes/repositories";
 import { registerSettingsRoutes } from "./routes/settings";
 import { registerUserRoutes } from "./routes/users";
 import { registerAuthRoutes } from "./routes/auth";
+import { registerPullRequestRoutes } from "./routes/pull_requests";
 import { getEnv } from "./env";
 import { createS3Client } from "./r2-fs";
 import { createDb } from "./db";
@@ -48,6 +49,7 @@ registerSettingsRoutes(app);
 registerUserRoutes(app);
 registerGitRoutes(app);
 registerFileRoutes(app);
+registerPullRequestRoutes(app);
 
 app.notFound((c) => c.text("Not found", 404));
 

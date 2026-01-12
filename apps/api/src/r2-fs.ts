@@ -222,7 +222,7 @@ export function createR2Fs(config: S3Config, repoPrefix: string) {
     throw err;
   };
 
-  const symlink = async (): Promise<void> => {};
+  const symlink = async (): Promise<void> => { };
 
   return {
     promises: {
@@ -288,3 +288,39 @@ export async function s3DeletePrefix(config: S3Config, prefix: string): Promise<
     }
   }
 }
+
+export async function s3CopyPrefix(config: S3Config, sourcePrefix: string, destPrefix: string): Promise<void> {
+  const { client, bucket } = config;
+  const keys: string[] = [];
+  let continuationToken: string | undefined;
+
+  do {
+    const response = await client.send(
+      new ListObjectsV2Command({
+        Bucket: bucket,
+        Prefix: sourcePrefix,
+        ContinuationToken: continuationToken,
+      })
+    );
+    for (const obj of response.Contents || []) {
+      if (obj.Key) {
+        keys.push(obj.Key);
+      }
+    }
+    continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined;
+  } while (continuationToken);
+
+  for (const sourceKey of keys) {
+    const relativePath = sourceKey.slice(sourcePrefix.length);
+    const destKey = `${destPrefix}${relativePath}`;
+
+    // Read source object
+    const getResponse = await client.send(new GetObjectCommand({ Bucket: bucket, Key: sourceKey }));
+    if (getResponse.Body) {
+      const data = await getResponse.Body.transformToByteArray();
+      // Write to destination
+      await client.send(new PutObjectCommand({ Bucket: bucket, Key: destKey, Body: data }));
+    }
+  }
+}
+
