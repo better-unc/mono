@@ -38,8 +38,7 @@ async function redirectAvatarRequest(request: Request): Promise<Response> {
     );
   }
 
-  const backendPath = path.replace(/^\/api/, "");
-  const backendUrl = `${apiUrl}${backendPath}${url.search}`;
+  const backendUrl = `${apiUrl}${path}`;
   console.log(`[Redirect] ${request.method} ${path} -> ${backendUrl}`);
 
   // Redirect to backend URL

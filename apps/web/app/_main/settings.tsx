@@ -33,7 +33,8 @@ type ApiKey = {
 };
 
 function ProfileTab() {
-  const { data: user, isLoading } = useCurrentUser();
+  const { data, isLoading } = useCurrentUser();
+  const user = data?.user;
 
   if (isLoading) {
     return (
@@ -92,7 +93,8 @@ function ProfileTab() {
 }
 
 function AccountTab() {
-  const { data: user, isLoading } = useCurrentUser();
+  const { data, isLoading } = useCurrentUser();
+  const user = data?.user;
 
   if (isLoading) {
     return (
@@ -142,7 +144,8 @@ function AccountTab() {
 }
 
 function TokensTab() {
-  const { data: user, isLoading: userLoading } = useCurrentUser();
+  const { data, isLoading: userLoading } = useCurrentUser();
+  const user = data?.user;
   const { data: apiKeys, isLoading: keysLoading, mutate: mutateKeys } = useApiKeys();
   const { trigger: createKey, isMutating: isCreating } = useCreateApiKey();
   const { trigger: deleteKey, isMutating: isDeleting } = useDeleteApiKey();

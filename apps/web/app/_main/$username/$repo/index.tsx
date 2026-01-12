@@ -1,18 +1,25 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useRepoPageData, useRepoReadme, useRepoCommits, useRepoCommitCount } from "@/lib/hooks/use-repositories";
+import { useRepositoryInfo, useRepoTree, useRepoBranches, useRepoReadme, useRepoCommits, useRepoCommitCount } from "@/lib/hooks/use-repositories";
 import { useUserAvatarByEmail } from "@/lib/hooks/use-users";
 import { FileTree } from "@/components/file-tree";
 import { CodeViewer } from "@/components/code-viewer";
 import { CloneUrl } from "@/components/clone-url";
 import { BranchSelector } from "@/components/branch-selector";
 import { RepoHeader } from "@/components/repo-header";
+import { StarButton } from "@/components/star-button";
 import {
   GitBranch,
   Loader2,
   History,
   BookOpen,
+  Star,
+  GitFork,
+  Eye,
+  Copy,
+  Check,
   ExternalLink,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
 
@@ -22,55 +29,69 @@ export const Route = createFileRoute("/_main/$username/$repo/")({
 
 function RepoPage() {
   const { username, repo: repoName } = Route.useParams();
-  const { data, isLoading } = useRepoPageData(username, repoName);
-  const { data: commitData } = useRepoCommits(username, repoName, data?.repo.defaultBranch || "main", 1);
-  const { data: commitCountData } = useRepoCommitCount(username, repoName, data?.repo.defaultBranch || "main");
 
-  if (isLoading || !data) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+  const { data: repoInfo, isLoading: isLoadingInfo } = useRepositoryInfo(username, repoName);
+  const defaultBranch = repoInfo?.repo.defaultBranch || "main";
 
-  const { repo, files, isEmpty, branches, readmeOid, isOwner } = data;
+  const { data: treeData, isLoading: isLoadingTree } = useRepoTree(username, repoName, defaultBranch);
+  const { data: branchesData, isLoading: isLoadingBranches } = useRepoBranches(username, repoName);
+  const { data: commitData } = useRepoCommits(username, repoName, defaultBranch, 1);
+  const { data: commitCountData, isLoading: isLoadingCommitCount } = useRepoCommitCount(username, repoName, defaultBranch);
+
+  const repo = repoInfo?.repo;
+  const isOwner = repoInfo?.isOwner ?? false;
+  const parentRepo = repoInfo?.parentRepo ?? null;
+  const files = treeData?.files || [];
+  const isEmpty = treeData?.isEmpty ?? true;
+  const branches = branchesData?.branches || [];
+  const readmeOid = treeData?.readmeOid;
   const lastCommit = commitData?.commits?.[0];
   const commitCount = commitCountData?.count || 0;
 
   return (
     <div className="container max-w-6xl px-4 py-8">
-      <RepoHeader repo={repo} username={username} activeTab="code" isOwner={isOwner} parentRepo={data.parentRepo} />
+      {isLoadingInfo || !repo ? (
+        <RepoHeaderSkeleton />
+      ) : (
+        <RepoHeader repo={repo} username={username} activeTab="code" isOwner={isOwner} parentRepo={parentRepo} />
+      )}
 
       <div className="mt-8 space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <BranchSelector
-              branches={branches}
-              currentBranch={repo.defaultBranch}
-              username={username}
-              repoName={repo.name}
-            />
-            <Link
-              to="/$username/$repo/commits/$branch"
-              params={{ username, repo: repoName, branch: repo.defaultBranch }}
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <History className="h-4 w-4" />
-              <span className="font-mono">{commitCount} commits</span>
-            </Link>
+            {isLoadingBranches || isLoadingInfo ? (
+              <div className="h-9 w-28 bg-secondary/50 animate-pulse rounded" />
+            ) : (
+              <BranchSelector branches={branches} currentBranch={defaultBranch} username={username} repoName={repo?.name || repoName} />
+            )}
+            {isLoadingInfo ? (
+              <div className="h-5 w-24 bg-secondary/50 animate-pulse rounded" />
+            ) : (
+              <Link
+                to="/$username/$repo/commits/$branch"
+                params={{ username, repo: repoName, branch: defaultBranch }}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <History className="h-4 w-4" />
+                <span className="font-mono flex items-center gap-2">
+                  {isLoadingCommitCount ? <Loader2 className="h-4 w-4 animate-spin" /> : commitCount} commits
+                </span>
+              </Link>
+            )}
           </div>
 
-          <CloneUrl username={username} repoName={repo.name} />
+          <CloneUrl username={username} repoName={repo?.name || repoName} />
         </div>
 
-        {isEmpty ? (
-          <EmptyRepoState username={username} repoName={repo.name} />
+        {isLoadingTree ? (
+          <FileTreeSkeleton />
+        ) : isEmpty ? (
+          <EmptyRepoState username={username} repoName={repo?.name || repoName} />
         ) : (
           <>
             <LastCommitBar lastCommit={lastCommit} />
             <div className="border border-border bg-card overflow-hidden">
-              <FileTree files={files} username={username} repoName={repo.name} branch={repo.defaultBranch} />
+              <FileTree files={files} username={username} repoName={repo?.name || repoName} branch={defaultBranch} />
             </div>
           </>
         )}
@@ -87,6 +108,44 @@ function RepoPage() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function RepoHeaderSkeleton() {
+  return (
+    <div className="space-y-4 animate-pulse">
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-48 bg-secondary/50 rounded" />
+            <div className="h-5 w-16 bg-secondary/50 rounded" />
+          </div>
+          <div className="h-5 w-96 bg-secondary/50 rounded" />
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-9 w-20 bg-secondary/50 rounded" />
+          <div className="h-9 w-20 bg-secondary/50 rounded" />
+        </div>
+      </div>
+      <div className="flex items-center gap-6">
+        <div className="h-5 w-16 bg-secondary/50 rounded" />
+        <div className="h-5 w-16 bg-secondary/50 rounded" />
+        <div className="h-5 w-20 bg-secondary/50 rounded" />
+      </div>
+    </div>
+  );
+}
+
+function FileTreeSkeleton() {
+  return (
+    <div className="border border-border bg-card overflow-hidden animate-pulse">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3 px-5 py-2.5 border-b border-border last:border-b-0">
+          <div className="h-4 w-4 bg-secondary/50 rounded" />
+          <div className="h-4 bg-secondary/50 rounded" style={{ width: `${Math.random() * 40 + 20}%` }} />
+        </div>
+      ))}
     </div>
   );
 }
@@ -122,9 +181,7 @@ function EmptyRepoState({ username, repoName }: { username: string; repoName: st
       </div>
       <div className="space-y-2">
         <h2 className="text-xl font-semibold">This repository is empty</h2>
-        <p className="text-muted-foreground max-w-md mx-auto">
-          Get started by cloning this repository and pushing your first commit.
-        </p>
+        <p className="text-muted-foreground max-w-md mx-auto">Get started by cloning this repository and pushing your first commit.</p>
       </div>
       <div className="max-w-lg mx-auto">
         <CloneUrl username={username} repoName={repoName} />

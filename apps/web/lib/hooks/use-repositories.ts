@@ -5,9 +5,11 @@ import {
   api,
   fetcher,
   type RepoPageData,
+  type RepoInfo,
   type RepositoryWithOwner,
   type RepositoryWithStars,
   type FileEntry,
+  type TreeResponse,
   type Commit,
   type PullRequest,
   type PullRequestWithAuthor
@@ -15,6 +17,10 @@ import {
 
 export function useRepoPageData(owner: string, name: string) {
   return useSWR<RepoPageData>(owner && name ? `/api/repositories/${owner}/${name}/page-data` : null, fetcher);
+}
+
+export function useRepositoryInfo(owner: string, name: string) {
+  return useSWR<RepoInfo>(owner && name ? `/api/repositories/${owner}/${name}/info` : null, fetcher);
 }
 
 export function useRepositoryWithStars(owner: string, name: string) {
@@ -30,7 +36,7 @@ export function usePublicRepositories(sortBy: "stars" | "updated" | "created" = 
 }
 
 export function useRepoTree(owner: string, name: string, branch: string, path = "") {
-  return useSWR<{ files: FileEntry[]; isEmpty: boolean }>(
+  return useSWR<TreeResponse>(
     owner && name && branch ? `/api/repositories/${owner}/${name}/tree?branch=${branch}&path=${encodeURIComponent(path)}` : null,
     fetcher
   );
