@@ -5,23 +5,16 @@ import { FileTree } from "@/components/file-tree";
 import { CodeViewer } from "@/components/code-viewer";
 import { CloneUrl } from "@/components/clone-url";
 import { BranchSelector } from "@/components/branch-selector";
-import { StarButton } from "@/components/star-button";
+import { RepoHeader } from "@/components/repo-header";
 import {
   GitBranch,
   Loader2,
   History,
   BookOpen,
-  Star,
-  GitFork,
-  Eye,
-  Copy,
-  Check,
   ExternalLink,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
-import { useState } from "react";
 
 export const Route = createFileRoute("/_main/$username/$repo/")({
   component: RepoPage,
@@ -41,22 +34,22 @@ function RepoPage() {
     );
   }
 
-  const { repo, files, isEmpty, branches, readmeOid } = data;
+  const { repo, files, isEmpty, branches, readmeOid, isOwner } = data;
   const lastCommit = commitData?.commits?.[0];
   const commitCount = commitCountData?.count || 0;
 
   return (
     <div className="container max-w-6xl px-4 py-8">
-      <RepoHeader repo={repo} username={username} />
-      
+      <RepoHeader repo={repo} username={username} activeTab="code" isOwner={isOwner} parentRepo={data.parentRepo} />
+
       <div className="mt-8 space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <BranchSelector 
-              branches={branches} 
-              currentBranch={repo.defaultBranch} 
-              username={username} 
-              repoName={repo.name} 
+            <BranchSelector
+              branches={branches}
+              currentBranch={repo.defaultBranch}
+              username={username}
+              repoName={repo.name}
             />
             <Link
               to="/$username/$repo/commits/$branch"
@@ -67,8 +60,8 @@ function RepoPage() {
               <span className="font-mono">{commitCount} commits</span>
             </Link>
           </div>
-          
-          <QuickClone username={username} repoName={repo.name} />
+
+          <CloneUrl username={username} repoName={repo.name} />
         </div>
 
         {isEmpty ? (
@@ -94,74 +87,6 @@ function RepoPage() {
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-function RepoHeader({ repo, username }: { repo: any; username: string }) {
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight">{repo.name}</h1>
-            <span className="px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider border border-border text-muted-foreground">
-              {repo.visibility}
-            </span>
-          </div>
-          {repo.description && (
-            <p className="text-muted-foreground max-w-2xl">{repo.description}</p>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          <StarButton repoId={repo.id} initialStarred={repo.starred} initialCount={repo.starCount} />
-          <Button variant="secondary" size="sm" className="gap-1.5 border border-border">
-            <GitFork className="h-3.5 w-3.5" />
-            <span>Fork</span>
-          </Button>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-6 text-sm">
-        <div className="flex items-center gap-1.5 text-muted-foreground">
-          <Star className="h-4 w-4" />
-          <span className="font-medium text-foreground">{repo.starCount}</span>
-          <span>stars</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-muted-foreground">
-          <GitFork className="h-4 w-4" />
-          <span className="font-medium text-foreground">0</span>
-          <span>forks</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-muted-foreground">
-          <Eye className="h-4 w-4" />
-          <span className="font-medium text-foreground">0</span>
-          <span>watching</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function QuickClone({ username, repoName }: { username: string; repoName: string }) {
-  const [copied, setCopied] = useState(false);
-  const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/api/git/${username}/${repoName}.git`;
-
-  async function copy() {
-    await navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-
-  return (
-    <div className="flex items-center gap-2">
-      <code className="px-3 py-1.5 bg-secondary/50 border border-border text-xs font-mono text-muted-foreground truncate max-w-[300px]">
-        {url}
-      </code>
-      <Button variant="secondary" size="sm" onClick={copy} className="shrink-0 border border-border">
-        {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
-      </Button>
     </div>
   );
 }
