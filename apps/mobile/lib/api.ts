@@ -12,10 +12,7 @@ async function getAuthHeaders(): Promise<HeadersInit> {
   return {};
 }
 
-async function apiFetch<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
+async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const authHeaders = await getAuthHeaders();
   const url = endpoint.startsWith("http") ? endpoint : `${API_URL}${endpoint}`;
 
@@ -67,6 +64,17 @@ export type FileEntry = {
   path: string;
 };
 
+export type RepoInfo = {
+  repo: RepositoryWithOwner;
+  isOwner: boolean;
+};
+
+export type TreeResponse = {
+  files: FileEntry[];
+  isEmpty: boolean;
+  readmeOid: string | null;
+};
+
 export type RepoPageData = {
   repo: RepositoryWithOwner;
   files: FileEntry[];
@@ -97,12 +105,6 @@ export type UserProfile = {
   location: string | null;
   website: string | null;
   pronouns: string | null;
-  socialLinks: {
-    github?: string;
-    twitter?: string;
-    linkedin?: string;
-    custom?: string[];
-  } | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -124,40 +126,24 @@ export type RepositoryWithStars = Repository & {
 
 export const api = {
   repositories: {
-    create: (data: {
-      name: string;
-      description?: string;
-      visibility: "public" | "private";
-    }) =>
+    create: (data: { name: string; description?: string; visibility: "public" | "private" }) =>
       apiFetch<Repository>("/api/repositories", {
         method: "POST",
         body: JSON.stringify(data),
       }),
 
-    get: (owner: string, name: string) =>
-      apiFetch<RepositoryWithOwner>(`/api/repositories/${owner}/${name}`),
+    get: (owner: string, name: string) => apiFetch<RepositoryWithOwner>(`/api/repositories/${owner}/${name}`),
 
-    getWithStars: (owner: string, name: string) =>
-      apiFetch<RepositoryWithOwner>(
-        `/api/repositories/${owner}/${name}/with-stars`
-      ),
+    getWithStars: (owner: string, name: string) => apiFetch<RepositoryWithOwner>(`/api/repositories/${owner}/${name}/with-stars`),
 
-    getPageData: (owner: string, name: string) =>
-      apiFetch<RepoPageData>(`/api/repositories/${owner}/${name}/page-data`),
+    getInfo: (owner: string, name: string) => apiFetch<RepoInfo>(`/api/repositories/${owner}/${name}/info`),
 
-    getUserRepos: (username: string) =>
-      apiFetch<{ repos: RepositoryWithStars[] }>(
-        `/api/repositories/user/${username}`
-      ),
+    getPageData: (owner: string, name: string) => apiFetch<RepoPageData>(`/api/repositories/${owner}/${name}/page-data`),
 
-    getPublic: (
-      sortBy: "stars" | "updated" | "created" = "updated",
-      limit = 20,
-      offset = 0
-    ) =>
-      apiFetch<{ repos: RepositoryWithStars[]; hasMore: boolean }>(
-        `/api/repositories/public?sortBy=${sortBy}&limit=${limit}&offset=${offset}`
-      ),
+    getUserRepos: (username: string) => apiFetch<{ repos: RepositoryWithStars[] }>(`/api/repositories/user/${username}`),
+
+    getPublic: (sortBy: "stars" | "updated" | "created" = "updated", limit = 20, offset = 0) =>
+      apiFetch<{ repos: RepositoryWithStars[]; hasMore: boolean }>(`/api/repositories/public?sortBy=${sortBy}&limit=${limit}&offset=${offset}`),
 
     update: (
       id: string,
@@ -182,105 +168,70 @@ export const api = {
         method: "POST",
       }),
 
-    isStarred: (id: string) =>
-      apiFetch<{ starred: boolean }>(`/api/repositories/${id}/is-starred`),
+    isStarred: (id: string) => apiFetch<{ starred: boolean }>(`/api/repositories/${id}/is-starred`),
 
-    getBranches: (owner: string, name: string) =>
-      apiFetch<{ branches: string[] }>(
-        `/api/repositories/${owner}/${name}/branches`
-      ),
+    getBranches: (owner: string, name: string) => apiFetch<{ branches: string[] }>(`/api/repositories/${owner}/${name}/branches`),
 
     getTree: (owner: string, name: string, branch: string, path = "") =>
-      apiFetch<{ files: FileEntry[]; isEmpty: boolean }>(
-        `/api/repositories/${owner}/${name}/tree?branch=${branch}&path=${encodeURIComponent(path)}`
-      ),
+      apiFetch<TreeResponse>(`/api/repositories/${owner}/${name}/tree?branch=${branch}&path=${encodeURIComponent(path)}`),
 
     getFile: (owner: string, name: string, branch: string, path: string) =>
-      apiFetch<{ content: string; oid: string; path: string }>(
-        `/api/repositories/${owner}/${name}/file?branch=${branch}&path=${encodeURIComponent(path)}`
-      ),
+      apiFetch<{ content: string; oid: string; path: string }>(`/api/repositories/${owner}/${name}/file?branch=${branch}&path=${encodeURIComponent(path)}`),
 
-    getCommits: (
-      owner: string,
-      name: string,
-      branch: string,
-      limit = 30,
-      skip = 0
-    ) =>
-      apiFetch<{ commits: Commit[]; hasMore: boolean }>(
-        `/api/repositories/${owner}/${name}/commits?branch=${branch}&limit=${limit}&skip=${skip}`
-      ),
+    getCommits: (owner: string, name: string, branch: string, limit = 30, skip = 0) =>
+      apiFetch<{ commits: Commit[]; hasMore: boolean }>(`/api/repositories/${owner}/${name}/commits?branch=${branch}&limit=${limit}&skip=${skip}`),
 
     getCommitCount: (owner: string, name: string, branch: string) =>
-      apiFetch<{ count: number }>(
-        `/api/repositories/${owner}/${name}/commits/count?branch=${branch}`
-      ),
+      apiFetch<{ count: number }>(`/api/repositories/${owner}/${name}/commits/count?branch=${branch}`),
 
-    getReadme: (owner: string, name: string, oid: string) =>
-      apiFetch<{ content: string }>(
-        `/api/repositories/${owner}/${name}/readme?oid=${oid}`
-      ),
+    getReadme: (owner: string, name: string, oid: string) => apiFetch<{ content: string }>(`/api/repositories/${owner}/${name}/readme?oid=${oid}`),
   },
 
   users: {
-    getProfile: (username: string) =>
-      apiFetch<UserProfile>(`/api/users/${username}/profile`),
+    getProfile: (username: string) => apiFetch<UserProfile>(`/api/users/${username}/profile`),
 
-    getStarred: (username: string) =>
-      apiFetch<{ repos: RepositoryWithStars[] }>(
-        `/api/users/${username}/starred`
-      ),
+    getStarred: (username: string) => apiFetch<{ repos: RepositoryWithStars[] }>(`/api/users/${username}/starred`),
 
-    getAvatarByEmail: (email: string) =>
-      apiFetch<{ avatarUrl: string | null }>(
-        `/api/users/by-email/${encodeURIComponent(email)}/avatar`
-      ),
+    getAvatarByEmail: (email: string) => apiFetch<{ avatarUrl: string | null }>(`/api/users/by-email/${encodeURIComponent(email)}/avatar`),
 
-    getPublic: (
-      sortBy: "newest" | "oldest" = "newest",
-      limit = 20,
-      offset = 0
-    ) =>
-      apiFetch<{ users: PublicUser[]; hasMore: boolean }>(
-        `/api/users/public?sortBy=${sortBy}&limit=${limit}&offset=${offset}`
-      ),
+    getPublic: (sortBy: "newest" | "oldest" = "newest", limit = 20, offset = 0) =>
+      apiFetch<{ users: PublicUser[]; hasMore: boolean }>(`/api/users/public?sortBy=${sortBy}&limit=${limit}&offset=${offset}`),
   },
 
   settings: {
-    getCurrentUser: () => apiFetch<UserProfile>(`/api/settings/current-user`),
+    getCurrentUser: () => apiFetch<{ user: UserProfile }>(`/api/settings`),
 
-    updateProfile: (data: {
-      name: string;
-      username: string;
-      bio?: string;
-      location?: string;
-      website?: string;
-      pronouns?: string;
-    }) =>
-      apiFetch<{ success: boolean; username: string }>(`/api/settings/profile`, {
+    updateProfile: (data: { name?: string; bio?: string; location?: string; website?: string; pronouns?: string }) =>
+      apiFetch<UserProfile>(`/api/settings/profile`, {
         method: "PATCH",
         body: JSON.stringify(data),
       }),
 
-    updateSocialLinks: (data: {
-      github?: string;
-      twitter?: string;
-      linkedin?: string;
-      custom?: string[];
-    }) =>
-      apiFetch<{ success: boolean }>(`/api/settings/social-links`, {
-        method: "PATCH",
-        body: JSON.stringify(data),
-      }),
+    updateAvatar: async (uri: string, mimeType: string) => {
+      const authHeaders = await getAuthHeaders();
+      const formData = new FormData();
+      const ext = mimeType.split("/")[1] || "png";
+      formData.append("avatar", {
+        uri,
+        name: `avatar.${ext}`,
+        type: mimeType,
+      } as any);
+
+      const res = await fetch(`${API_URL}/api/settings/avatar`, {
+        method: "POST",
+        headers: authHeaders,
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to upload avatar");
+      }
+      return res.json() as Promise<{ success: boolean; avatarUrl: string }>;
+    },
 
     updateEmail: (data: { email: string }) =>
-      apiFetch<{ success: boolean }>(`/api/settings/email`, {
-        method: "PATCH",
-        body: JSON.stringify(data),
-      }),
-
-    updatePassword: (data: { currentPassword: string; newPassword: string }) =>
-      apiFetch<{ success: boolean }>(`/api/settings/password`, {
+      apiFetch<UserProfile>(`/api/settings/email`, {
         method: "PATCH",
         body: JSON.stringify(data),
       }),
@@ -290,4 +241,14 @@ export const api = {
         method: "DELETE",
       }),
   },
+};
+
+export const fetcher = async <T>(url: string): Promise<T> => {
+  const authHeaders = await getAuthHeaders();
+  const fullUrl = url.startsWith("http") ? url : `${API_URL}${url}`;
+  const res = await fetch(fullUrl, {
+    headers: authHeaders,
+  });
+  if (!res.ok) throw new Error("Failed to fetch");
+  return res.json();
 };
