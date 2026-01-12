@@ -6,7 +6,7 @@ async function getAuthHeaders(): Promise<HeadersInit> {
     if (session?.data?.session?.token) {
       return { Authorization: `Bearer ${session.data.session.token}` };
     }
-  } catch {}
+  } catch { }
   return {};
 }
 
@@ -44,6 +44,7 @@ export type Repository = {
   visibility: "public" | "private";
   defaultBranch: string;
   ownerId: string;
+  forkedFromId: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -52,6 +53,7 @@ export type RepositoryWithOwner = Repository & {
   owner: Owner;
   starCount: number;
   starred: boolean;
+  forkCount?: number;
 };
 
 export type FileEntry = {
@@ -61,6 +63,16 @@ export type FileEntry = {
   path: string;
 };
 
+export type ParentRepo = {
+  id: string;
+  name: string;
+  owner: Owner;
+  defaultBranch: string;
+  branches: string[];
+  aheadBy: number;
+  behindBy: number;
+};
+
 export type RepoPageData = {
   repo: RepositoryWithOwner;
   files: FileEntry[];
@@ -68,6 +80,7 @@ export type RepoPageData = {
   branches: string[];
   readmeOid: string | null;
   isOwner: boolean;
+  parentRepo: ParentRepo | null;
 };
 
 export type Commit = {
@@ -114,6 +127,27 @@ export type PublicUser = {
 export type RepositoryWithStars = Repository & {
   owner: Owner;
   starCount: number;
+};
+
+export type PullRequest = {
+  id: string;
+  number: number;
+  title: string;
+  description: string | null;
+  status: "open" | "merged" | "closed";
+  baseBranch: string;
+  headBranch: string;
+  repositoryId: string;
+  headRepositoryId: string | null;
+  authorId: string;
+  mergedBy: string | null;
+  mergedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PullRequestWithAuthor = PullRequest & {
+  author: Owner;
 };
 
 export const api = {
@@ -168,6 +202,39 @@ export const api = {
       apiFetch<{ count: number }>(`/api/repositories/${owner}/${name}/commits/count?branch=${branch}`),
 
     getReadme: (owner: string, name: string, oid: string) => apiFetch<{ content: string }>(`/api/repositories/${owner}/${name}/readme?oid=${oid}`),
+
+    listPullRequests: (owner: string, name: string, status?: string) =>
+      apiFetch<PullRequestWithAuthor[]>(`/api/repositories/${owner}/${name}/pulls${status ? `?status=${status}` : ""}`),
+
+    createPullRequest: (owner: string, name: string, data: { title: string; description?: string; base: string; head: string; headOwner?: string; headRepo?: string }) =>
+      apiFetch<PullRequest>(`/api/repositories/${owner}/${name}/pulls`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+
+    getPullRequest: (owner: string, name: string, number: number) =>
+      apiFetch<PullRequestWithAuthor>(`/api/repositories/${owner}/${name}/pulls/${number}`),
+
+    getPullRequestCommits: (owner: string, name: string, number: number) =>
+      apiFetch<Commit[]>(`/api/repositories/${owner}/${name}/pulls/${number}/commits`),
+
+    getPullRequestDiff: (owner: string, name: string, number: number) =>
+      apiFetch<{ diffs: any[] }>(`/api/repositories/${owner}/${name}/pulls/${number}/diff`),
+
+    mergePullRequest: (owner: string, name: string, number: number) =>
+      apiFetch<PullRequest>(`/api/repositories/${owner}/${name}/pulls/${number}/merge`, {
+        method: "PATCH",
+      }),
+
+    updatePullRequestBranch: (owner: string, name: string, number: number) =>
+      apiFetch<{ message: string; updated: boolean; mergeCommitOid?: string }>(`/api/repositories/${owner}/${name}/pulls/${number}/update-branch`, {
+        method: "POST",
+      }),
+
+    fork: (owner: string, name: string) =>
+      apiFetch<RepositoryWithOwner & { forkedFrom: { id: string; name: string; owner: Owner } }>(`/api/repositories/${owner}/${name}/fork`, {
+        method: "POST",
+      }),
   },
 
   users: {

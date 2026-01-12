@@ -1,7 +1,17 @@
 import { useState, useEffect } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import useSWRMutation from "swr/mutation";
-import { api, fetcher, type RepoPageData, type RepositoryWithOwner, type RepositoryWithStars, type FileEntry, type Commit } from "@/lib/api/client";
+import {
+  api,
+  fetcher,
+  type RepoPageData,
+  type RepositoryWithOwner,
+  type RepositoryWithStars,
+  type FileEntry,
+  type Commit,
+  type PullRequest,
+  type PullRequestWithAuthor
+} from "@/lib/api/client";
 
 export function useRepoPageData(owner: string, name: string) {
   return useSWR<RepoPageData>(owner && name ? `/api/repositories/${owner}/${name}/page-data` : null, fetcher);
@@ -122,4 +132,101 @@ export function useToggleStar(repoId: string) {
       mutate(`/api/repositories/${repoId}/is-starred`);
     },
   });
+}
+
+export function useRepoPullRequests(owner: string, name: string, status?: string) {
+  return useSWR<PullRequestWithAuthor[]>(
+    owner && name ? `/api/repositories/${owner}/${name}/pulls${status ? `?status=${status}` : ""}` : null,
+    fetcher
+  );
+}
+
+export function usePullRequest(owner: string, name: string, number: number) {
+  return useSWR<PullRequestWithAuthor>(
+    owner && name && number ? `/api/repositories/${owner}/${name}/pulls/${number}` : null,
+    fetcher
+  );
+}
+
+export function usePullRequestCommits(owner: string, name: string, number: number) {
+  return useSWR<Commit[]>(
+    owner && name && number ? `/api/repositories/${owner}/${name}/pulls/${number}/commits` : null,
+    fetcher
+  );
+}
+
+export type PullRequestEvent = {
+  id: string;
+  pullRequestId: string;
+  type: "commit" | "branch_update" | "comment" | "merged" | "closed" | "reopened";
+  actorId: string | null;
+  actor: {
+    id: string;
+    username: string;
+    name: string;
+    avatarUrl: string | null;
+  } | null;
+  data: {
+    commits?: Array<{
+      oid: string;
+      message: string;
+      author: { name: string; email: string };
+      timestamp: number;
+    }>;
+    mergeCommitOid?: string;
+    baseBranch?: string;
+    commitCount?: number;
+    body?: string;
+  } | null;
+  createdAt: string;
+};
+
+export function usePullRequestEvents(owner: string, name: string, number: number) {
+  return useSWR<PullRequestEvent[]>(
+    owner && name && number ? `/api/repositories/${owner}/${name}/pulls/${number}/events` : null,
+    fetcher
+  );
+}
+
+export type SyncStatus = {
+  isOutOfSync: boolean;
+  behindBy: number;
+  hasConflicts: boolean;
+  conflictingFiles: string[];
+  baseBranch: string;
+  mergeBaseOid?: string;
+};
+
+export type DiffResponse = {
+  diffs: any[];
+  syncStatus?: SyncStatus;
+};
+
+export function usePullRequestDiff(owner: string, name: string, number: number) {
+  return useSWR<DiffResponse>(
+    owner && name && number ? `/api/repositories/${owner}/${name}/pulls/${number}/diff` : null,
+    fetcher
+  );
+}
+
+export function useCreatePullRequest(owner: string, name: string) {
+  return useSWRMutation(
+    `/api/repositories/${owner}/${name}/pulls`,
+    (_, { arg }: { arg: { title: string; description?: string; base: string; head: string; headOwner?: string; headRepo?: string } }) =>
+      api.repositories.createPullRequest(owner, name, arg)
+  );
+}
+
+export function useMergePullRequest(owner: string, name: string, number: number) {
+  return useSWRMutation(
+    `/api/repositories/${owner}/${name}/pulls/${number}/merge`,
+    () => api.repositories.mergePullRequest(owner, name, number)
+  );
+}
+
+export function useUpdatePullRequestBranch(owner: string, name: string, number: number) {
+  return useSWRMutation(
+    `/api/repositories/${owner}/${name}/pulls/${number}/update-branch`,
+    () => api.repositories.updatePullRequestBranch(owner, name, number)
+  );
 }
