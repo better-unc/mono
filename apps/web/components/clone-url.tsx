@@ -26,13 +26,15 @@ export function CloneUrl({ username, repoName }: { username: string; repoName: s
   return (
     <div className="flex items-center gap-2">
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="gap-1">
-            {/* {protocol.toUpperCase()} */}
-            HTTPS
-            <ChevronDown className="h-3 w-3" />
-          </Button>
-        </DropdownMenuTrigger>
+        <DropdownMenuTrigger
+          render={
+            <Button variant="outline" size="sm" className="gap-1">
+              {/* {protocol.toUpperCase()} */}
+              HTTPS
+              <ChevronDown className="h-3 w-3" />
+            </Button>
+          }
+        />
         <DropdownMenuContent>
           {/* <DropdownMenuItem onClick={() => setProtocol("https")}>HTTPS</DropdownMenuItem> */}
           {/* <DropdownMenuItem onClick={() => setProtocol("ssh")}>SSH</DropdownMenuItem> */}
