@@ -4,32 +4,63 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import { type FileEntry } from "@/lib/api";
-import { useRepositoryPageData, useToggleStar, useRepositoryReadme } from "@/lib/hooks/use-repository";
+import { useRepositoryInfo, useRepositoryTree, useRepositoryReadmeOid, useRepositoryReadme, useToggleStar } from "@/lib/hooks/use-repository";
 import { useQueryClient } from "@tanstack/react-query";
 import { MonoText } from "@/components/StyledText";
 
 export default function RepositoryScreen() {
-  const { username, repo } = useLocalSearchParams<{ username: string; repo: string }>();
+  const { username, repo: repoName } = useLocalSearchParams<{ username: string; repo: string }>();
   const queryClient = useQueryClient();
 
-  const { data, isLoading, error, refetch, isRefetching } = useRepositoryPageData(username || "", repo || "");
-  const toggleStar = useToggleStar(data?.repo.id || "");
-  const { data: readmeData, isLoading: readmeLoading } = useRepositoryReadme(username || "", repo || "", data?.readmeOid || null);
+  const {
+    data: repoInfo,
+    isLoading: isLoadingInfo,
+    error: infoError,
+    refetch: refetchInfo,
+    isRefetching: isRefetchingInfo,
+  } = useRepositoryInfo(username || "", repoName || "");
+  const defaultBranch = repoInfo?.repo.defaultBranch || "main";
 
-  const handleRefresh = () => refetch();
+  const {
+    data: treeData,
+    isLoading: isLoadingTree,
+    refetch: refetchTree,
+    isRefetching: isRefetchingTree,
+  } = useRepositoryTree(username || "", repoName || "", defaultBranch);
+  const {
+    data: readmeOidData,
+    isLoading: isLoadingReadmeOid,
+    refetch: refetchReadmeOid,
+  } = useRepositoryReadmeOid(username || "", repoName || "", defaultBranch);
+  const { data: readmeData, isLoading: readmeLoading } = useRepositoryReadme(username || "", repoName || "", readmeOidData?.readmeOid || null);
+
+  const toggleStar = useToggleStar(repoInfo?.repo.id || "");
+
+  const isLoading = isLoadingInfo || isLoadingTree;
+  const error = infoError;
+  const isRefetching = isRefetchingInfo || isRefetchingTree;
+
+  const handleRefresh = () => {
+    refetchInfo();
+    refetchTree();
+    refetchReadmeOid();
+  };
 
   const handleStar = async () => {
-    if (!data) return;
+    if (!repoInfo) return;
     toggleStar.mutate(undefined, {
       onSuccess: (result) => {
-        queryClient.setQueryData(["repository", username, repo, "pageData"], (old: typeof data) => ({
-          ...old,
-          repo: {
-            ...old.repo,
-            starred: result.starred,
-            starCount: result.starred ? old.repo.starCount + 1 : old.repo.starCount - 1,
-          },
-        }));
+        queryClient.setQueryData(["repository", username, repoName, "info"], (old: typeof repoInfo) => {
+          if (!old) return old;
+          return {
+            ...old,
+            repo: {
+              ...old.repo,
+              starred: result.starred,
+              starCount: result.starred ? old.repo.starCount + 1 : old.repo.starCount - 1,
+            },
+          };
+        });
       },
     });
   };
@@ -51,14 +82,13 @@ export default function RepositoryScreen() {
   };
 
   const getFileLink = (file: FileEntry) => {
-    const branch = data?.repo.defaultBranch || "main";
     if (file.type === "tree") {
-      return `/${username}/${repo}/tree/${branch}/${file.path}`;
+      return `/${username}/${repoName}/tree/${defaultBranch}/${file.path}`;
     }
-    return `/${username}/${repo}/blob/${branch}/${file.path}`;
+    return `/${username}/${repoName}/blob/${defaultBranch}/${file.path}`;
   };
 
-  if (isLoading) {
+  if (isLoadingInfo) {
     return (
       <View style={{ flex: 1 }} className="items-center justify-center">
         <Stack.Screen options={{ title: "", headerShown: true, headerBackButtonDisplayMode: "minimal", headerTransparent: true, headerLargeTitle: false }} />
@@ -67,7 +97,7 @@ export default function RepositoryScreen() {
     );
   }
 
-  if (error || !data) {
+  if (error || !repoInfo) {
     return (
       <View style={{ flex: 1 }} className="items-center justify-center px-6">
         <Stack.Screen options={{ title: "Error" }} />
@@ -82,7 +112,12 @@ export default function RepositoryScreen() {
     );
   }
 
-  const sortedFiles = [...data.files].sort((a, b) => {
+  const repo = repoInfo.repo;
+  const files = treeData?.files || [];
+  const isEmpty = treeData?.isEmpty ?? true;
+  const readmeOid = readmeOidData?.readmeOid;
+
+  const sortedFiles = [...files].sort((a, b) => {
     if (a.type === b.type) return a.name.localeCompare(b.name);
     return a.type === "tree" ? -1 : 1;
   });
@@ -90,7 +125,7 @@ export default function RepositoryScreen() {
   return (
     <View style={{ flex: 1 }}>
       <Stack.Screen
-        options={{ title: data.repo.name, headerShown: true, headerBackButtonDisplayMode: "minimal", headerTransparent: true, headerLargeTitle: false }}
+        options={{ title: repo.name, headerShown: true, headerBackButtonDisplayMode: "minimal", headerTransparent: true, headerLargeTitle: false }}
       />
       <ScrollView
         style={{ flex: 1 }}
@@ -108,35 +143,31 @@ export default function RepositoryScreen() {
                 </Pressable>
               </Link>
               <Text className="text-gray-400 text-[15px] font-medium mx-1">/</Text>
-              <Text className="text-white text-[15px] font-medium">{data.repo.name}</Text>
+              <Text className="text-white text-[15px] font-medium">{repo.name}</Text>
             </View>
 
             <View className="flex-row mt-2">
-              <View className={`flex-row items-center px-2 py-1 rounded-xl ${data.repo.visibility === "private" ? "bg-yellow-500/20" : "bg-green-500/20"}`}>
-                <FontAwesome
-                  name={data.repo.visibility === "private" ? "lock" : "globe"}
-                  size={10}
-                  color={data.repo.visibility === "private" ? "#fbbf24" : "#22c55e"}
-                />
-                <Text className={`text-[11px] font-semibold ml-1 ${data.repo.visibility === "private" ? "text-yellow-400" : "text-green-500"}`}>
-                  {data.repo.visibility}
+              <View className={`flex-row items-center px-2 py-1 rounded-xl ${repo.visibility === "private" ? "bg-yellow-500/20" : "bg-green-500/20"}`}>
+                <FontAwesome name={repo.visibility === "private" ? "lock" : "globe"} size={10} color={repo.visibility === "private" ? "#fbbf24" : "#22c55e"} />
+                <Text className={`text-[11px] font-semibold ml-1 ${repo.visibility === "private" ? "text-yellow-400" : "text-green-500"}`}>
+                  {repo.visibility}
                 </Text>
               </View>
             </View>
 
-            {data.repo.description && <Text className="text-white/60 text-[13px] mt-3 leading-5">{data.repo.description}</Text>}
+            {repo.description && <Text className="text-white/60 text-[13px] mt-3 leading-5">{repo.description}</Text>}
 
             <View className="flex-row mt-4">
               <Pressable onPress={handleStar} disabled={toggleStar.isPending} className="mr-2">
                 <View
                   className={`rounded-[10px] overflow-hidden border ${
-                    data.repo.starred ? "bg-yellow-500/20 border-yellow-500/30" : "bg-[rgba(60,60,90,0.4)] border-white/10"
+                    repo.starred ? "bg-yellow-500/20 border-yellow-500/30" : "bg-[rgba(60,60,90,0.4)] border-white/10"
                   }`}
                 >
                   <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
                   <View className="flex-row items-center py-2 px-3 relative z-10">
-                    <FontAwesome name={data.repo.starred ? "star" : "star-o"} size={16} color={data.repo.starred ? "#fbbf24" : "#ffffff"} />
-                    <Text className={`text-[13px] font-semibold ml-1.5 ${data.repo.starred ? "text-yellow-400" : "text-white"}`}>{data.repo.starCount}</Text>
+                    <FontAwesome name={repo.starred ? "star" : "star-o"} size={16} color={repo.starred ? "#fbbf24" : "#ffffff"} />
+                    <Text className={`text-[13px] font-semibold ml-1.5 ${repo.starred ? "text-yellow-400" : "text-white"}`}>{repo.starCount}</Text>
                   </View>
                 </View>
               </Pressable>
@@ -144,7 +175,7 @@ export default function RepositoryScreen() {
                 <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
                 <View className="flex-row items-center py-2 px-3 relative z-10">
                   <FontAwesome name="code-fork" size={16} color="#60a5fa" />
-                  <Text className="text-blue-400 text-[13px] font-semibold ml-1.5">{data.repo.defaultBranch}</Text>
+                  <Text className="text-blue-400 text-[13px] font-semibold ml-1.5">{defaultBranch}</Text>
                 </View>
               </View>
             </View>
@@ -153,7 +184,14 @@ export default function RepositoryScreen() {
 
         <Text className="text-white text-base font-semibold mb-3">Files</Text>
 
-        {data.isEmpty ? (
+        {isLoadingTree ? (
+          <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-6">
+            <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+            <View className="p-8 items-center relative z-10">
+              <ActivityIndicator size="small" color="#60a5fa" />
+            </View>
+          </View>
+        ) : isEmpty ? (
           <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
             <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
             <View className="p-8 items-center relative z-10">
@@ -181,7 +219,23 @@ export default function RepositoryScreen() {
           </View>
         )}
 
-        {data.readmeOid && (
+        {isLoadingReadmeOid ? (
+          <>
+            <Text className="text-white text-base font-semibold mb-3">README</Text>
+            <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
+              <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+              <View className="p-4 relative z-10">
+                <View className="flex-row items-center mb-3">
+                  <FontAwesome name="book" size={14} color="#60a5fa" />
+                  <Text className="text-white text-sm font-semibold ml-2">README.md</Text>
+                </View>
+                <View className="py-4 items-center">
+                  <ActivityIndicator size="small" color="#60a5fa" />
+                </View>
+              </View>
+            </View>
+          </>
+        ) : readmeOid ? (
           <>
             <Text className="text-white text-base font-semibold mb-3">README</Text>
             <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
@@ -207,7 +261,7 @@ export default function RepositoryScreen() {
               </View>
             </View>
           </>
-        )}
+        ) : null}
       </ScrollView>
     </View>
   );

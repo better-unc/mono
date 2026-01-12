@@ -1,6 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api";
 
+export function useRepositoryInfo(owner: string, name: string) {
+  return useQuery({
+    queryKey: ["repository", owner, name, "info"],
+    queryFn: () => api.repositories.getInfo(owner, name),
+    enabled: !!owner && !!name,
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
 export function useRepositoryPageData(owner: string, name: string) {
   return useQuery({
     queryKey: ["repository", owner, name, "pageData"],
@@ -82,6 +91,15 @@ export function useToggleStar(repoId: string) {
       queryClient.invalidateQueries({ queryKey: ["repository"] });
       queryClient.invalidateQueries({ queryKey: ["repositories"] });
     },
+  });
+}
+
+export function useRepositoryReadmeOid(owner: string, name: string, branch: string) {
+  return useQuery({
+    queryKey: ["repository", owner, name, "readmeOid", branch],
+    queryFn: () => api.repositories.getReadmeOid(owner, name, branch),
+    enabled: !!owner && !!name && !!branch,
+    staleTime: 1000 * 60 * 10,
   });
 }
 

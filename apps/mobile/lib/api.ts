@@ -185,6 +185,9 @@ export const api = {
       apiFetch<{ count: number }>(`/api/repositories/${owner}/${name}/commits/count?branch=${branch}`),
 
     getReadme: (owner: string, name: string, oid: string) => apiFetch<{ content: string }>(`/api/repositories/${owner}/${name}/readme?oid=${oid}`),
+
+    getReadmeOid: (owner: string, name: string, branch: string) =>
+      apiFetch<{ readmeOid: string | null }>(`/api/repositories/${owner}/${name}/readme-oid?branch=${branch}`),
   },
 
   users: {
