@@ -7,6 +7,8 @@ pub struct R2GitStore {
     pub prefix: String,
     object_cache: tokio::sync::RwLock<HashMap<String, Vec<u8>>>,
     pack_list_cache: tokio::sync::RwLock<Option<Vec<String>>>,
+    idx_cache: tokio::sync::RwLock<HashMap<String, Vec<u8>>>,
+    pack_cache: tokio::sync::RwLock<HashMap<String, Vec<u8>>>,
 }
 
 impl R2GitStore {
@@ -16,7 +18,37 @@ impl R2GitStore {
             prefix,
             object_cache: tokio::sync::RwLock::new(HashMap::new()),
             pack_list_cache: tokio::sync::RwLock::new(None),
+            idx_cache: tokio::sync::RwLock::new(HashMap::new()),
+            pack_cache: tokio::sync::RwLock::new(HashMap::new()),
         }
+    }
+    
+    async fn get_idx_data(&self, idx_path: &str) -> Option<Vec<u8>> {
+        {
+            let cache = self.idx_cache.read().await;
+            if let Some(data) = cache.get(idx_path) {
+                return Some(data.clone());
+            }
+        }
+        
+        let data = self.s3.get_object(idx_path).await?;
+        let mut cache = self.idx_cache.write().await;
+        cache.insert(idx_path.to_string(), data.clone());
+        Some(data)
+    }
+    
+    async fn get_pack_data(&self, pack_path: &str) -> Option<Vec<u8>> {
+        {
+            let cache = self.pack_cache.read().await;
+            if let Some(data) = cache.get(pack_path) {
+                return Some(data.clone());
+            }
+        }
+        
+        let data = self.s3.get_object(pack_path).await?;
+        let mut cache = self.pack_cache.write().await;
+        cache.insert(pack_path.to_string(), data.clone());
+        Some(data)
     }
 
     fn object_path(&self, oid: &str) -> String {
@@ -92,19 +124,16 @@ impl R2GitStore {
         let idx_files = self.get_pack_idx_files().await;
         
         for idx_path in &idx_files {
-            let idx_data = match self.s3.get_object(idx_path).await {
+            let idx_data = match self.get_idx_data(idx_path).await {
                 Some(data) => data,
                 None => continue,
             };
             
             if let Some(offset) = find_object_in_index(&idx_data, &target_bytes) {
-                tracing::info!("Found {} in index {} at offset {}", oid, idx_path, offset);
+                tracing::debug!("Found {} in index {} at offset {}", oid, idx_path, offset);
                 let pack_path = idx_path.replace(".idx", ".pack");
-                let pack_data = match self.s3.get_object(&pack_path).await {
-                    Some(data) => {
-                        tracing::info!("Loaded pack {} ({} bytes)", pack_path, data.len());
-                        data
-                    },
+                let pack_data = match self.get_pack_data(&pack_path).await {
+                    Some(data) => data,
                     None => {
                         tracing::warn!("Failed to load pack {}", pack_path);
                         continue;
@@ -113,16 +142,16 @@ impl R2GitStore {
                 
                 match read_pack_object_header(&pack_data, offset) {
                     Some((obj_type, _, header_end)) if obj_type == 7 => {
-                        tracing::info!("Object {} is REF_DELTA, resolving cross-pack", oid);
+                        tracing::debug!("Object {} is REF_DELTA, resolving cross-pack", oid);
                         if let Some(obj) = self.resolve_ref_delta(&pack_data, header_end).await {
-                            tracing::info!("Extracted REF_DELTA object {} ({} bytes)", oid, obj.len());
+                            tracing::debug!("Extracted REF_DELTA object {} ({} bytes)", oid, obj.len());
                             return Some(obj);
                         }
                     }
                     _ => {
                         match extract_object_with_deltas(&pack_data, &idx_data, offset) {
                             Some(obj) => {
-                                tracing::info!("Extracted object {} ({} bytes)", oid, obj.len());
+                                tracing::debug!("Extracted object {} ({} bytes)", oid, obj.len());
                                 return Some(obj);
                             }
                             None => {
@@ -150,10 +179,10 @@ impl R2GitStore {
         let compressed = &pack_data[delta_start..];
         let delta = decompress_zlib(compressed)?;
         
-        tracing::info!("REF_DELTA: need base {}, delta {} bytes", base_oid, delta.len());
+        tracing::debug!("REF_DELTA: need base {}, delta {} bytes", base_oid, delta.len());
         
         let (base_type, base_content) = self.resolve_object_iterative(&base_oid).await?;
-        tracing::info!("REF_DELTA: got base type={}, size={}", base_type, base_content.len());
+        tracing::debug!("REF_DELTA: got base type={}, size={}", base_type, base_content.len());
         
         let result = apply_delta(&base_content, &delta)?;
         
@@ -177,11 +206,11 @@ impl R2GitStore {
         let mut current_oid = start_oid.to_string();
         
         for depth in 0..100 {
-            tracing::info!("resolve_object_iterative: depth={}, oid={}", depth, current_oid);
+            tracing::debug!("resolve_object_iterative: depth={}, oid={}", depth, current_oid);
             
             if let Some(cached) = self.object_cache.read().await.get(&current_oid) {
                 if let Some((obj_type, content)) = parse_git_object(cached) {
-                    tracing::info!("Found cached base at depth {}: type={}", depth, obj_type);
+                    tracing::debug!("Found cached base at depth {}: type={}", depth, obj_type);
                     return Some(self.apply_delta_chain((obj_type, content), &delta_chain));
                 }
             }
@@ -195,19 +224,19 @@ impl R2GitStore {
             let mut found = false;
             
             for idx_path in &idx_files {
-                let idx_data = match self.s3.get_object(idx_path).await {
+                let idx_data = match self.get_idx_data(idx_path).await {
                     Some(data) => data,
                     None => continue,
                 };
                 
                 if let Some(offset) = find_object_in_index(&idx_data, &target_bytes) {
                     let pack_path = idx_path.replace(".idx", ".pack");
-                    let pack_data = match self.s3.get_object(&pack_path).await {
+                    let pack_data = match self.get_pack_data(&pack_path).await {
                         Some(data) => data,
                         None => continue,
                     };
                     
-                    if let Some((obj_type, size, header_end)) = read_pack_object_header(&pack_data, offset) {
+                    if let Some((obj_type, _size, header_end)) = read_pack_object_header(&pack_data, offset) {
                         if obj_type == 7 {
                             if header_end + 20 > pack_data.len() {
                                 continue;
@@ -218,7 +247,7 @@ impl R2GitStore {
                             let compressed = &pack_data[delta_start..];
                             
                             if let Some(delta) = decompress_zlib(compressed) {
-                                tracing::info!("Depth {}: REF_DELTA -> base {}", depth, base_oid);
+                                tracing::debug!("Depth {}: REF_DELTA -> base {}", depth, base_oid);
                                 delta_chain.push((current_oid.clone(), delta));
                                 current_oid = base_oid;
                                 found = true;
@@ -227,14 +256,14 @@ impl R2GitStore {
                         } else if obj_type >= 1 && obj_type <= 4 {
                             if let Some(obj) = extract_object_with_deltas(&pack_data, &idx_data, offset) {
                                 if let Some((obj_type_str, content)) = parse_git_object(&obj) {
-                                    tracing::info!("Found base at depth {}: type={}, size={}", depth, obj_type_str, content.len());
+                                    tracing::debug!("Found base at depth {}: type={}, size={}", depth, obj_type_str, content.len());
                                     return Some(self.apply_delta_chain((obj_type_str, content), &delta_chain));
                                 }
                             }
                         } else if obj_type == 6 {
                             if let Some(obj) = extract_object_with_deltas(&pack_data, &idx_data, offset) {
                                 if let Some((obj_type_str, content)) = parse_git_object(&obj) {
-                                    tracing::info!("Found OFS_DELTA base at depth {}: type={}", depth, obj_type_str);
+                                    tracing::debug!("Found OFS_DELTA base at depth {}: type={}", depth, obj_type_str);
                                     return Some(self.apply_delta_chain((obj_type_str, content), &delta_chain));
                                 }
                             }
@@ -247,11 +276,11 @@ impl R2GitStore {
                 let path = format!("{}/objects/{}/{}", self.prefix, &current_oid[..2], &current_oid[2..]);
                 if let Some(data) = self.s3.get_object(&path).await {
                     if let Some((obj_type, content)) = parse_git_object(&data) {
-                        tracing::info!("Found loose object base at depth {}: type={}", depth, obj_type);
+                        tracing::debug!("Found loose object base at depth {}: type={}", depth, obj_type);
                         return Some(self.apply_delta_chain((obj_type, content), &delta_chain));
                     }
                 }
-                tracing::warn!("Could not find object {} at depth {}", current_oid, depth);
+                tracing::debug!("Could not find object {} at depth {}", current_oid, depth);
                 return None;
             }
         }
@@ -263,14 +292,13 @@ impl R2GitStore {
     fn apply_delta_chain(&self, base: (String, Vec<u8>), delta_chain: &[(String, Vec<u8>)]) -> (String, Vec<u8>) {
         let (obj_type, mut content) = base;
         
-        for (oid, delta) in delta_chain.iter().rev() {
+        for (_oid, delta) in delta_chain.iter().rev() {
             match apply_delta(&content, delta) {
                 Some(new_content) => {
-                    tracing::info!("Applied delta for {}: {} -> {} bytes", oid, content.len(), new_content.len());
                     content = new_content;
                 }
                 None => {
-                    tracing::warn!("Failed to apply delta for {}", oid);
+                    tracing::warn!("Failed to apply delta");
                 }
             }
         }
