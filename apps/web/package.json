@@ -31,6 +31,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "diff": "^8.0.2",
     "drizzle-orm": "^0.45.1",
     "isomorphic-git": "^1.36.1",
     "lucide-react": "^0.562.0",
