@@ -4,7 +4,7 @@ import { authMiddleware } from "../middleware/auth";
 import { repositories, users, stars } from "@gitbruv/db";
 import { eq, and, desc, count, sql } from "drizzle-orm";
 import git from "isomorphic-git";
-import { createR2Fs, getRepoPrefix, s3DeletePrefix } from "../r2-fs";
+import { createR2Fs, getRepoPrefix, s3DeletePrefix, s3CopyPrefix } from "../r2-fs";
 
 export function registerRepositoryRoutes(app: Hono<AppEnv>) {
   app.post("/api/repositories", authMiddleware, async (c) => {
@@ -161,7 +161,7 @@ export function registerRepositoryRoutes(app: Hono<AppEnv>) {
     const s3 = c.get("s3");
     try {
       await s3DeletePrefix(s3, repoPrefix);
-    } catch {}
+    } catch { }
 
     await db.delete(repositories).where(eq(repositories.id, repoId));
 
@@ -640,14 +640,91 @@ export function registerRepositoryRoutes(app: Hono<AppEnv>) {
       }
     }
 
-    const [starCountResult, starredResult] = await Promise.all([
+    const [starCountResult, starredResult, forkCountResult] = await Promise.all([
       db.select({ count: count() }).from(stars).where(eq(stars.repositoryId, repo.id)),
       sessionUser ? db.query.stars.findFirst({ where: and(eq(stars.userId, sessionUser.id), eq(stars.repositoryId, repo.id)) }) : Promise.resolve(null),
+      db.select({ count: count() }).from(repositories).where(eq(repositories.forkedFromId, repo.id)),
     ]);
 
     const starCount = starCountResult[0]?.count ?? 0;
     const starred = !!starredResult;
+    const forkCount = forkCountResult[0]?.count ?? 0;
     const isOwner = sessionUser?.id === repo.ownerId;
+
+    // If this is a fork, get the parent repo info and its branches
+    let parentRepo: {
+      id: string;
+      name: string;
+      owner: { id: string; username: string; name: string; avatarUrl: string | null };
+      defaultBranch: string;
+      branches: string[];
+      aheadBy: number;
+      behindBy: number;
+    } | null = null;
+
+    if (repo.forkedFromId) {
+      const parent = await db.query.repositories.findFirst({
+        where: eq(repositories.id, repo.forkedFromId),
+        with: { owner: true },
+      });
+
+      if (parent) {
+        // Get parent repo branches
+        const parentRepoPrefix = getRepoPrefix(parent.ownerId, `${parent.name}.git`);
+        const parentFs = createR2Fs(s3, parentRepoPrefix);
+        let parentBranches: string[] = [];
+        try {
+          parentBranches = await git.listBranches({ fs: parentFs, gitdir: "/" });
+        } catch {
+          // Parent might be empty
+        }
+
+        // Calculate ahead/behind for the default branch
+        let aheadBy = 0;
+        let behindBy = 0;
+        try {
+          const forkOid = await git.resolveRef({ fs, gitdir: "/", ref: repo.defaultBranch });
+          const parentOid = await git.resolveRef({ fs: parentFs, gitdir: "/", ref: parent.defaultBranch });
+
+          if (forkOid !== parentOid) {
+            const forkCommits = await git.log({ fs, gitdir: "/", ref: forkOid });
+            const parentCommits = await git.log({ fs: parentFs, gitdir: "/", ref: parentOid });
+
+            const forkSet = new Set(forkCommits.map(c => c.oid));
+            const parentSet = new Set(parentCommits.map(c => c.oid));
+
+            // Count commits in fork but not in parent (ahead)
+            for (const commit of forkCommits) {
+              if (parentSet.has(commit.oid)) break;
+              aheadBy++;
+            }
+
+            // Count commits in parent but not in fork (behind)
+            for (const commit of parentCommits) {
+              if (forkSet.has(commit.oid)) break;
+              behindBy++;
+            }
+          }
+        } catch {
+          // Couldn't calculate - one or both repos might be empty
+        }
+
+        parentRepo = {
+          id: parent.id,
+          name: parent.name,
+          owner: {
+            id: parent.owner.id,
+            username: parent.owner.username,
+            name: parent.owner.name,
+            avatarUrl: parent.owner.avatarUrl
+          },
+          defaultBranch: parent.defaultBranch,
+          branches: parentBranches,
+          aheadBy,
+          behindBy,
+        };
+      }
+    }
 
     return c.json({
       repo: {
@@ -655,12 +732,14 @@ export function registerRepositoryRoutes(app: Hono<AppEnv>) {
         owner: { id: user.id, username: user.username, name: user.name, avatarUrl: user.avatarUrl },
         starCount,
         starred,
+        forkCount,
       },
       files,
       isEmpty,
       branches,
       readmeOid,
       isOwner,
+      parentRepo,
     });
   });
 
@@ -740,6 +819,132 @@ export function registerRepositoryRoutes(app: Hono<AppEnv>) {
         },
       })),
       hasMore,
+    });
+  });
+
+  // Fork a repository
+  app.post("/api/repositories/:owner/:name/fork", authMiddleware, async (c) => {
+    const user = c.get("user");
+    if (!user) {
+      return c.text("Unauthorized", 401);
+    }
+
+    const owner = c.req.param("owner")!;
+    const name = c.req.param("name")!;
+    const db = c.get("db");
+
+    // Find the source repository owner
+    const sourceOwner = await db.query.users.findFirst({
+      where: eq(users.username, owner),
+    });
+
+    if (!sourceOwner) {
+      return c.json({ error: "Repository not found" }, 404);
+    }
+
+    // Find the source repository
+    const sourceRepo = await db.query.repositories.findFirst({
+      where: and(eq(repositories.ownerId, sourceOwner.id), eq(repositories.name, name)),
+    });
+
+    if (!sourceRepo) {
+      return c.json({ error: "Repository not found" }, 404);
+    }
+
+    // Check access for private repos - only owner can fork their own private repo
+    if (sourceRepo.visibility === "private" && sourceRepo.ownerId !== user.id) {
+      return c.json({ error: "Repository not found" }, 404);
+    }
+
+    // Can't fork your own repo
+    if (sourceRepo.ownerId === user.id) {
+      return c.json({ error: "Cannot fork your own repository" }, 400);
+    }
+
+    // Check if user already has a fork of this repo
+    const existingFork = await db.query.repositories.findFirst({
+      where: and(
+        eq(repositories.ownerId, user.id),
+        eq(repositories.forkedFromId, sourceRepo.id)
+      ),
+    });
+
+    if (existingFork) {
+      return c.json({ error: "You already have a fork of this repository", fork: existingFork }, 400);
+    }
+
+    // Check if user already has a repo with the same name
+    const existingRepo = await db.query.repositories.findFirst({
+      where: and(eq(repositories.ownerId, user.id), eq(repositories.name, name)),
+    });
+
+    // If exists, append a suffix
+    let forkName = name;
+    if (existingRepo) {
+      let suffix = 1;
+      while (true) {
+        const checkName = `${name}-${suffix}`;
+        const check = await db.query.repositories.findFirst({
+          where: and(eq(repositories.ownerId, user.id), eq(repositories.name, checkName)),
+        });
+        if (!check) {
+          forkName = checkName;
+          break;
+        }
+        suffix++;
+      }
+    }
+
+    // Create the fork repository record
+    const [fork] = await db
+      .insert(repositories)
+      .values({
+        name: forkName,
+        description: sourceRepo.description,
+        visibility: "public", // Forks are always public
+        ownerId: user.id,
+        defaultBranch: sourceRepo.defaultBranch,
+        forkedFromId: sourceRepo.id,
+      })
+      .returning();
+
+    // Copy git data from source to fork
+    const s3 = c.get("s3");
+    const sourcePrefix = getRepoPrefix(sourceOwner.id, `${sourceRepo.name}.git`);
+    const forkPrefix = getRepoPrefix(user.id, `${forkName}.git`);
+
+    try {
+      await s3CopyPrefix(s3, sourcePrefix, forkPrefix);
+    } catch (err) {
+      // If copy fails, delete the fork record
+      await db.delete(repositories).where(eq(repositories.id, fork.id));
+      console.error("Failed to copy repository data:", err);
+      return c.json({ error: "Failed to fork repository" }, 500);
+    }
+
+    // Fetch current user details for response
+    const currentUser = await db.query.users.findFirst({
+      where: eq(users.id, user.id),
+    });
+
+    return c.json({
+      ...fork,
+      owner: {
+        id: user.id,
+        username: user.username,
+        name: currentUser?.name || user.username,
+        avatarUrl: currentUser?.avatarUrl || null,
+      },
+      forkedFrom: {
+        id: sourceRepo.id,
+        name: sourceRepo.name,
+        owner: {
+          id: sourceOwner.id,
+          username: sourceOwner.username,
+          name: sourceOwner.name,
+          avatarUrl: sourceOwner.avatarUrl,
+        },
+      },
     });
   });
 
