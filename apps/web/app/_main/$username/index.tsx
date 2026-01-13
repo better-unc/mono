@@ -1,7 +1,6 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useQueryState, parseAsStringLiteral } from "nuqs";
-import { useUserProfile, useUserStarredRepos } from "@/lib/hooks/use-users";
-import { useUserRepositories } from "@/lib/hooks/use-repositories";
+import { useUserProfile, useUserStarredRepos, useUserRepositories } from "@gitbruv/hooks";
 import RepositoryCard from "@/components/repository-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

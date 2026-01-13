@@ -5,9 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useUpdateProfile } from "@/lib/hooks/use-settings";
+import { useUpdateProfile } from "@gitbruv/hooks";
 import { Loader2 } from "lucide-react";
-import { mutate } from "swr";
 
 interface ProfileFormProps {
   user: {
@@ -21,7 +20,7 @@ interface ProfileFormProps {
 }
 
 export function ProfileForm({ user }: ProfileFormProps) {
-  const { trigger, isMutating } = useUpdateProfile();
+  const { mutate, isPending } = useUpdateProfile();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
@@ -32,21 +31,25 @@ export function ProfileForm({ user }: ProfileFormProps) {
 
     const formData = new FormData(e.currentTarget);
 
-    try {
-      await trigger({
+    mutate(
+      {
         name: formData.get("name") as string,
         username: formData.get("username") as string,
         bio: formData.get("bio") as string,
         location: formData.get("location") as string,
         website: formData.get("website") as string,
         pronouns: formData.get("pronouns") as string,
-      });
-      mutate((key) => typeof key === "string" && key.includes("/settings"));
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update profile");
-    }
+      },
+      {
+        onSuccess: () => {
+          setSuccess(true);
+          setTimeout(() => setSuccess(false), 3000);
+        },
+        onError: (err) => {
+          setError(err instanceof Error ? err.message : "Failed to update profile");
+        },
+      }
+    );
   }
 
   return (
@@ -88,8 +91,8 @@ export function ProfileForm({ user }: ProfileFormProps) {
 
       {success && <div className="text-sm text-green-500 bg-green-500/10 border border-green-500/20 px-3 py-2">Profile updated successfully!</div>}
 
-      <Button type="submit" disabled={isMutating}>
-        {isMutating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+      <Button type="submit" disabled={isPending}>
+        {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
         Save Changes
       </Button>
     </form>

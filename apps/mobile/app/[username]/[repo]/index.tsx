@@ -2,8 +2,7 @@ import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator, S
 import { useLocalSearchParams, Link, Stack, RelativePathString } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { BlurView } from "expo-blur";
-import { type FileEntry } from "@/lib/api";
-import { useRepositoryInfo, useRepositoryTree, useRepositoryReadmeOid, useRepositoryReadme, useToggleStar } from "@/lib/hooks/use-repository";
+import { type FileEntry, useRepositoryInfo, useRepoTree, useRepoReadmeOid, useRepoReadme, useToggleStar } from "@gitbruv/hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import Markdown from "react-native-markdown-display";
 
@@ -25,13 +24,13 @@ export default function RepositoryScreen() {
     isLoading: isLoadingTree,
     refetch: refetchTree,
     isRefetching: isRefetchingTree,
-  } = useRepositoryTree(username || "", repoName || "", defaultBranch);
+  } = useRepoTree(username || "", repoName || "", defaultBranch);
   const {
     data: readmeOidData,
     isLoading: isLoadingReadmeOid,
     refetch: refetchReadmeOid,
-  } = useRepositoryReadmeOid(username || "", repoName || "", defaultBranch);
-  const { data: readmeData, isLoading: readmeLoading } = useRepositoryReadme(username || "", repoName || "", readmeOidData?.readmeOid || null);
+  } = useRepoReadmeOid(username || "", repoName || "", defaultBranch);
+  const { data: readmeData, isLoading: readmeLoading } = useRepoReadme(username || "", repoName || "", readmeOidData?.readmeOid || null);
 
   const toggleStar = useToggleStar(repoInfo?.repo.id || "");
 

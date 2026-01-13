@@ -1,5 +1,4 @@
-import useSWR from "swr";
-import useSWRMutation from "swr/mutation";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { authClient } from "@/lib/auth-client";
 
 type ApiKey = {
@@ -12,29 +11,44 @@ type ApiKey = {
 };
 
 export function useApiKeys() {
-  return useSWR<ApiKey[]>("api-keys", async () => {
-    const result = await authClient.apiKey.list();
-    if (result.error) throw result.error;
-    return (result.data ?? []) as unknown as ApiKey[];
+  return useQuery({
+    queryKey: ["api-keys"],
+    queryFn: async () => {
+      const result = await authClient.apiKey.list();
+      if (result.error) throw result.error;
+      return (result.data ?? []) as unknown as ApiKey[];
+    },
   });
 }
 
 export function useCreateApiKey() {
-  return useSWRMutation("api-keys", async (_, { arg }: { arg: { name?: string } }) => {
-    const result = await authClient.apiKey.create({
-      name: arg.name,
-    });
-    if (result.error) throw result.error;
-    return result.data as { key: string; id: string };
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { name?: string }) => {
+      const result = await authClient.apiKey.create({
+        name: data.name,
+      });
+      if (result.error) throw result.error;
+      return result.data as { key: string; id: string };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["api-keys"] });
+    },
   });
 }
 
 export function useDeleteApiKey() {
-  return useSWRMutation("api-keys", async (_, { arg }: { arg: { keyId: string } }) => {
-    const result = await authClient.apiKey.delete({
-      keyId: arg.keyId,
-    });
-    if (result.error) throw result.error;
-    return result.data;
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { keyId: string }) => {
+      const result = await authClient.apiKey.delete({
+        keyId: data.keyId,
+      });
+      if (result.error) throw result.error;
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["api-keys"] });
+    },
   });
 }

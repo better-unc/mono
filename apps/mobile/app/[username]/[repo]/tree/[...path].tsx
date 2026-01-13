@@ -2,20 +2,19 @@ import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator, S
 import { useLocalSearchParams, Link, Stack, RelativePathString } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { BlurView } from "expo-blur";
-import { type FileEntry } from "@/lib/api";
-import { useRepositoryTree, useRepositoryPageData } from "@/lib/hooks/use-repository";
+import { type FileEntry, useRepoTree, useRepoPageData } from "@gitbruv/hooks";
 
 export default function TreeScreen() {
   const { username, repo, path } = useLocalSearchParams<{ username: string; repo: string; path?: string[] }>();
 
-  const { data: repoData } = useRepositoryPageData(username || "", repo || "");
+  const { data: repoData } = useRepoPageData(username || "", repo || "");
   const defaultBranch = repoData?.repo.defaultBranch || "main";
 
   const pathArray = path ? (Array.isArray(path) ? path : [path]) : [];
   const branch = pathArray[0] || defaultBranch;
   const dirPath = pathArray.slice(1).join("/");
 
-  const { data, isLoading, error, refetch, isRefetching } = useRepositoryTree(username || "", repo || "", branch, dirPath);
+  const { data, isLoading, error, refetch, isRefetching } = useRepoTree(username || "", repo || "", branch, dirPath);
 
   const handleRefresh = () => refetch();
 

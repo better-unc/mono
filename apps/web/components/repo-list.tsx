@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import { Lock, Globe, Star } from "lucide-react";
 import { Button } from "./ui/button";
-import { useStarRepository } from "@/lib/hooks/use-repositories";
+import { useStarRepository } from "@gitbruv/hooks";
 
 type Repository = {
   id: string;

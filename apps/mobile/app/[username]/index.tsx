@@ -1,10 +1,10 @@
-import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator, StyleSheet, Image } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { useLocalSearchParams, Link, Stack } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { BlurView } from "expo-blur";
-import { useUserProfile } from "@/lib/hooks/use-user";
-import { useUserRepositories } from "@/lib/hooks/use-repository";
+import { useUserProfile, useUserRepositories } from "@gitbruv/hooks";
 import { formatDistanceToNow } from "date-fns";
+import { UserAvatar } from "@/components/user-avatar";
 
 export default function UserProfileScreen() {
   const { username } = useLocalSearchParams<{ username: string }>();
@@ -60,13 +60,7 @@ export default function UserProfileScreen() {
           <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
           <View className="p-4 relative z-10">
             <View className="flex-row items-start mb-4">
-              {user.avatarUrl ? (
-                <Image source={{ uri: user.avatarUrl }} className="w-16 h-16 mr-3" />
-              ) : (
-                <View className="w-16 h-16 bg-blue-500/20 items-center justify-center mr-3">
-                  <FontAwesome name="user" size={28} color="#60a5fa" />
-                </View>
-              )}
+              <UserAvatar avatarUrl={user.avatarUrl} size={64} style={{ marginRight: 12 }} />
               <View style={{ flex: 1 }}>
                 <Text className="text-white text-[18px] font-semibold">{user.name}</Text>
                 <Text className="text-white/60 text-[14px] mt-0.5">@{user.username}</Text>

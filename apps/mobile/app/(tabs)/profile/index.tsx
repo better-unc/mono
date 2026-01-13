@@ -3,15 +3,18 @@ import { Link, router } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { BlurView } from "expo-blur";
 import { useSession, signOut } from "@/lib/auth-client";
-import { useUserRepositories } from "@/lib/hooks/use-repository";
+import { useUserRepositories, useUserProfile } from "@gitbruv/hooks";
 import { useQueryClient } from "@tanstack/react-query";
+import { UserAvatar } from "@/components/user-avatar";
 
 export default function ProfileScreen() {
   const { data: session, isPending } = useSession();
   const queryClient = useQueryClient();
 
-  const username = (session?.user as { username?: string })?.username || "";
-  const { data: reposData, isLoading, refetch, isRefetching } = useUserRepositories(username);
+  const user = session?.user as { name?: string; email?: string; username?: string; image?: string } | undefined;
+  const { data: reposData, isLoading, refetch, isRefetching } = useUserRepositories(user?.username || "");
+  const { data: profileData } = useUserProfile(user?.username || "");
+  const avatarUrl = profileData?.avatarUrl;
 
   const repos = reposData?.repos || [];
   const handleRefresh = () => refetch();
@@ -63,8 +66,6 @@ export default function ProfileScreen() {
     );
   }
 
-  const user = session.user as { name?: string; email?: string; username?: string };
-
   return (
     <View style={{ flex: 1 }}>
       <ScrollView
@@ -74,16 +75,13 @@ export default function ProfileScreen() {
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} tintColor="#60a5fa" />}
       >
         <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-4">
-          <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
           <View className="p-4 relative z-10">
             <View className="flex-row items-center">
-              <View className="w-14 h-14 bg-blue-500/20 items-center justify-center mr-3">
-                <FontAwesome name="user" size={24} color="#60a5fa" />
-              </View>
+              <UserAvatar avatarUrl={avatarUrl} size={56} style={{ marginRight: 12 }} />
               <View style={{ flex: 1 }}>
-                <Text className="text-white text-[17px] font-semibold">{user.name}</Text>
-                <Text className="text-white/60 text-[14px] mt-0.5">@{user.username}</Text>
-                <Text className="text-white/40 text-[12px] mt-1">{user.email}</Text>
+                <Text className="text-white text-[17px] font-semibold">{user?.name}</Text>
+                <Text className="text-white/60 text-[14px] mt-0.5">@{user?.username}</Text>
+                <Text className="text-white/40 text-[12px] mt-1">{user?.email}</Text>
               </View>
             </View>
           </View>
@@ -108,7 +106,7 @@ export default function ProfileScreen() {
           </View>
         ) : (
           repos.map((repo, index) => (
-            <Link key={repo.id} href={`/${user.username}/${repo.name}`} asChild>
+            <Link key={repo.id} href={`/${user?.username}/${repo.name}`} asChild>
               <Pressable className={index < repos.length - 1 ? "mb-2" : "mb-4"}>
                 <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
                   <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
