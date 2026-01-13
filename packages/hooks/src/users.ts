@@ -19,12 +19,12 @@ export function useUserStarredRepos(username: string) {
   });
 }
 
-export function useUserAvatarByEmail(email: string | null | undefined) {
+export function useUserAvatarByUsername(username: string | null | undefined) {
   const api = useApi();
   return useQuery({
-    queryKey: ["user", "avatar", email],
-    queryFn: () => api.users.getAvatarByEmail(email!),
-    enabled: !!email,
+    queryKey: ["user", username, "avatar"],
+    queryFn: () => api.users.getAvatarByUsername(username!),
+    enabled: !!username,
   });
 }
 

@@ -21,7 +21,14 @@ pub struct CommitInfo {
 #[derive(Debug, Serialize)]
 pub struct CommitAuthor {
     pub name: String,
+    #[serde(skip_serializing)]
     pub email: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub username: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub userId: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub avatarUrl: Option<String>,
 }
 
 pub async fn list_branches(store: &R2GitStore) -> Vec<String> {
@@ -266,6 +273,9 @@ fn parse_commit(data: &[u8], oid: &str) -> Option<(CommitInfo, Option<String>)> 
             author: CommitAuthor {
                 name: author_name,
                 email: author_email,
+                username: None,
+                userId: None,
+                avatarUrl: None,
             },
             timestamp,
         },

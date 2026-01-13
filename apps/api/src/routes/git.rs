@@ -9,6 +9,7 @@ use axum::{
 use chrono::NaiveDateTime;
 use serde::Deserialize;
 use sqlx::FromRow;
+use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::{
@@ -232,6 +233,34 @@ async fn debug_refs(
     })))
 }
 
+#[derive(FromRow)]
+struct UserEmailRow {
+    email: String,
+    id: String,
+    username: String,
+    avatar_url: Option<String>,
+}
+
+async fn get_users_by_emails(
+    db: &crate::db::Database,
+    emails: &[String],
+) -> Result<HashMap<String, UserEmailRow>, sqlx::Error> {
+    if emails.is_empty() {
+        return Ok(HashMap::new());
+    }
+
+    let placeholders: Vec<String> = (1..=emails.len()).map(|i| format!("${}", i)).collect();
+    let query = format!("SELECT email, id, username, avatar_url FROM users WHERE email IN ({})", placeholders.join(", "));
+    
+    let mut query_builder = sqlx::query_as::<_, UserEmailRow>(&query);
+    for email in emails {
+        query_builder = query_builder.bind(email);
+    }
+    
+    let users = query_builder.fetch_all(&db.pool).await?;
+    Ok(users.into_iter().map(|u| (u.email.clone(), u)).collect())
+}
+
 async fn get_commits_route(
     State(state): State<AppState>,
     Extension(auth): Extension<AuthUser>,
@@ -250,7 +279,18 @@ async fn get_commits_route(
     let limit = query.limit.unwrap_or(30) as usize;
     let skip = query.skip.unwrap_or(0) as usize;
 
-    let (commits, has_more) = get_commits(&store, branch, limit, skip).await;
+    let (mut commits, has_more) = get_commits(&store, branch, limit, skip).await;
+
+    let emails: Vec<String> = commits.iter().map(|c| c.author.email.clone()).collect();
+    let user_map = get_users_by_emails(&state.db, &emails).await.unwrap_or_default();
+
+    for commit in &mut commits {
+        if let Some(user) = user_map.get(&commit.author.email) {
+            commit.author.username = Some(user.username.clone());
+            commit.author.userId = Some(user.id.clone());
+            commit.author.avatarUrl = user.avatar_url.clone();
+        }
+    }
 
     Ok(Json(serde_json::json!({
         "commits": commits,

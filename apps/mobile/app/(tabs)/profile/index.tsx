@@ -81,7 +81,6 @@ export default function ProfileScreen() {
               <View style={{ flex: 1 }}>
                 <Text className="text-white text-[17px] font-semibold">{user?.name}</Text>
                 <Text className="text-white/60 text-[14px] mt-0.5">@{user?.username}</Text>
-                <Text className="text-white/40 text-[12px] mt-1">{user?.email}</Text>
               </View>
             </View>
           </View>

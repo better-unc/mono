@@ -27,7 +27,7 @@ export function CloneUrl({ username, repoName }: { username: string; repoName: s
     <div className="flex items-center gap-2">
       <DropdownMenu>
         <DropdownMenuTrigger>
-          <Button variant="outline" size="sm" className="gap-1">
+          <Button variant="outline" className="gap-1">
             {/* {protocol.toUpperCase()} */}
             HTTPS
             <ChevronDown className="h-3 w-3" />

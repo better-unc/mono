@@ -19,7 +19,7 @@ function RepoLayout() {
   const isCode = !isSettings;
 
   return (
-    <div className="min-h-screen">
+    <div>
       <Outlet />
       {isOwner && (
         <div className="fixed bottom-6 right-6">

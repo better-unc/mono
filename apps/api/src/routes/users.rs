@@ -301,15 +301,17 @@ async fn get_user_starred(
     Ok(Json(serde_json::json!({ "repos": repos })))
 }
 
-async fn get_avatar_by_email(
+async fn get_avatar_by_username(
     State(state): State<AppState>,
-    Path(email): Path<String>,
+    Path(username): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     #[derive(FromRow)]
-    struct AvatarRow { avatar_url: Option<String> }
+    struct AvatarRow {
+        avatar_url: Option<String>,
+    }
 
-    let row: Option<AvatarRow> = sqlx::query_as("SELECT avatar_url FROM users WHERE email = $1")
-        .bind(&email)
+    let row: Option<AvatarRow> = sqlx::query_as("SELECT avatar_url FROM users WHERE username = $1")
+        .bind(&username)
         .fetch_optional(&state.db.pool)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
@@ -323,7 +325,7 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/api/users/me", get(get_current_user))
         .route("/api/users/public", get(get_public_users))
-        .route("/api/users/by-email/{email}/avatar", get(get_avatar_by_email))
+        .route("/api/users/{username}/avatar", get(get_avatar_by_username))
         .route("/api/users/{username}", get(get_user))
         .route("/api/users/{username}/profile", get(get_user_profile))
         .route("/api/users/{username}/starred", get(get_user_starred))

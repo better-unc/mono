@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useRepositoryWithStars, useUpdateRepository, useDeleteRepository } from "@gitbruv/hooks";
-import { useSession } from "@/lib/auth-client";
+import { useRepoPageData, useUpdateRepository, useDeleteRepository } from "@gitbruv/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,8 +17,9 @@ export const Route = createFileRoute("/_main/$username/$repo/settings")({
 function RepoSettingsPage() {
   const { username, repo: repoName } = Route.useParams();
   const navigate = useNavigate();
-  const { data: session } = useSession();
-  const { data: repo, isLoading } = useRepositoryWithStars(username, repoName);
+  const { data: pageData, isLoading } = useRepoPageData(username, repoName);
+  const repo = pageData?.repo;
+  const isOwner = pageData?.isOwner ?? false;
   const { mutate: updateRepo, isPending: saving } = useUpdateRepository(repo?.id || "");
   const { mutate: deleteRepo, isPending: deleting } = useDeleteRepository(repo?.id || "");
 
@@ -40,8 +40,6 @@ function RepoSettingsPage() {
     });
     setInitialized(true);
   }
-
-  const isOwner = session?.user?.id === repo?.ownerId;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -102,11 +100,9 @@ function RepoSettingsPage() {
             <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
             <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
             <p className="text-muted-foreground mb-6">You don't have permission to access this page</p>
-            <Button asChild>
-              <Link to="/$username/$repo" params={{ username, repo: repoName }}>
-                Back to repository
-              </Link>
-            </Button>
+            <Link to="/$username/$repo" params={{ username, repo: repoName }}>
+              <Button>Back to repository</Button>
+            </Link>
           </CardContent>
         </Card>
       </div>
@@ -221,7 +217,7 @@ function RepoSettingsPage() {
               <p className="text-sm text-muted-foreground">Once deleted, it cannot be recovered</p>
             </div>
             <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-              <DialogTrigger asChild>
+              <DialogTrigger>
                 <Button variant="destructive" size="sm">
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete

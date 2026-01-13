@@ -1,15 +1,14 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useRepositoryInfo, useRepoTree, useRepoBranches, useRepoReadmeOid, useRepoReadme, useRepoCommits, useRepoCommitCount, useUserAvatarByEmail } from "@gitbruv/hooks";
-import { FileTree } from "@/components/file-tree";
-import { CodeViewer } from "@/components/code-viewer";
-import { CloneUrl } from "@/components/clone-url";
 import { BranchSelector } from "@/components/branch-selector";
+import { CloneUrl } from "@/components/clone-url";
+import { CodeViewer } from "@/components/code-viewer";
+import { FileTree } from "@/components/file-tree";
 import { StarButton } from "@/components/star-button";
-import { GitBranch, Loader2, History, BookOpen, Star, GitFork, Eye, Copy, Check, ExternalLink } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { useRepoBranches, useRepoCommitCount, useRepoCommits, useRepoReadme, useRepoReadmeOid, useRepositoryInfo, useRepoTree } from "@gitbruv/hooks";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
-import { useState } from "react";
+import { BookOpen, Eye, GitBranch, GitFork, History, Loader2, Star } from "lucide-react";
 
 export const Route = createFileRoute("/_main/$username/$repo/")({
   component: RepoPage,
@@ -24,7 +23,7 @@ function RepoPage() {
   const { data: treeData, isLoading: isLoadingTree } = useRepoTree(username, repoName, defaultBranch);
   const { data: branchesData, isLoading: isLoadingBranches } = useRepoBranches(username, repoName);
   const { data: readmeOidData, isLoading: isLoadingReadmeOid } = useRepoReadmeOid(username, repoName, defaultBranch);
-  const { data: commitData } = useRepoCommits(username, repoName, defaultBranch, 1);
+  const { data: commitData, isLoading: isLoadingLastCommit } = useRepoCommits(username, repoName, defaultBranch, 1);
   const { data: commitCountData, isLoading: isLoadingCommitCount } = useRepoCommitCount(username, repoName, defaultBranch);
 
   const repo = repoInfo?.repo;
@@ -36,19 +35,19 @@ function RepoPage() {
   const commitCount = commitCountData?.count || 0;
 
   return (
-    <div className="container max-w-6xl px-4 py-8">
-      {isLoadingInfo || !repo ? <RepoHeaderSkeleton /> : <RepoHeader repo={repo} username={username} />}
+    <div className="container max-w-6xl px-4 py-4">
+      {isLoadingInfo || !repo ? <RepoHeaderSkeleton /> : <RepoHeader repo={repo} />}
 
       <div className="mt-8 space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             {isLoadingBranches || isLoadingInfo ? (
-              <div className="h-9 w-28 bg-secondary/50 animate-pulse rounded" />
+              <div className="h-8.5 w-30 bg-secondary/50 animate-pulse" />
             ) : (
               <BranchSelector branches={branches} currentBranch={defaultBranch} username={username} repoName={repo?.name || repoName} />
             )}
-            {isLoadingInfo ? (
-              <div className="h-5 w-24 bg-secondary/50 animate-pulse rounded" />
+            {isLoadingInfo || isLoadingCommitCount ? (
+              <div className="h-5 w-28 bg-secondary/50 animate-pulse" />
             ) : (
               <Link
                 to="/$username/$repo/commits/$branch"
@@ -66,27 +65,30 @@ function RepoPage() {
           <CloneUrl username={username} repoName={repo?.name || repoName} />
         </div>
 
+        {isLoadingLastCommit ? <LastCommitBarSkeleton /> : <LastCommitBar lastCommit={lastCommit} />}
+
         {isLoadingTree ? (
           <FileTreeSkeleton />
         ) : isEmpty ? (
           <EmptyRepoState username={username} repoName={repo?.name || repoName} />
         ) : (
-          <>
-            <LastCommitBar lastCommit={lastCommit} />
-            <div className="border border-border bg-card overflow-hidden">
-              <FileTree files={files} username={username} repoName={repo?.name || repoName} branch={defaultBranch} />
-            </div>
-          </>
+          <div className="border border-border bg-card overflow-hidden">
+            <FileTree files={files} username={username} repoName={repo?.name || repoName} branch={defaultBranch} />
+          </div>
         )}
 
         {isLoadingReadmeOid ? (
-          <div className="border border-border bg-card overflow-hidden">
+          <div className="border border-border bg-card overflow-hidden animate-pulse">
             <div className="flex items-center gap-2 px-5 py-3 border-b border-border">
-              <BookOpen className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium">README.md</span>
+              <div className="h-4 w-4 bg-secondary/50" />
+              <div className="h-4 w-24 bg-secondary/50" />
             </div>
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            <div className="p-6 md:p-8 space-y-3">
+              <div className="h-6 w-3/4 bg-secondary/50" />
+              <div className="h-4 w-full bg-secondary/50" />
+              <div className="h-4 w-5/6 bg-secondary/50" />
+              <div className="h-4 w-4/5 bg-secondary/50" />
+              <div className="h-4 w-full bg-secondary/50" />
             </div>
           </div>
         ) : readmeOid ? (
@@ -105,45 +107,74 @@ function RepoPage() {
   );
 }
 
+function LastCommitBarSkeleton() {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 bg-secondary/30 border border-border animate-pulse">
+      <div className="h-6 w-6 bg-secondary/50 shrink-0" />
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        <div className="h-4 w-24 bg-secondary/50 shrink-0" />
+        <div className="h-4 w-64 bg-secondary/50 truncate" />
+      </div>
+      <div className="flex items-center gap-3 shrink-0">
+        <div className="h-3.5 w-14 bg-secondary/50 font-mono" />
+        <div className="h-3.5 w-20 bg-secondary/50" />
+      </div>
+    </div>
+  );
+}
 function RepoHeaderSkeleton() {
   return (
     <div className="space-y-4 animate-pulse">
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-        <div className="space-y-2">
+        <div className="space-y-2 flex-1 min-w-0">
           <div className="flex items-center gap-3">
-            <div className="h-8 w-48 bg-secondary/50 rounded" />
-            <div className="h-5 w-16 bg-secondary/50 rounded" />
+            <div className="h-8 w-40 bg-secondary/50" />
+            <div className="h-5 w-14 bg-secondary/50 border border-border" />
           </div>
-          <div className="h-5 w-96 bg-secondary/50 rounded" />
+          <div className="h-5 w-64 bg-secondary/50 max-w-2xl" />
         </div>
-        <div className="flex items-center gap-2">
-          <div className="h-9 w-20 bg-secondary/50 rounded" />
-          <div className="h-9 w-20 bg-secondary/50 rounded" />
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="h-9 w-24 bg-secondary/50 border border-border" />
+          <div className="h-9 w-20 bg-secondary/50 border border-border" />
         </div>
       </div>
-      <div className="flex items-center gap-6">
-        <div className="h-5 w-16 bg-secondary/50 rounded" />
-        <div className="h-5 w-16 bg-secondary/50 rounded" />
-        <div className="h-5 w-20 bg-secondary/50 rounded" />
+      <div className="flex items-center gap-6 text-sm">
+        <div className="flex items-center gap-1.5">
+          <div className="h-4 w-4 bg-secondary/50" />
+          <div className="h-4 w-4 bg-secondary/50" />
+          <div className="h-4 w-10 bg-secondary/50" />
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="h-4 w-4 bg-secondary/50" />
+          <div className="h-4 w-4 bg-secondary/50" />
+          <div className="h-4 w-12 bg-secondary/50" />
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="h-4 w-4 bg-secondary/50" />
+          <div className="h-4 w-4 bg-secondary/50" />
+          <div className="h-4 w-16 bg-secondary/50" />
+        </div>
       </div>
     </div>
   );
 }
 
 function FileTreeSkeleton() {
+  const fileWidths = ["32%", "28%", "45%", "24%", "38%", "31%"];
+
   return (
     <div className="border border-border bg-card overflow-hidden animate-pulse">
       {Array.from({ length: 6 }).map((_, i) => (
         <div key={i} className="flex items-center gap-3 px-5 py-2.5 border-b border-border last:border-b-0">
-          <div className="h-4 w-4 bg-secondary/50 rounded" />
-          <div className="h-4 bg-secondary/50 rounded" style={{ width: `${Math.random() * 40 + 20}%` }} />
+          <div className={`h-4 w-4 bg-secondary/50`} />
+          <div className="h-4 bg-secondary/50" style={{ width: fileWidths[i] || "35%" }} />
         </div>
       ))}
     </div>
   );
 }
 
-function RepoHeader({ repo, username }: { repo: any; username: string }) {
+function RepoHeader({ repo }: { repo: any }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
@@ -185,37 +216,13 @@ function RepoHeader({ repo, username }: { repo: any; username: string }) {
   );
 }
 
-// function QuickClone({ username, repoName }: { username: string; repoName: string }) {
-//   const [copied, setCopied] = useState(false);
-//   const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/api/git/${username}/${repoName}.git`;
-
-//   async function copy() {
-//     await navigator.clipboard.writeText(url);
-//     setCopied(true);
-//     setTimeout(() => setCopied(false), 2000);
-//   }
-
-//   return (
-//     <div className="flex items-center gap-2">
-//       <code className="px-3 py-1.5 bg-secondary/50 border border-border text-xs font-mono text-muted-foreground truncate max-w-[300px]">
-//         {url}
-//       </code>
-//       <Button variant="secondary" size="sm" onClick={copy} className="shrink-0 border border-border">
-//         {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
-//       </Button>
-//     </div>
-//   );
-// }
-
 function LastCommitBar({ lastCommit }: { lastCommit: any }) {
-  const { data: avatarData } = useUserAvatarByEmail(lastCommit?.author.email);
-
   if (!lastCommit) return null;
 
   return (
     <div className="flex items-center gap-3 px-4 py-3 bg-secondary/30 border border-border">
       <Avatar className="h-6 w-6 shrink-0">
-        <AvatarImage src={avatarData?.avatarUrl || undefined} />
+        <AvatarImage src={lastCommit.author.avatarUrl || undefined} />
         <AvatarFallback className="text-[10px] bg-muted">{lastCommit.author.name.charAt(0)}</AvatarFallback>
       </Avatar>
       <div className="flex items-center gap-2 min-w-0 flex-1">

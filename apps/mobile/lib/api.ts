@@ -109,7 +109,7 @@ export const api: ApiClient = {
 
     getStarred: (username: string) => apiFetch<{ repos: RepositoryWithStars[] }>(`/api/users/${username}/starred`),
 
-    getAvatarByEmail: (email: string) => apiFetch<{ avatarUrl: string | null }>(`/api/users/by-email/${encodeURIComponent(email)}/avatar`),
+    getAvatarByUsername: (username: string) => apiFetch<{ avatarUrl: string | null }>(`/api/users/${username}/avatar`),
 
     getPublic: (sortBy: "newest" | "oldest" = "newest", limit = 20, offset = 0) =>
       apiFetch<{ users: PublicUser[]; hasMore: boolean }>(`/api/users/public?sortBy=${sortBy}&limit=${limit}&offset=${offset}`),

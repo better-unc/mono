@@ -3,7 +3,7 @@ import { useRepositoryWithStars, useRepoCommits, useRepoBranches } from "@gitbru
 import { BranchSelector } from "@/components/branch-selector";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Lock, Globe, GitCommit, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -46,6 +46,30 @@ function PageSkeleton() {
         <div className="h-12 bg-card border-b border-border" />
         <CommitsSkeleton />
       </div>
+    </div>
+  );
+}
+
+function CommitRow({ commit }: { commit: { oid: string; message: string; author: { name: string; avatarUrl?: string }; timestamp: number } }) {
+  return (
+    <div className="flex items-start gap-4 px-4 py-3 hover:bg-muted/30 transition-colors">
+      <Avatar className="h-8 w-8 mt-0.5">
+        <AvatarImage src={commit.author.avatarUrl || undefined} />
+        <AvatarFallback className="text-xs bg-accent/20">{commit.author.name.charAt(0).toUpperCase()}</AvatarFallback>
+      </Avatar>
+      <div className="flex-1 min-w-0">
+        <p className="font-medium truncate">{commit.message.split("\n")[0]}</p>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+          <span className="font-medium text-foreground">{commit.author.name}</span>
+          <span>committed</span>
+          <span>
+            {formatDistanceToNow(new Date(commit.timestamp), {
+              addSuffix: true,
+            })}
+          </span>
+        </div>
+      </div>
+      <code className="text-xs font-mono bg-muted px-2 py-1  shrink-0">{commit.oid.slice(0, 7)}</code>
     </div>
   );
 }
@@ -126,24 +150,7 @@ function CommitsPage() {
           <>
             <div className="divide-y divide-border">
               {commits.map((commit) => (
-                <div key={commit.oid} className="flex items-start gap-4 px-4 py-3 hover:bg-muted/30 transition-colors">
-                  <Avatar className="h-8 w-8 mt-0.5">
-                    <AvatarFallback className="text-xs bg-accent/20">{commit.author.name.charAt(0).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{commit.message.split("\n")[0]}</p>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                      <span className="font-medium text-foreground">{commit.author.name}</span>
-                      <span>committed</span>
-                      <span>
-                        {formatDistanceToNow(new Date(commit.timestamp), {
-                          addSuffix: true,
-                        })}
-                      </span>
-                    </div>
-                  </div>
-                  <code className="text-xs font-mono bg-muted px-2 py-1  shrink-0">{commit.oid.slice(0, 7)}</code>
-                </div>
+                <CommitRow key={commit.oid} commit={commit} />
               ))}
             </div>
 

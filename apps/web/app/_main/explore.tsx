@@ -152,8 +152,38 @@ function GridSkeleton() {
   return (
     <div className="flex flex-col gap-4">
       {[...Array(6)].map((_, i) => (
-        <div key={i} className="h-32 bg-card border border-border animate-pulse" />
+        <RepositoryCardSkeleton key={i} />
       ))}
+    </div>
+  );
+}
+
+function RepositoryCardSkeleton() {
+  return (
+    <div className="border border-border bg-card p-4 animate-pulse">
+      <div className="flex items-start gap-3">
+        <div className="h-12 w-12 bg-secondary/50 shrink-0" />
+        <div className="min-w-0 flex-1">
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <div className="h-4 w-56 bg-secondary/50" />
+            <div className="h-6 w-16 bg-secondary/50 border border-border" />
+          </div>
+          <div className="space-y-1.5 mt-2">
+            <div className="h-3 w-full bg-secondary/50" />
+            <div className="h-3 w-4/5 bg-secondary/50" />
+          </div>
+          <div className="flex items-center gap-3 mt-3">
+            <div className="flex items-center gap-1">
+              <div className="h-3 w-3 bg-secondary/50" />
+              <div className="h-3 w-6 bg-secondary/50" />
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="h-3 w-3 bg-secondary/50" />
+              <div className="h-3 w-20 bg-secondary/50" />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -164,11 +194,18 @@ function UserGridSkeleton() {
       {[...Array(6)].map((_, i) => (
         <div key={i} className="border border-border p-4 bg-card animate-pulse">
           <div className="flex items-start gap-3">
-            <div className="h-10 w-10 bg-muted" />
-            <div className="flex-1">
-              <div className="h-4 bg-muted w-1/2 mb-2" />
-              <div className="h-3 bg-muted w-1/3 mb-3" />
-              <div className="h-3 bg-muted w-20" />
+            <div className="h-10 w-10 bg-secondary/50 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="h-4 w-32 bg-secondary/50 mb-1" />
+              <div className="h-3 w-24 bg-secondary/50 mb-3" />
+              <div className="space-y-1.5 mb-2">
+                <div className="h-3 w-full bg-secondary/50" />
+                <div className="h-3 w-3/4 bg-secondary/50" />
+              </div>
+              <div className="flex items-center gap-1 mt-2">
+                <div className="h-3.5 w-3.5 bg-secondary/50" />
+                <div className="h-3 w-12 bg-secondary/50" />
+              </div>
             </div>
           </div>
         </div>

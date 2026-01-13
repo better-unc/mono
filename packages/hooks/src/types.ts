@@ -59,7 +59,9 @@ export type Commit = {
   message: string;
   author: {
     name: string;
-    email: string;
+    username?: string;
+    userId?: string;
+    avatarUrl?: string;
   };
   timestamp: number;
 };
@@ -119,7 +121,7 @@ export type ApiClient = {
   users: {
     getProfile: (username: string) => Promise<UserProfile>;
     getStarred: (username: string) => Promise<{ repos: RepositoryWithStars[] }>;
-    getAvatarByEmail: (email: string) => Promise<{ avatarUrl: string | null }>;
+    getAvatarByUsername: (username: string) => Promise<{ avatarUrl: string | null }>;
     getPublic: (sortBy: "newest" | "oldest", limit: number, offset: number) => Promise<{ users: PublicUser[]; hasMore: boolean }>;
   };
   settings: {

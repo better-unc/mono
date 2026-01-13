@@ -140,7 +140,7 @@ function RootLayout() {
       <head>
         <HeadContent />
       </head>
-      <body className="min-h-screen">
+      <body>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <NuqsAdapter>
             <Outlet />
