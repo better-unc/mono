@@ -59,7 +59,6 @@ export type Commit = {
   message: string;
   author: {
     name: string;
-    email: string;
     username?: string;
     userId?: string;
     avatarUrl?: string;
