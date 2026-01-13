@@ -186,7 +186,7 @@ async fn get_user_from_session(pool: &sqlx::PgPool, token: &str) -> Option<(User
         SELECT u.id, u.name, u.email, u.username, u.bio, u.location,
                u.website, u.pronouns, u.avatar_url, u.company, u.last_active_at,
                u.git_email, u.default_repository_visibility, u.preferences,
-               u.social_links, u.created_at, u.updated_at
+               u.social_links, u.created_at, u.updated_at,
                s.expires_at
         FROM users u
         JOIN sessions s ON s.user_id = u.id
