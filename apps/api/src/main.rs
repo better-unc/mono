@@ -15,13 +15,14 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use crate::config::Config;
 use crate::db::Database;
 use crate::s3::S3Client;
-use crate::auth::auth_middleware;
+use crate::auth::{auth_middleware, SessionCache};
 
 #[derive(Clone)]
 pub struct AppState {
     pub db: Database,
     pub s3: S3Client,
     pub config: Arc<Config>,
+    pub session_cache: SessionCache,
 }
 
 #[tokio::main]
@@ -38,8 +39,14 @@ async fn main() {
     let config = Arc::new(Config::from_env());
     let db = Database::connect(&config.database_url).await;
     let s3 = S3Client::new(&config).await;
+    let session_cache = SessionCache::new();
 
-    let state = AppState { db, s3, config: config.clone() };
+    let state = AppState { 
+        db, 
+        s3, 
+        config: config.clone(),
+        session_cache,
+    };
 
     let cors = CorsLayer::new()
         .allow_origin(tower_http::cors::AllowOrigin::mirror_request())
