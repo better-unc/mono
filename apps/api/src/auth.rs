@@ -43,6 +43,7 @@ struct CachedUser {
     expires_at: NaiveDateTime,
 }
 
+#[derive(Clone)]
 pub struct SessionCache {
     cache: Arc<DashMap<String, CachedUser>>,
 }
@@ -58,7 +59,7 @@ impl SessionCache {
             loop {
                 interval.tick().await;
                 let now = Utc::now().naive_utc();
-                cache_clone.retain(|_, cached| {
+                cache_clone.retain(|_, cached: &mut CachedUser| {
                     cached.expires_at > now
                 });
             }
@@ -128,7 +129,7 @@ pub async fn auth_middleware(
         Some(ref token) => {
             // Try cache first
             if let Some(cached_user) = state.session_cache.get(token) {
-                cached_user
+                Some(cached_user)
             } else {
                 // Cache miss, query database
                 if let Some((user, expires_at)) = get_user_from_session(&state.db.pool, token).await {
