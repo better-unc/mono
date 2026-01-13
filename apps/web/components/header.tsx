@@ -2,7 +2,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { signOut, useSession } from "@/lib/auth-client";
-import { useUserProfile } from "@/lib/hooks/use-users";
+import { useUserProfile } from "@gitbruv/hooks";
 import { Link, useNavigate, useLocation, useParams } from "@tanstack/react-router";
 import { Bell, Inbox, LogOut, Moon, Plus, Settings, Sun, User } from "lucide-react";
 import { useTheme } from "tanstack-theme-kit";

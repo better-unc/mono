@@ -1,8 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Star, Clock } from "lucide-react";
 import { format } from "date-fns";
-import { type RepositoryWithStars } from "@/lib/api/client";
-import { useStarRepository } from "@/lib/hooks/use-repositories";
+import { type RepositoryWithStars, useStarRepository } from "@gitbruv/hooks";
 import { Button } from "./ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 

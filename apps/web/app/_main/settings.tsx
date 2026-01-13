@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryState, parseAsStringLiteral } from "nuqs";
 import { useSession } from "@/lib/auth-client";
-import { useCurrentUser } from "@/lib/hooks/use-settings";
+import { useCurrentUser } from "@gitbruv/hooks";
 import { useApiKeys, useCreateApiKey, useDeleteApiKey } from "@/lib/hooks/use-api-keys";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { AvatarUpload } from "@/components/settings/avatar-upload";
@@ -146,9 +146,9 @@ function AccountTab() {
 function TokensTab() {
   const { data, isLoading: userLoading } = useCurrentUser();
   const user = data?.user;
-  const { data: apiKeys, isLoading: keysLoading, mutate: mutateKeys } = useApiKeys();
-  const { trigger: createKey, isMutating: isCreating } = useCreateApiKey();
-  const { trigger: deleteKey, isMutating: isDeleting } = useDeleteApiKey();
+  const { data: apiKeys, isLoading: keysLoading, refetch: refetchKeys } = useApiKeys();
+  const { mutate: createKey, isPending: isCreating } = useCreateApiKey();
+  const { mutate: deleteKey, isPending: isDeleting } = useDeleteApiKey();
 
   const [newKeyName, setNewKeyName] = useState("");
   const [createdKey, setCreatedKey] = useState<string | null>(null);
@@ -168,27 +168,37 @@ function TokensTab() {
     return null;
   }
 
-  async function handleCreate() {
-    try {
-      const result = await createKey({ name: newKeyName || "Personal Access Token" });
-      if (result?.key) {
-        setCreatedKey(result.key);
-        setNewKeyName("");
-        mutateKeys();
+  function handleCreate() {
+    createKey(
+      { name: newKeyName || "Personal Access Token" },
+      {
+        onSuccess: (result) => {
+          if (result?.key) {
+            setCreatedKey(result.key);
+            setNewKeyName("");
+            refetchKeys();
+          }
+        },
+        onError: (err) => {
+          console.error("Failed to create token:", err);
+        },
       }
-    } catch (err) {
-      console.error("Failed to create token:", err);
-    }
+    );
   }
 
-  async function handleDelete(keyId: string) {
-    try {
-      await deleteKey({ keyId });
-      setDeleteKeyId(null);
-      mutateKeys();
-    } catch (err) {
-      console.error("Failed to delete token:", err);
-    }
+  function handleDelete(keyId: string) {
+    deleteKey(
+      { keyId },
+      {
+        onSuccess: () => {
+          setDeleteKeyId(null);
+          refetchKeys();
+        },
+        onError: (err) => {
+          console.error("Failed to delete token:", err);
+        },
+      }
+    );
   }
 
   function handleCopy() {

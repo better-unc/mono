@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, Link, useParams, useLocation } from "@tanstack/react-router";
-import { useRepoPageData } from "@/lib/hooks/use-repositories";
+import { useRepoPageData } from "@gitbruv/hooks";
 import { Code, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 

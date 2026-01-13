@@ -4,16 +4,15 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useUpdateEmail } from "@/lib/hooks/use-settings";
+import { useUpdateEmail } from "@gitbruv/hooks";
 import { Loader2 } from "lucide-react";
-import { mutate } from "swr";
 
 interface EmailFormProps {
   currentEmail: string;
 }
 
 export function EmailForm({ currentEmail }: EmailFormProps) {
-  const { trigger, isMutating } = useUpdateEmail();
+  const { mutate, isPending } = useUpdateEmail();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
@@ -30,14 +29,18 @@ export function EmailForm({ currentEmail }: EmailFormProps) {
       return;
     }
 
-    try {
-      await trigger({ email });
-      mutate((key) => typeof key === "string" && key.includes("/settings"));
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update email");
-    }
+    mutate(
+      { email },
+      {
+        onSuccess: () => {
+          setSuccess(true);
+          setTimeout(() => setSuccess(false), 3000);
+        },
+        onError: (err) => {
+          setError(err instanceof Error ? err.message : "Failed to update email");
+        },
+      }
+    );
   }
 
   return (
@@ -52,8 +55,8 @@ export function EmailForm({ currentEmail }: EmailFormProps) {
 
       {success && <div className="text-sm text-green-500 bg-green-500/10 border border-green-500/20 px-3 py-2">Email updated successfully!</div>}
 
-      <Button type="submit" disabled={isMutating}>
-        {isMutating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+      <Button type="submit" disabled={isPending}>
+        {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
         Update Email
       </Button>
     </form>

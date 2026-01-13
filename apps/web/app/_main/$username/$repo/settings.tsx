@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useRepositoryWithStars, useUpdateRepository, useDeleteRepository } from "@/lib/hooks/use-repositories";
+import { useRepositoryWithStars, useUpdateRepository, useDeleteRepository } from "@gitbruv/hooks";
 import { useSession } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Loader2, Lock, Globe, Trash2, AlertTriangle } from "lucide-react";
-import { mutate } from "swr";
 
 export const Route = createFileRoute("/_main/$username/$repo/settings")({
   component: RepoSettingsPage,
@@ -21,8 +20,8 @@ function RepoSettingsPage() {
   const navigate = useNavigate();
   const { data: session } = useSession();
   const { data: repo, isLoading } = useRepositoryWithStars(username, repoName);
-  const { trigger: updateRepo, isMutating: saving } = useUpdateRepository(repo?.id || "");
-  const { trigger: deleteRepo, isMutating: deleting } = useDeleteRepository(repo?.id || "");
+  const { mutate: updateRepo, isPending: saving } = useUpdateRepository(repo?.id || "");
+  const { mutate: deleteRepo, isPending: deleting } = useDeleteRepository(repo?.id || "");
 
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -48,36 +47,41 @@ function RepoSettingsPage() {
     e.preventDefault();
     if (!repo) return;
 
-    try {
-      const updated = await updateRepo({
+    updateRepo(
+      {
         name: formData.name,
         description: formData.description,
         visibility: formData.visibility,
-      });
-      mutate((key) => typeof key === "string" && key.includes("/repositories"));
-      toast.success("Settings saved");
-      if (updated && updated.name !== repo.name) {
-        navigate({
-          to: "/$username/$repo/settings",
-          params: { username, repo: updated.name },
-        });
+      },
+      {
+        onSuccess: (updated) => {
+          toast.success("Settings saved");
+          if (updated && updated.name !== repo.name) {
+            navigate({
+              to: "/$username/$repo/settings",
+              params: { username, repo: updated.name },
+            });
+          }
+        },
+        onError: (err) => {
+          toast.error(err instanceof Error ? err.message : "Failed to save settings");
+        },
       }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save settings");
-    }
+    );
   }
 
   async function handleDelete() {
     if (!repo || deleteConfirm !== repo.name) return;
 
-    try {
-      await deleteRepo();
-      mutate((key) => typeof key === "string" && key.includes("/repositories"));
-      toast.success("Repository deleted");
-      navigate({ to: "/$username", params: { username } });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete repository");
-    }
+    deleteRepo(undefined, {
+      onSuccess: () => {
+        toast.success("Repository deleted");
+        navigate({ to: "/$username", params: { username } });
+      },
+      onError: (err) => {
+        toast.error(err instanceof Error ? err.message : "Failed to delete repository");
+      },
+    });
   }
 
   if (isLoading) {

@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useRepositoryWithStars, useRepoFile, useRepoBranches } from "@/lib/hooks/use-repositories";
+import { useRepositoryWithStars, useRepoFile, useRepoBranches } from "@gitbruv/hooks";
 import { ChunkedCodeViewer } from "@/components/chunked-code-viewer";
 import { CodeViewer } from "@/components/code-viewer";
 import { BranchSelector } from "@/components/branch-selector";

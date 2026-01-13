@@ -2,7 +2,7 @@ import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator, S
 import { Link } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useSession } from "@/lib/auth-client";
-import { usePublicRepositories } from "@/lib/hooks/use-repository";
+import { usePublicRepositories } from "@gitbruv/hooks";
 import { BlurView } from "expo-blur";
 
 export default function HomeScreen() {

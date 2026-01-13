@@ -1,4 +1,16 @@
 import { authClient } from "./auth-client";
+import type {
+  Repository,
+  RepositoryWithOwner,
+  RepositoryWithStars,
+  RepoInfo,
+  RepoPageData,
+  TreeResponse,
+  Commit,
+  UserProfile,
+  PublicUser,
+  ApiClient,
+} from "@gitbruv/hooks";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -33,98 +45,7 @@ async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise
   return res.json();
 }
 
-export type Owner = {
-  id: string;
-  username: string;
-  name: string;
-  avatarUrl: string | null;
-};
-
-export type Repository = {
-  id: string;
-  name: string;
-  description: string | null;
-  visibility: "public" | "private";
-  defaultBranch: string;
-  ownerId: string;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type RepositoryWithOwner = Repository & {
-  owner: Owner;
-  starCount: number;
-  starred: boolean;
-};
-
-export type FileEntry = {
-  name: string;
-  type: "blob" | "tree";
-  oid: string;
-  path: string;
-};
-
-export type RepoInfo = {
-  repo: RepositoryWithOwner;
-  isOwner: boolean;
-};
-
-export type TreeResponse = {
-  files: FileEntry[];
-  isEmpty: boolean;
-  readmeOid: string | null;
-};
-
-export type RepoPageData = {
-  repo: RepositoryWithOwner;
-  files: FileEntry[];
-  isEmpty: boolean;
-  branches: string[];
-  readmeOid: string | null;
-  isOwner: boolean;
-};
-
-export type Commit = {
-  oid: string;
-  message: string;
-  author: {
-    name: string;
-    email: string;
-  };
-  timestamp: number;
-};
-
-export type UserProfile = {
-  id: string;
-  name: string;
-  username: string;
-  email?: string;
-  emailVerified?: boolean;
-  avatarUrl: string | null;
-  bio: string | null;
-  location: string | null;
-  website: string | null;
-  pronouns: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type PublicUser = {
-  id: string;
-  name: string;
-  username: string;
-  avatarUrl: string | null;
-  bio: string | null;
-  createdAt: string;
-  repoCount: number;
-};
-
-export type RepositoryWithStars = Repository & {
-  owner: Owner;
-  starCount: number;
-};
-
-export const api = {
+export const api: ApiClient = {
   repositories: {
     create: (data: { name: string; description?: string; visibility: "public" | "private" }) =>
       apiFetch<Repository>("/api/repositories", {
@@ -145,14 +66,7 @@ export const api = {
     getPublic: (sortBy: "stars" | "updated" | "created" = "updated", limit = 20, offset = 0) =>
       apiFetch<{ repos: RepositoryWithStars[]; hasMore: boolean }>(`/api/repositories/public?sortBy=${sortBy}&limit=${limit}&offset=${offset}`),
 
-    update: (
-      id: string,
-      data: {
-        name?: string;
-        description?: string;
-        visibility?: "public" | "private";
-      }
-    ) =>
+    update: (id: string, data: { name?: string; description?: string; visibility?: "public" | "private" }) =>
       apiFetch<Repository>(`/api/repositories/${id}`, {
         method: "PATCH",
         body: JSON.stringify(data),
@@ -210,29 +124,6 @@ export const api = {
         body: JSON.stringify(data),
       }),
 
-    updateAvatar: async (uri: string, mimeType: string) => {
-      const authHeaders = await getAuthHeaders();
-      const formData = new FormData();
-      const ext = mimeType.split("/")[1] || "png";
-      formData.append("avatar", {
-        uri,
-        name: `avatar.${ext}`,
-        type: mimeType,
-      } as any);
-
-      const res = await fetch(`${API_URL}/api/settings/avatar`, {
-        method: "POST",
-        headers: authHeaders,
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to upload avatar");
-      }
-      return res.json() as Promise<{ success: boolean; avatarUrl: string }>;
-    },
-
     updateEmail: (data: { email: string }) =>
       apiFetch<UserProfile>(`/api/settings/email`, {
         method: "PATCH",
@@ -246,12 +137,25 @@ export const api = {
   },
 };
 
-export const fetcher = async <T>(url: string): Promise<T> => {
+export async function updateAvatar(uri: string, mimeType: string): Promise<{ success: boolean; avatarUrl: string }> {
   const authHeaders = await getAuthHeaders();
-  const fullUrl = url.startsWith("http") ? url : `${API_URL}${url}`;
-  const res = await fetch(fullUrl, {
+  const formData = new FormData();
+  const ext = mimeType.split("/")[1] || "png";
+  formData.append("avatar", {
+    uri,
+    name: `avatar.${ext}`,
+    type: mimeType,
+  } as any);
+
+  const res = await fetch(`${API_URL}/api/settings/avatar`, {
+    method: "POST",
     headers: authHeaders,
+    body: formData,
   });
-  if (!res.ok) throw new Error("Failed to fetch");
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Failed to upload avatar");
+  }
   return res.json();
-};
+}

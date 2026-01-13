@@ -3,8 +3,8 @@ import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator, S
 import { Link } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { BlurView } from "expo-blur";
-import { useInfiniteQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { useInfinitePublicRepositories, useInfinitePublicUsers } from "@gitbruv/hooks";
+import { UserAvatar } from "@/components/user-avatar";
 
 type SortOption = "stars" | "updated" | "created";
 
@@ -22,18 +22,7 @@ export default function ExploreScreen() {
     fetchNextPage: fetchNextRepos,
     hasNextPage: hasNextRepos,
     isFetchingNextPage: isFetchingNextRepos,
-  } = useInfiniteQuery({
-    queryKey: ["repositories", "public", sortBy],
-    queryFn: ({ pageParam = 0 }) => api.repositories.getPublic(sortBy, PAGE_SIZE, pageParam),
-    getNextPageParam: (lastPage, allPages) => {
-      if (lastPage.hasMore) {
-        return allPages.length * PAGE_SIZE;
-      }
-      return undefined;
-    },
-    initialPageParam: 0,
-    staleTime: 1000 * 60 * 2,
-  });
+  } = useInfinitePublicRepositories(sortBy, PAGE_SIZE);
 
   const {
     data: usersData,
@@ -43,18 +32,7 @@ export default function ExploreScreen() {
     fetchNextPage: fetchNextUsers,
     hasNextPage: hasNextUsers,
     isFetchingNextPage: isFetchingNextUsers,
-  } = useInfiniteQuery({
-    queryKey: ["users", "public", "newest"],
-    queryFn: ({ pageParam = 0 }) => api.users.getPublic("newest", PAGE_SIZE, pageParam),
-    getNextPageParam: (lastPage, allPages) => {
-      if (lastPage.hasMore) {
-        return allPages.length * PAGE_SIZE;
-      }
-      return undefined;
-    },
-    initialPageParam: 0,
-    staleTime: 1000 * 60 * 5,
-  });
+  } = useInfinitePublicUsers("newest", PAGE_SIZE);
 
   const repos = reposData?.pages.flatMap((page) => page.repos) || [];
   const users = usersData?.pages.flatMap((page) => page.users) || [];
@@ -150,9 +128,7 @@ export default function ExploreScreen() {
                   <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
                     <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
                     <View className="flex-row items-center p-4 relative z-10">
-                      <View className="w-10 h-10 bg-blue-500/20 items-center justify-center mr-3">
-                        <FontAwesome name="code-fork" size={18} color="#60a5fa" />
-                      </View>
+                      <UserAvatar avatarUrl={repo.owner.avatarUrl} size={40} style={{ marginRight: 12 }} />
                       <View style={{ flex: 1 }} className="mr-3">
                         <Text className="text-white text-[15px] font-semibold">
                           {repo.owner.username}/{repo.name}
@@ -178,9 +154,13 @@ export default function ExploreScreen() {
                   <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
                     <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
                     <View className="flex-row items-center p-4 relative z-10">
-                      <View className="w-12 h-12 bg-purple-500/20 items-center justify-center mr-3">
-                        <FontAwesome name="user" size={22} color="#a78bfa" />
-                      </View>
+                      <UserAvatar
+                        avatarUrl={user.avatarUrl}
+                        size={48}
+                        fallbackColor="rgba(167, 139, 250, 0.2)"
+                        fallbackIconColor="#a78bfa"
+                        style={{ marginRight: 12 }}
+                      />
                       <View style={{ flex: 1 }} className="mr-3">
                         <Text className="text-white text-[15px] font-semibold">{user.name}</Text>
                         <Text className="text-white/50 text-[13px] mt-0.5">@{user.username}</Text>

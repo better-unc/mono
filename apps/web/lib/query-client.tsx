@@ -1,36 +1,22 @@
-import { SWRConfig } from "swr";
-import { authClient } from "./auth-client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ApiProvider } from "@gitbruv/hooks";
+import { api } from "./api/client";
 
-async function fetcher(url: string) {
-  const session = await authClient.getSession();
-  const headers: HeadersInit = {};
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,
+      gcTime: 1000 * 60 * 30,
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
-  if (session?.data?.session?.token) {
-    headers["Authorization"] = `Bearer ${session.data.session.token}`;
-  }
-
-  const res = await fetch(url, {
-    credentials: "include",
-    headers,
-  });
-
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "");
-    console.error(`[Fetcher] ${res.status} ${res.statusText} for ${url}:`, errorText);
-    throw new Error(`Failed to fetch: ${res.status} ${res.statusText}`);
-  }
-  return res.json();
-}
-
-export function SWRProvider({ children }: { children: React.ReactNode }) {
+export function QueryProvider({ children }: { children: React.ReactNode }) {
   return (
-    <SWRConfig
-      value={{
-        revalidateOnFocus: false,
-        fetcher,
-      }}
-    >
-      {children}
-    </SWRConfig>
+    <QueryClientProvider client={queryClient}>
+      <ApiProvider client={api}>{children}</ApiProvider>
+    </QueryClientProvider>
   );
 }

@@ -2,8 +2,7 @@ import RepositoryCard from "@/components/repository-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/auth-client";
-import { useUserRepositories } from "@/lib/hooks/use-repositories";
-import { useUserProfile } from "@/lib/hooks/use-users";
+import { useUserRepositories, useUserProfile } from "@gitbruv/hooks";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { GitBranch, Loader2, Plus } from "lucide-react";
 

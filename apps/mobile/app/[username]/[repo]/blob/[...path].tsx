@@ -2,20 +2,20 @@ import { View, Text, ScrollView, RefreshControl, ActivityIndicator, StyleSheet, 
 import { useLocalSearchParams, Link, Stack } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { BlurView } from "expo-blur";
-import { useRepositoryFile, useRepositoryPageData } from "@/lib/hooks/use-repository";
+import { useRepoFile, useRepoPageData } from "@gitbruv/hooks";
 import { CodeViewer, getLanguage } from "@/components/code-viewer";
 
 export default function BlobScreen() {
   const { username, repo, path } = useLocalSearchParams<{ username: string; repo: string; path?: string[] }>();
 
-  const { data: repoData } = useRepositoryPageData(username || "", repo || "");
+  const { data: repoData } = useRepoPageData(username || "", repo || "");
   const defaultBranch = repoData?.repo.defaultBranch || "main";
 
   const pathArray = path ? (Array.isArray(path) ? path : [path]) : [];
   const branch = pathArray[0] || defaultBranch;
   const filePath = pathArray.slice(1).join("/");
 
-  const { data, isLoading, error, refetch, isRefetching } = useRepositoryFile(username || "", repo || "", branch, filePath);
+  const { data, isLoading, error, refetch, isRefetching } = useRepoFile(username || "", repo || "", branch, filePath);
 
   const handleRefresh = () => refetch();
 

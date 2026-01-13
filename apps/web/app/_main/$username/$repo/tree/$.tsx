@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useRepositoryWithStars, useRepoTree, useRepoBranches } from "@/lib/hooks/use-repositories";
+import { useRepositoryWithStars, useRepoTree, useRepoBranches } from "@gitbruv/hooks";
 import { FileTree } from "@/components/file-tree";
 import { BranchSelector } from "@/components/branch-selector";
 import { Badge } from "@/components/ui/badge";

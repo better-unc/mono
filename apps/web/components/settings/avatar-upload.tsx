@@ -3,9 +3,9 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useUpdateAvatar } from "@/lib/hooks/use-settings";
+import { updateAvatar } from "@/lib/api/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { Camera, Loader2 } from "lucide-react";
-import { mutate } from "swr";
 
 interface AvatarUploadProps {
   currentAvatar?: string | null;
@@ -13,9 +13,10 @@ interface AvatarUploadProps {
 }
 
 export function AvatarUpload({ currentAvatar, name }: AvatarUploadProps) {
-  const { trigger, isMutating } = useUpdateAvatar();
+  const queryClient = useQueryClient();
   const [preview, setPreview] = useState<string | null>(currentAvatar || null);
   const [error, setError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -39,16 +40,20 @@ export function AvatarUpload({ currentAvatar, name }: AvatarUploadProps) {
     reader.readAsDataURL(file);
 
     setError(null);
+    setIsUploading(true);
 
     try {
-      const result = await trigger(file);
+      const result = await updateAvatar(file);
       if (result) {
         setPreview(result.avatarUrl);
-        mutate((key) => typeof key === "string" && key.includes("/settings"));
+        queryClient.invalidateQueries({ queryKey: ["settings"] });
+        queryClient.invalidateQueries({ queryKey: ["user"] });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to upload avatar");
       setPreview(currentAvatar || null);
+    } finally {
+      setIsUploading(false);
     }
   }
 
@@ -59,7 +64,7 @@ export function AvatarUpload({ currentAvatar, name }: AvatarUploadProps) {
           <AvatarImage src={preview || undefined} alt={name} className="rounded-none" />
           <AvatarFallback className="text-2xl bg-accent rounded-none">{name.charAt(0).toUpperCase()}</AvatarFallback>
         </Avatar>
-        {isMutating && (
+        {isUploading && (
           <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
             <Loader2 className="w-6 h-6 animate-spin" />
           </div>
@@ -68,7 +73,7 @@ export function AvatarUpload({ currentAvatar, name }: AvatarUploadProps) {
 
       <div className="space-y-2">
         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-        <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isMutating}>
+        <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
           <Camera className="w-4 h-4 mr-2" />
           Change Avatar
         </Button>

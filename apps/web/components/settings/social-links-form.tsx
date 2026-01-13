@@ -4,10 +4,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useUpdateSocialLinks } from "@/lib/hooks/use-settings";
+import { useUpdateSocialLinks } from "@gitbruv/hooks";
 import { Loader2, Link } from "lucide-react";
 import { GithubIcon, LinkedInIcon, XIcon } from "../icons";
-import { mutate } from "swr";
 
 interface SocialLinksFormProps {
   socialLinks?: {
@@ -19,7 +18,7 @@ interface SocialLinksFormProps {
 }
 
 export function SocialLinksForm({ socialLinks }: SocialLinksFormProps) {
-  const { trigger, isMutating } = useUpdateSocialLinks();
+  const { mutate, isPending } = useUpdateSocialLinks();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [customLinks, setCustomLinks] = useState<string[]>([socialLinks?.custom?.[0] || "", socialLinks?.custom?.[1] || "", socialLinks?.custom?.[2] || ""]);
@@ -31,19 +30,23 @@ export function SocialLinksForm({ socialLinks }: SocialLinksFormProps) {
 
     const formData = new FormData(e.currentTarget);
 
-    try {
-      await trigger({
+    mutate(
+      {
         github: formData.get("github") as string,
         twitter: formData.get("twitter") as string,
         linkedin: formData.get("linkedin") as string,
         custom: customLinks.filter(Boolean),
-      });
-      mutate((key) => typeof key === "string" && key.includes("/settings"));
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update social links");
-    }
+      },
+      {
+        onSuccess: () => {
+          setSuccess(true);
+          setTimeout(() => setSuccess(false), 3000);
+        },
+        onError: (err) => {
+          setError(err instanceof Error ? err.message : "Failed to update social links");
+        },
+      }
+    );
   }
 
   return (
@@ -97,8 +100,8 @@ export function SocialLinksForm({ socialLinks }: SocialLinksFormProps) {
 
       {success && <div className="text-sm text-green-500 bg-green-500/10 border border-green-500/20 px-3 py-2">Social links updated!</div>}
 
-      <Button type="submit" disabled={isMutating}>
-        {isMutating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+      <Button type="submit" disabled={isPending}>
+        {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
         Save Social Links
       </Button>
     </form>

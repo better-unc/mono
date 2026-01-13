@@ -4,11 +4,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useUpdatePassword } from "@/lib/hooks/use-settings";
+import { useUpdatePassword } from "@gitbruv/hooks";
 import { Loader2 } from "lucide-react";
 
 export function PasswordForm() {
-  const { trigger, isMutating } = useUpdatePassword();
+  const { mutate, isPending } = useUpdatePassword();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
@@ -32,14 +32,19 @@ export function PasswordForm() {
       return;
     }
 
-    try {
-      await trigger({ currentPassword, newPassword });
-      setSuccess(true);
-      (e.target as HTMLFormElement).reset();
-      setTimeout(() => setSuccess(false), 3000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update password");
-    }
+    mutate(
+      { currentPassword, newPassword },
+      {
+        onSuccess: () => {
+          setSuccess(true);
+          (e.target as HTMLFormElement).reset();
+          setTimeout(() => setSuccess(false), 3000);
+        },
+        onError: (err) => {
+          setError(err instanceof Error ? err.message : "Failed to update password");
+        },
+      }
+    );
   }
 
   return (
@@ -64,8 +69,8 @@ export function PasswordForm() {
 
       {success && <div className="text-sm text-green-500 bg-green-500/10 border border-green-500/20 px-3 py-2">Password updated successfully!</div>}
 
-      <Button type="submit" disabled={isMutating}>
-        {isMutating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+      <Button type="submit" disabled={isPending}>
+        {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
         Update Password
       </Button>
     </form>

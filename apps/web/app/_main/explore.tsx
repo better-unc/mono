@@ -1,8 +1,7 @@
 import { Suspense } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQueryState, parseAsStringLiteral, parseAsInteger } from "nuqs";
-import { usePublicRepositories } from "@/lib/hooks/use-repositories";
-import { usePublicUsers } from "@/lib/hooks/use-users";
+import { usePublicRepositories, usePublicUsers } from "@gitbruv/hooks";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

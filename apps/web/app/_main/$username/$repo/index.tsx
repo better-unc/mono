@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useRepositoryInfo, useRepoTree, useRepoBranches, useRepoReadmeOid, useRepoReadme, useRepoCommits, useRepoCommitCount } from "@/lib/hooks/use-repositories";
-import { useUserAvatarByEmail } from "@/lib/hooks/use-users";
+import { useRepositoryInfo, useRepoTree, useRepoBranches, useRepoReadmeOid, useRepoReadme, useRepoCommits, useRepoCommitCount, useUserAvatarByEmail } from "@gitbruv/hooks";
 import { FileTree } from "@/components/file-tree";
 import { CodeViewer } from "@/components/code-viewer";
 import { CloneUrl } from "@/components/clone-url";

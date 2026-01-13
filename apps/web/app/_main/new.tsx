@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useSession } from "@/lib/auth-client";
-import { useCreateRepository } from "@/lib/hooks/use-repositories";
+import { useCreateRepository } from "@gitbruv/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Lock, Globe } from "lucide-react";
-import { mutate } from "swr";
 
 export const Route = createFileRoute("/_main/new")({
   component: NewRepoPage,
@@ -16,7 +15,7 @@ export const Route = createFileRoute("/_main/new")({
 function NewRepoPage() {
   const { data: session, isPending } = useSession();
   const navigate = useNavigate();
-  const { trigger, isMutating } = useCreateRepository();
+  const { mutate: createRepo, isPending: isCreating } = useCreateRepository();
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -41,25 +40,28 @@ function NewRepoPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    try {
-      await trigger({
+    createRepo(
+      {
         name: formData.name,
         description: formData.description || undefined,
         visibility: formData.visibility,
-      });
-
-      mutate((key) => typeof key === "string" && key.includes("/repositories"));
-      toast.success("Repository created!");
-      navigate({
-        to: "/$username/$repo",
-        params: {
-          username,
-          repo: formData.name.toLowerCase().replace(/\s+/g, "-"),
+      },
+      {
+        onSuccess: () => {
+          toast.success("Repository created!");
+          navigate({
+            to: "/$username/$repo",
+            params: {
+              username,
+              repo: formData.name.toLowerCase().replace(/\s+/g, "-"),
+            },
+          });
         },
-      });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to create repository");
-    }
+        onError: (err) => {
+          toast.error(err instanceof Error ? err.message : "Failed to create repository");
+        },
+      }
+    );
   }
 
   return (
@@ -145,8 +147,8 @@ function NewRepoPage() {
         </div>
 
         <div className="pt-6 border-t border-border">
-          <Button type="submit" disabled={isMutating || !formData.name} className="h-9 px-6 text-sm font-semibold">
-            {isMutating ? (
+          <Button type="submit" disabled={isCreating || !formData.name} className="h-9 px-6 text-sm font-semibold">
+            {isCreating ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Creating...

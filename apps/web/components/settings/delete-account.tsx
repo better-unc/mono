@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useDeleteAccount } from "@/lib/hooks/use-settings";
+import { useDeleteAccount } from "@gitbruv/hooks";
 import { Loader2, AlertTriangle } from "lucide-react";
 
 interface DeleteAccountProps {
@@ -11,7 +11,7 @@ interface DeleteAccountProps {
 }
 
 export function DeleteAccount({ username }: DeleteAccountProps) {
-  const { trigger, isMutating } = useDeleteAccount();
+  const { mutate, isPending } = useDeleteAccount();
   const [error, setError] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
@@ -25,12 +25,14 @@ export function DeleteAccount({ username }: DeleteAccountProps) {
 
     setError(null);
 
-    try {
-      await trigger();
-      navigate({ to: "/" });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete account");
-    }
+    mutate(undefined, {
+      onSuccess: () => {
+        navigate({ to: "/" });
+      },
+      onError: (err) => {
+        setError(err instanceof Error ? err.message : "Failed to delete account");
+      },
+    });
   }
 
   if (!showConfirm) {
@@ -75,12 +77,12 @@ export function DeleteAccount({ username }: DeleteAccountProps) {
             setConfirmation("");
             setError(null);
           }}
-          disabled={isMutating}
+          disabled={isPending}
         >
           Cancel
         </Button>
-        <Button variant="destructive" onClick={handleDelete} disabled={isMutating || confirmation !== username}>
-          {isMutating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+        <Button variant="destructive" onClick={handleDelete} disabled={isPending || confirmation !== username}>
+          {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
           Delete My Account
         </Button>
       </div>
