@@ -68,7 +68,7 @@ impl SessionCache {
     }
 
     pub fn get(&self, token: &str) -> Option<User> {
-        self.cache.get(token).and_then(|cached| {
+        if let Some(cached) = self.cache.get(token) {
             let now = Utc::now().naive_utc();
             if cached.expires_at > now {
                 Some(cached.user.clone())
@@ -77,7 +77,9 @@ impl SessionCache {
                 self.cache.remove(token);
                 None
             }
-        })
+        } else {
+            None
+        }
     }
 
     pub fn set(&self, token: String, user: User, expires_at: NaiveDateTime) {
