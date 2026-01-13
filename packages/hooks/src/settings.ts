@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useApi } from "./context";
+import type { UserPreferences } from "./types";
 
 export function useCurrentUser() {
   const api = useApi();
@@ -13,8 +14,20 @@ export function useUpdateProfile() {
   const api = useApi();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { name?: string; username?: string; bio?: string; location?: string; website?: string; pronouns?: string }) =>
+    mutationFn: (data: { name?: string; username?: string; bio?: string; location?: string; website?: string; pronouns?: string; company?: string; gitEmail?: string; defaultRepositoryVisibility?: "public" | "private" }) =>
       api.settings.updateProfile(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+    },
+  });
+}
+
+export function useUpdatePreferences() {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<UserPreferences>) => api.settings.updatePreferences(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings"] });
       queryClient.invalidateQueries({ queryKey: ["user"] });

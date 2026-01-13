@@ -45,6 +45,11 @@ pub struct User {
     pub website: Option<String>,
     pub pronouns: Option<String>,
     pub avatar_url: Option<String>,
+    pub company: Option<String>,
+    pub last_active_at: Option<NaiveDateTime>,
+    pub git_email: Option<String>,
+    pub default_repository_visibility: String,
+    pub preferences: Option<serde_json::Value>,
     pub social_links: Option<serde_json::Value>,
     #[serde(with = "naive_datetime_as_utc")]
     pub created_at: NaiveDateTime,
@@ -63,7 +68,18 @@ pub async fn auth_middleware(
     let token = extract_token(&request);
     
     let user = match token {
-        Some(token) => get_user_from_session(&state.db.pool, &token).await,
+        Some(ref token) => {
+            let user = get_user_from_session(&state.db.pool, token).await;
+            if let Some(ref user) = user {
+                let _ = sqlx::query(
+                    "UPDATE users SET last_active_at = NOW() WHERE id = $1"
+                )
+                .bind(&user.id)
+                .execute(&state.db.pool)
+                .await;
+            }
+            user
+        },
         None => None,
     };
 
@@ -98,7 +114,9 @@ async fn get_user_from_session(pool: &sqlx::PgPool, token: &str) -> Option<User>
     sqlx::query_as::<_, User>(
         r#"
         SELECT u.id, u.name, u.email, u.username, u.bio, u.location, 
-               u.website, u.pronouns, u.avatar_url, u.social_links, u.created_at, u.updated_at
+               u.website, u.pronouns, u.avatar_url, u.company, u.last_active_at,
+               u.git_email, u.default_repository_visibility, u.preferences,
+               u.social_links, u.created_at, u.updated_at
         FROM users u
         JOIN sessions s ON s.user_id = u.id
         WHERE s.token = $1 AND s.expires_at > NOW()

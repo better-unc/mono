@@ -4,8 +4,8 @@ import { useUserProfile, useUserStarredRepos, useUserRepositories } from "@gitbr
 import RepositoryCard from "@/components/repository-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarDays, GitBranch, MapPin, Star, BookOpen, Globe, Link } from "lucide-react";
-import { format } from "date-fns";
+import { CalendarDays, GitBranch, MapPin, Star, BookOpen, Globe, Link, Building2, Activity } from "lucide-react";
+import { format, formatDistanceToNow } from "date-fns";
 import { GithubIcon, XIcon, LinkedInIcon } from "@/components/icons";
 
 export const Route = createFileRoute("/_main/$username/")({
@@ -20,6 +20,7 @@ function RepositoriesTab({ username }: { username: string }) {
   }
 
   const repos = data?.repos || [];
+  const totalStars = repos.reduce((sum, repo) => sum + (repo.starCount || 0), 0);
 
   if (repos.length === 0) {
     return (
@@ -32,11 +33,23 @@ function RepositoriesTab({ username }: { username: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      {repos.map((repo) => (
-        <RepositoryCard key={repo.id} repository={repo} />
-      ))}
-    </div>
+    <>
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="border border-border bg-card p-4">
+          <div className="text-2xl font-bold">{repos.length}</div>
+          <div className="text-sm text-muted-foreground mt-1">Repositories</div>
+        </div>
+        <div className="border border-border bg-card p-4">
+          <div className="text-2xl font-bold">{totalStars}</div>
+          <div className="text-sm text-muted-foreground mt-1">Total stars</div>
+        </div>
+      </div>
+      <div className="flex flex-col gap-4">
+        {repos.map((repo) => (
+          <RepositoryCard key={repo.id} repository={repo} />
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -60,11 +73,19 @@ function StarredTab({ username }: { username: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      {repos.map((repo) => (
-        <RepositoryCard key={repo.id} repository={repo} showOwner />
-      ))}
-    </div>
+    <>
+      <div className="mb-6">
+        <div className="border border-border bg-card p-4 inline-block">
+          <div className="text-2xl font-bold">{repos.length}</div>
+          <div className="text-sm text-muted-foreground mt-1">Starred repositories</div>
+        </div>
+      </div>
+      <div className="flex flex-col gap-4">
+        {repos.map((repo) => (
+          <RepositoryCard key={repo.id} repository={repo} showOwner />
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -82,6 +103,11 @@ function ProfilePage() {
   const { username } = Route.useParams();
   const [tab, setTab] = useQueryState("tab", parseAsStringLiteral(["repositories", "starred"]).withDefault("repositories"));
   const { data: user, isLoading, error } = useUserProfile(username);
+  const { data: reposData } = useUserRepositories(username);
+  const { data: starredData } = useUserStarredRepos(username);
+  
+  const repoCount = reposData?.repos?.length || 0;
+  const starredCount = starredData?.repos?.length || 0;
 
   if (isLoading) {
     return (
@@ -115,13 +141,28 @@ function ProfilePage() {
           </Avatar>
 
           <div className="space-y-1">
-            <h1 className="text-xl font-semibold">{user.name}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-semibold">{user.name}</h1>
+              {user.pronouns && (
+                <span className="text-sm text-muted-foreground">({user.pronouns})</span>
+              )}
+            </div>
             <p className="text-base text-muted-foreground">@{user.username}</p>
           </div>
 
-          {user.bio && <p className="text-sm leading-relaxed text-muted-foreground">{user.bio}</p>}
+          {user.bio && (
+            <div className="pt-2">
+              <p className="text-sm leading-relaxed text-muted-foreground">{user.bio}</p>
+            </div>
+          )}
 
           <div className="space-y-3 pt-2">
+            {user.company && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Building2 className="h-4 w-4" />
+                <span>{user.company}</span>
+              </div>
+            )}
             {user.location && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4" />
@@ -134,6 +175,12 @@ function ProfilePage() {
                 <a href={user.website} target="_blank" rel="noopener noreferrer" className="hover:text-primary hover:underline truncate">
                   {user.website.replace(/^https?:\/\//, "")}
                 </a>
+              </div>
+            )}
+            {user.lastActiveAt && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Activity className="h-4 w-4" />
+                <span>Active {formatDistanceToNow(new Date(user.lastActiveAt), { addSuffix: true })}</span>
               </div>
             )}
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -192,13 +239,19 @@ function ProfilePage() {
         <div className="flex-1 min-w-0">
           <Tabs value={tab} onValueChange={(value) => setTab(value === "repositories" ? null : (value as "starred"))}>
             <TabsList variant="default" className="w-full mb-6 h-12">
-              <TabsTrigger value="repositories">
+              <TabsTrigger value="repositories" className="gap-2">
                 <BookOpen className="h-4 w-4" />
-                Repositories
+                <span>Repositories</span>
+                {repoCount > 0 && (
+                  <span className="ml-1 text-xs text-muted-foreground">({repoCount})</span>
+                )}
               </TabsTrigger>
-              <TabsTrigger value="starred">
+              <TabsTrigger value="starred" className="gap-2">
                 <Star className="h-4 w-4" />
-                Starred
+                <span>Starred</span>
+                {starredCount > 0 && (
+                  <span className="ml-1 text-xs text-muted-foreground">({starredCount})</span>
+                )}
               </TabsTrigger>
             </TabsList>
 

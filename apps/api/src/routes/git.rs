@@ -160,7 +160,7 @@ async fn debug_refs(
     let debug_info = if let Some(ref commit_oid) = main_resolved {
         let commit_obj = store.get_object(commit_oid).await;
 
-        let (commit_content, tree_oid) = if let Some(ref data) = commit_obj {
+        let (_commit_content, tree_oid) = if let Some(ref data) = commit_obj {
             use std::io::Read;
             let mut decoder = flate2::read::ZlibDecoder::new(data.as_slice());
             let mut result = Vec::new();

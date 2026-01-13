@@ -1,5 +1,12 @@
 import { pgTable, text, timestamp, boolean, uuid, jsonb, primaryKey, integer } from "drizzle-orm/pg-core";
 
+export type UserPreferences = {
+  emailNotifications?: boolean;
+  theme?: "light" | "dark" | "system";
+  language?: string;
+  showEmail?: boolean;
+};
+
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
@@ -11,6 +18,11 @@ export const users = pgTable("users", {
   website: text("website"),
   pronouns: text("pronouns"),
   avatarUrl: text("avatar_url"),
+  company: text("company"),
+  lastActiveAt: timestamp("last_active_at"),
+  gitEmail: text("git_email"),
+  defaultRepositoryVisibility: text("default_repository_visibility", { enum: ["public", "private"] }).notNull().default("public"),
+  preferences: jsonb("preferences").$type<UserPreferences>(),
   socialLinks: jsonb("social_links").$type<{
     github?: string;
     twitter?: string;
