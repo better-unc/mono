@@ -51,7 +51,7 @@ pub struct SessionCache {
 impl SessionCache {
     pub fn new() -> Self {
         let cache = Arc::new(DashMap::new());
-        
+
         // Spawn background task to clean expired entries
         let cache_clone = cache.clone();
         tokio::spawn(async move {
@@ -108,6 +108,11 @@ pub struct User {
     pub website: Option<String>,
     pub pronouns: Option<String>,
     pub avatar_url: Option<String>,
+    pub company: Option<String>,
+    pub last_active_at: Option<NaiveDateTime>,
+    pub git_email: Option<String>,
+    pub default_repository_visibility: String,
+    pub preferences: Option<serde_json::Value>,
     pub social_links: Option<serde_json::Value>,
     #[serde(with = "naive_datetime_as_utc")]
     pub created_at: NaiveDateTime,
@@ -124,16 +129,13 @@ pub async fn auth_middleware(
     next: Next,
 ) -> Response {
     let token = extract_token(&request);
-    
+
     let user = match token {
         Some(ref token) => {
-            // Try cache first
             if let Some(cached_user) = state.session_cache.get(token) {
                 Some(cached_user)
             } else {
-                // Cache miss, query database
                 if let Some((user, expires_at)) = get_user_from_session(&state.db.pool, token).await {
-                    // Cache the result
                     state.session_cache.set(token.clone(), user.clone(), expires_at);
                     Some(user)
                 } else {
@@ -181,8 +183,10 @@ async fn get_user_from_session(pool: &sqlx::PgPool, token: &str) -> Option<(User
 
     sqlx::query_as::<_, SessionRow>(
         r#"
-        SELECT u.id, u.name, u.email, u.username, u.bio, u.location, 
-               u.website, u.pronouns, u.avatar_url, u.social_links, u.created_at, u.updated_at,
+        SELECT u.id, u.name, u.email, u.username, u.bio, u.location,
+               u.website, u.pronouns, u.avatar_url, u.company, u.last_active_at,
+               u.git_email, u.default_repository_visibility, u.preferences,
+               u.social_links, u.created_at, u.updated_at
                s.expires_at
         FROM users u
         JOIN sessions s ON s.user_id = u.id

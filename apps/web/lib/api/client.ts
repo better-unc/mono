@@ -11,6 +11,7 @@ import type {
   UserProfile,
   PublicUser,
   ApiClient,
+  UserPreferences,
 } from "@gitbruv/hooks";
 
 async function getAuthHeaders(): Promise<HeadersInit> {
@@ -116,8 +117,14 @@ export const api: ApiClient = {
   settings: {
     getCurrentUser: () => apiFetch<{ user: UserProfile }>(`/api/settings`),
 
-    updateProfile: (data: { name?: string; username?: string; bio?: string; location?: string; website?: string; pronouns?: string }) =>
+    updateProfile: (data: { name?: string; username?: string; bio?: string; location?: string; website?: string; pronouns?: string; company?: string; gitEmail?: string; defaultRepositoryVisibility?: "public" | "private" }) =>
       apiFetch<{ success: boolean; username: string }>(`/api/settings/profile`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+
+    updatePreferences: (data: Partial<UserPreferences>) =>
+      apiFetch<{ success: boolean }>(`/api/settings/preferences`, {
         method: "PATCH",
         body: JSON.stringify(data),
       }),

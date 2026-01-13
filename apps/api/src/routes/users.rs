@@ -49,6 +49,12 @@ pub struct UserProfile {
     pub website: Option<String>,
     pub pronouns: Option<String>,
     pub avatar_url: Option<String>,
+    pub company: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_active_at: Option<NaiveDateTime>,
+    pub git_email: Option<String>,
+    pub default_repository_visibility: String,
+    pub preferences: Option<serde_json::Value>,
     pub social_links: Option<serde_json::Value>,
     #[serde(with = "naive_datetime_as_utc")]
     pub created_at: NaiveDateTime,
@@ -89,6 +95,11 @@ struct UserProfileRow {
     website: Option<String>,
     pronouns: Option<String>,
     avatar_url: Option<String>,
+    company: Option<String>,
+    last_active_at: Option<NaiveDateTime>,
+    git_email: Option<String>,
+    default_repository_visibility: String,
+    preferences: Option<serde_json::Value>,
     social_links: Option<serde_json::Value>,
     email: String,
     email_verified: bool,
@@ -190,6 +201,7 @@ async fn get_user_profile(
     let row: UserProfileRow = sqlx::query_as(
         r#"
         SELECT id, name, username, bio, location, website, pronouns, avatar_url, 
+               company, last_active_at, git_email, default_repository_visibility, preferences,
                social_links, email, email_verified, created_at, updated_at
         FROM users WHERE username = $1
         "#
@@ -211,10 +223,18 @@ async fn get_user_profile(
         "location": row.location,
         "website": row.website,
         "pronouns": row.pronouns,
+        "company": row.company,
+        "gitEmail": row.git_email,
+        "defaultRepositoryVisibility": row.default_repository_visibility,
+        "preferences": row.preferences,
         "socialLinks": row.social_links,
         "createdAt": format!("{}Z", row.created_at.format("%Y-%m-%dT%H:%M:%S%.3f")),
         "updatedAt": format!("{}Z", row.updated_at.format("%Y-%m-%dT%H:%M:%S%.3f")),
     });
+
+    if row.last_active_at.is_some() {
+        response["lastActiveAt"] = serde_json::json!(format!("{}Z", row.last_active_at.unwrap().format("%Y-%m-%dT%H:%M:%S%.3f")));
+    }
 
     if is_own_profile {
         response["email"] = serde_json::json!(row.email);

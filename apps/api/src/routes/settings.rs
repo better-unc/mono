@@ -17,6 +17,21 @@ pub struct UpdateProfileRequest {
     pub location: Option<String>,
     pub website: Option<String>,
     pub pronouns: Option<String>,
+    pub company: Option<String>,
+    #[serde(rename = "gitEmail")]
+    pub git_email: Option<String>,
+    #[serde(rename = "defaultRepositoryVisibility")]
+    pub default_repository_visibility: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdatePreferencesRequest {
+    #[serde(rename = "emailNotifications")]
+    pub email_notifications: Option<bool>,
+    pub theme: Option<String>,
+    pub language: Option<String>,
+    #[serde(rename = "showEmail")]
+    pub show_email: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -99,6 +114,12 @@ async fn update_profile(
 
     let final_username = normalized_username.unwrap_or_else(|| user.username.clone());
 
+    if let Some(ref visibility) = body.default_repository_visibility {
+        if visibility != "public" && visibility != "private" {
+            return Err((StatusCode::BAD_REQUEST, "defaultRepositoryVisibility must be 'public' or 'private'".to_string()));
+        }
+    }
+
     sqlx::query(
         r#"
         UPDATE users 
@@ -108,8 +129,11 @@ async fn update_profile(
             location = COALESCE($4, location),
             website = COALESCE($5, website),
             pronouns = COALESCE($6, pronouns),
+            company = COALESCE($7, company),
+            git_email = COALESCE($8, git_email),
+            default_repository_visibility = COALESCE($9, default_repository_visibility),
             updated_at = NOW()
-        WHERE id = $7
+        WHERE id = $10
         "#
     )
     .bind(&body.name)
@@ -118,6 +142,9 @@ async fn update_profile(
     .bind(&body.location)
     .bind(&body.website)
     .bind(&body.pronouns)
+    .bind(&body.company)
+    .bind(&body.git_email)
+    .bind(&body.default_repository_visibility)
     .bind(&user.id)
     .execute(&state.db.pool)
     .await
@@ -325,6 +352,7 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/api/settings", get(get_settings))
         .route("/api/settings/profile", patch(update_profile))
+        .route("/api/settings/preferences", patch(update_preferences))
         .route("/api/settings/email", patch(update_email))
         .route("/api/settings/avatar", post(upload_avatar))
         .route("/api/settings/social-links", patch(update_social_links))
@@ -351,20 +379,25 @@ async fn get_current_user(
         website: Option<String>,
         pronouns: Option<String>,
         avatar_url: Option<String>,
+        company: Option<String>,
+        last_active_at: Option<chrono::NaiveDateTime>,
+        git_email: Option<String>,
+        default_repository_visibility: String,
+        preferences: Option<serde_json::Value>,
         social_links: Option<serde_json::Value>,
         created_at: chrono::NaiveDateTime,
         updated_at: chrono::NaiveDateTime,
     }
 
     let user_data: FullUserRow = sqlx::query_as(
-        "SELECT id, name, email, email_verified, username, bio, location, website, pronouns, avatar_url, social_links, created_at, updated_at FROM users WHERE id = $1"
+        "SELECT id, name, email, email_verified, username, bio, location, website, pronouns, avatar_url, company, last_active_at, git_email, default_repository_visibility, preferences, social_links, created_at, updated_at FROM users WHERE id = $1"
     )
     .bind(&user.id)
     .fetch_one(&state.db.pool)
     .await
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    Ok(Json(serde_json::json!({
+    let mut response = serde_json::json!({
         "id": user_data.id,
         "name": user_data.name,
         "email": user_data.email,
@@ -375,8 +408,62 @@ async fn get_current_user(
         "website": user_data.website,
         "pronouns": user_data.pronouns,
         "avatarUrl": user_data.avatar_url,
+        "company": user_data.company,
+        "gitEmail": user_data.git_email,
+        "defaultRepositoryVisibility": user_data.default_repository_visibility,
+        "preferences": user_data.preferences,
         "socialLinks": user_data.social_links,
         "createdAt": format!("{}Z", user_data.created_at.format("%Y-%m-%dT%H:%M:%S%.3f")),
         "updatedAt": format!("{}Z", user_data.updated_at.format("%Y-%m-%dT%H:%M:%S%.3f")),
-    })))
+    });
+
+    if let Some(last_active) = user_data.last_active_at {
+        response["lastActiveAt"] = serde_json::json!(format!("{}Z", last_active.format("%Y-%m-%dT%H:%M:%S%.3f")));
+    }
+
+    Ok(Json(response))
+}
+
+async fn update_preferences(
+    State(state): State<AppState>,
+    Extension(auth): Extension<AuthUser>,
+    Json(body): Json<UpdatePreferencesRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let user = require_auth(&auth).map_err(|e| (e.0, e.1.to_string()))?;
+
+    let current_preferences: Option<serde_json::Value> = sqlx::query_scalar(
+        "SELECT preferences FROM users WHERE id = $1"
+    )
+    .bind(&user.id)
+    .fetch_optional(&state.db.pool)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let mut preferences = current_preferences
+        .and_then(|p| serde_json::from_value::<serde_json::Map<String, serde_json::Value>>(p).ok())
+        .unwrap_or_default();
+
+    if let Some(email_notifications) = body.email_notifications {
+        preferences.insert("emailNotifications".to_string(), serde_json::json!(email_notifications));
+    }
+    if let Some(ref theme) = body.theme {
+        preferences.insert("theme".to_string(), serde_json::json!(theme));
+    }
+    if let Some(ref language) = body.language {
+        preferences.insert("language".to_string(), serde_json::json!(language));
+    }
+    if let Some(show_email) = body.show_email {
+        preferences.insert("showEmail".to_string(), serde_json::json!(show_email));
+    }
+
+    sqlx::query(
+        "UPDATE users SET preferences = $1, updated_at = NOW() WHERE id = $2"
+    )
+    .bind(&serde_json::Value::Object(preferences))
+    .bind(&user.id)
+    .execute(&state.db.pool)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(Json(serde_json::json!({ "success": true })))
 }

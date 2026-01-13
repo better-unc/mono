@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryState, parseAsStringLiteral } from "nuqs";
 import { useSession } from "@/lib/auth-client";
-import { useCurrentUser } from "@gitbruv/hooks";
+import { useCurrentUser, useUpdateProfile, useUpdatePreferences } from "@gitbruv/hooks";
 import { useApiKeys, useCreateApiKey, useDeleteApiKey } from "@/lib/hooks/use-api-keys";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { AvatarUpload } from "@/components/settings/avatar-upload";
@@ -14,8 +14,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Loader2, User, Shield, Key, Plus, Trash2, Copy, Check, AlertTriangle } from "lucide-react";
+import { Loader2, User, Shield, Key, Plus, Trash2, Copy, Check, AlertTriangle, Lock, Globe, Settings as SettingsIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getGitUrl } from "@/lib/utils";
 
@@ -74,6 +75,8 @@ function ProfileTab() {
               location: user.location,
               website: user.website,
               pronouns: user.pronouns,
+              company: user.company,
+              gitEmail: user.gitEmail,
             }}
           />
         </CardContent>
@@ -130,6 +133,26 @@ function AccountTab() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Git Settings</CardTitle>
+          <CardDescription>Configure git-related preferences</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <GitSettingsForm user={user} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Preferences</CardTitle>
+          <CardDescription>Customize your application preferences</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PreferencesForm user={user} />
+        </CardContent>
+      </Card>
+
       <Card className="border-red-500/20">
         <CardHeader>
           <CardTitle className="text-red-500">Danger Zone</CardTitle>
@@ -140,6 +163,177 @@ function AccountTab() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function GitSettingsForm({ user }: { user: NonNullable<ReturnType<typeof useCurrentUser>["data"]>["user"] }) {
+  const { mutate, isPending } = useUpdateProfile();
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [gitEmail, setGitEmail] = useState(user.gitEmail || "");
+  const [defaultVisibility, setDefaultVisibility] = useState<"public" | "private">(user.defaultRepositoryVisibility || "public");
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setSuccess(false);
+
+    mutate(
+      {
+        gitEmail: gitEmail || undefined,
+        defaultRepositoryVisibility: defaultVisibility,
+      },
+      {
+        onSuccess: () => {
+          setSuccess(true);
+          setTimeout(() => setSuccess(false), 3000);
+        },
+        onError: (err) => {
+          setError(err instanceof Error ? err.message : "Failed to update git settings");
+        },
+      }
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="space-y-2">
+        <Label htmlFor="gitEmail">Git Email</Label>
+        <Input
+          id="gitEmail"
+          type="email"
+          value={gitEmail}
+          onChange={(e) => setGitEmail(e.target.value)}
+          placeholder="Email for git commits"
+        />
+        <p className="text-xs text-muted-foreground">Email address used for git commits. Defaults to your account email if not set.</p>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="defaultVisibility">Default Repository Visibility</Label>
+        <Select value={defaultVisibility} onValueChange={(v: "public" | "private") => setDefaultVisibility(v)}>
+          <SelectTrigger id="defaultVisibility" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="public">Public</SelectItem>
+            <SelectItem value="private">Private</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">Default visibility for new repositories</p>
+      </div>
+
+      {error && <div className="text-sm text-red-500 bg-red-500/10 border border-red-500/20 px-3 py-2 rounded">{error}</div>}
+      {success && <div className="text-sm text-green-500 bg-green-500/10 border border-green-500/20 px-3 py-2 rounded">Settings updated successfully!</div>}
+
+      <Button type="submit" disabled={isPending}>
+        {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+        Save Changes
+      </Button>
+    </form>
+  );
+}
+
+function PreferencesForm({ user }: { user: NonNullable<ReturnType<typeof useCurrentUser>["data"]>["user"] }) {
+  const { mutate, isPending } = useUpdatePreferences();
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const preferences = user.preferences || {};
+  const [emailNotifications, setEmailNotifications] = useState(preferences.emailNotifications ?? true);
+  const [theme, setTheme] = useState<"light" | "dark" | "system">(preferences.theme || "system");
+  const [language, setLanguage] = useState(preferences.language || "");
+  const [showEmail, setShowEmail] = useState(preferences.showEmail ?? false);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setSuccess(false);
+
+    mutate(
+      {
+        emailNotifications,
+        theme,
+        language: language || undefined,
+        showEmail,
+      },
+      {
+        onSuccess: () => {
+          setSuccess(true);
+          setTimeout(() => setSuccess(false), 3000);
+        },
+        onError: (err) => {
+          setError(err instanceof Error ? err.message : "Failed to update preferences");
+        },
+      }
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label htmlFor="emailNotifications">Email Notifications</Label>
+            <p className="text-xs text-muted-foreground">Receive email notifications for important updates</p>
+          </div>
+          <input
+            id="emailNotifications"
+            type="checkbox"
+            checked={emailNotifications}
+            onChange={(e) => setEmailNotifications(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="theme">Theme</Label>
+        <Select value={theme} onValueChange={(v: "light" | "dark" | "system") => setTheme(v)}>
+          <SelectTrigger id="theme" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="light">Light</SelectItem>
+            <SelectItem value="dark">Dark</SelectItem>
+            <SelectItem value="system">System</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="language">Language</Label>
+        <Input
+          id="language"
+          value={language}
+          onChange={(e) => setLanguage(e.target.value)}
+          placeholder="e.g., en, es, fr"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label htmlFor="showEmail">Show Email</Label>
+            <p className="text-xs text-muted-foreground">Display your email address on your public profile</p>
+          </div>
+          <input
+            id="showEmail"
+            type="checkbox"
+            checked={showEmail}
+            onChange={(e) => setShowEmail(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300"
+          />
+        </div>
+      </div>
+
+      {error && <div className="text-sm text-red-500 bg-red-500/10 border border-red-500/20 px-3 py-2 rounded">{error}</div>}
+      {success && <div className="text-sm text-green-500 bg-green-500/10 border border-green-500/20 px-3 py-2 rounded">Preferences updated successfully!</div>}
+
+      <Button type="submit" disabled={isPending}>
+        {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+        Save Changes
+      </Button>
+    </form>
   );
 }
 

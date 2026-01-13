@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useSession } from "@/lib/auth-client";
-import { useCreateRepository } from "@gitbruv/hooks";
+import { useCreateRepository, useCurrentUser } from "@gitbruv/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,13 +14,24 @@ export const Route = createFileRoute("/_main/new")({
 
 function NewRepoPage() {
   const { data: session, isPending } = useSession();
+  const { data: currentUser } = useCurrentUser();
   const navigate = useNavigate();
   const { mutate: createRepo, isPending: isCreating } = useCreateRepository();
+  const defaultVisibility = (currentUser?.user?.defaultRepositoryVisibility || "public") as "public" | "private";
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     visibility: "public" as "public" | "private",
   });
+
+  useEffect(() => {
+    if (currentUser?.user?.defaultRepositoryVisibility) {
+      setFormData((prev) => ({
+        ...prev,
+        visibility: currentUser.user.defaultRepositoryVisibility as "public" | "private",
+      }));
+    }
+  }, [currentUser?.user?.defaultRepositoryVisibility]);
 
   if (isPending) {
     return (

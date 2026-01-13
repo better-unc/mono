@@ -66,6 +66,13 @@ export type Commit = {
   timestamp: number;
 };
 
+export type UserPreferences = {
+  emailNotifications?: boolean;
+  theme?: "light" | "dark" | "system";
+  language?: string;
+  showEmail?: boolean;
+};
+
 export type UserProfile = {
   id: string;
   name: string;
@@ -77,6 +84,11 @@ export type UserProfile = {
   location: string | null;
   website: string | null;
   pronouns: string | null;
+  company?: string | null;
+  lastActiveAt?: string | null;
+  gitEmail?: string | null;
+  defaultRepositoryVisibility?: "public" | "private";
+  preferences?: UserPreferences | null;
   socialLinks?: {
     github?: string;
     twitter?: string;
@@ -133,7 +145,11 @@ export type ApiClient = {
       location?: string;
       website?: string;
       pronouns?: string;
+      company?: string;
+      gitEmail?: string;
+      defaultRepositoryVisibility?: "public" | "private";
     }) => Promise<{ success: boolean; username?: string } | UserProfile>;
+    updatePreferences: (data: Partial<UserPreferences>) => Promise<{ success: boolean }>;
     updateSocialLinks?: (data: { github?: string; twitter?: string; linkedin?: string; custom?: string[] }) => Promise<{ success: boolean }>;
     updateEmail: (data: { email: string }) => Promise<{ success: boolean } | UserProfile>;
     updatePassword?: (data: { currentPassword: string; newPassword: string }) => Promise<{ success: boolean }>;

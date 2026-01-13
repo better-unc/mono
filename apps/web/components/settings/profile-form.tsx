@@ -16,6 +16,8 @@ interface ProfileFormProps {
     location?: string | null;
     website?: string | null;
     pronouns?: string | null;
+    company?: string | null;
+    gitEmail?: string | null;
   };
 }
 
@@ -39,6 +41,8 @@ export function ProfileForm({ user }: ProfileFormProps) {
         location: formData.get("location") as string,
         website: formData.get("website") as string,
         pronouns: formData.get("pronouns") as string,
+        company: formData.get("company") as string,
+        gitEmail: formData.get("gitEmail") as string,
       },
       {
         onSuccess: () => {
@@ -85,6 +89,17 @@ export function ProfileForm({ user }: ProfileFormProps) {
       <div className="space-y-2">
         <Label htmlFor="website">Website</Label>
         <Input id="website" name="website" type="url" defaultValue={user.website || ""} placeholder="https://yourwebsite.com" />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="company">Company</Label>
+        <Input id="company" name="company" defaultValue={user.company || ""} placeholder="Your company or organization" />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="gitEmail">Git Email</Label>
+        <Input id="gitEmail" name="gitEmail" type="email" defaultValue={user.gitEmail || ""} placeholder="Email for git commits" />
+        <p className="text-xs text-muted-foreground">Email address used for git commits. Defaults to your account email if not set.</p>
       </div>
 
       {error && <div className="text-sm text-red-500 bg-red-500/10 border border-red-500/20 px-3 py-2">{error}</div>}
