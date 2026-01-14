@@ -22,8 +22,6 @@ export function UserAvatar({
 }: UserAvatarProps) {
   const iconSize = Math.round(size * 0.5);
 
-  console.log("avatarUrl", avatarUrl);
-
   if (avatarUrl) {
     return (
       <Image source={{ uri: `${API_URL}${avatarUrl}` }} style={[{ width: size, height: size, borderRadius: size / 2 }, imageStyle, style as ImageStyle]} />

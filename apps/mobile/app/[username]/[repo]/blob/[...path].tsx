@@ -2,14 +2,16 @@ import { View, Text, ScrollView, RefreshControl, ActivityIndicator, StyleSheet, 
 import { useLocalSearchParams, Link, Stack } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { BlurView } from "expo-blur";
-import { useRepoFile, useRepoPageData } from "@gitbruv/hooks";
+import { useRepoFile, useRepositoryInfo } from "@gitbruv/hooks";
 import { CodeViewer, getLanguage } from "@/components/code-viewer";
+import Markdown from "react-native-markdown-display";
+import { markdownStyles } from "@/constants/markdownStyles";
 
 export default function BlobScreen() {
   const { username, repo, path } = useLocalSearchParams<{ username: string; repo: string; path?: string[] }>();
 
-  const { data: repoData } = useRepoPageData(username || "", repo || "");
-  const defaultBranch = repoData?.repo.defaultBranch || "main";
+  const { data: repoInfo, isLoading: isLoadingInfo } = useRepositoryInfo(username || "", repo || "");
+  const defaultBranch = repoInfo?.repo.defaultBranch || "main";
 
   const pathArray = path ? (Array.isArray(path) ? path : [path]) : [];
   const branch = pathArray[0] || defaultBranch;
@@ -19,7 +21,7 @@ export default function BlobScreen() {
 
   const handleRefresh = () => refetch();
 
-  if (isLoading) {
+  if (isLoading || isLoadingInfo) {
     return (
       <View style={{ flex: 1 }} className="items-center justify-center">
         <Stack.Screen
@@ -61,59 +63,64 @@ export default function BlobScreen() {
       <Stack.Screen
         options={{ title: displayTitle, headerShown: true, headerBackButtonDisplayMode: "minimal", headerTransparent: true, headerLargeTitle: false }}
       />
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerClassName="px-4 pt-4 pb-20"
-        contentInsetAdjustmentBehavior="automatic"
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} tintColor="#60a5fa" />}
-      >
-        <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-6">
-          <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-          <View className="p-4 relative z-10">
-            <View className="flex-row items-center flex-wrap">
-              <Link href={`/${username}/${repo}`} asChild>
-                <Pressable>
-                  <Text className="text-blue-400 text-[15px] font-medium">{username}</Text>
-                </Pressable>
-              </Link>
-              <Text className="text-gray-400 text-[15px] font-medium mx-1">/</Text>
-              <Link href={`/${username}/${repo}`} asChild>
-                <Pressable>
-                  <Text className="text-blue-400 text-[15px] font-medium">{repo}</Text>
-                </Pressable>
-              </Link>
-              {pathParts.map((part, index) => {
-                if (index === pathParts.length - 1) {
+      <View style={{ flex: 1 }}>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerClassName="px-4 p-4"
+          contentInsetAdjustmentBehavior="automatic"
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} tintColor="#60a5fa" />}
+        >
+          <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-6">
+            <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+            <View className="p-4 relative z-10">
+              <View className="flex-row items-center flex-wrap">
+                <Link href={`/${username}/${repo}`} asChild>
+                  <Pressable>
+                    <Text className="text-blue-400 text-sm font-medium">{username}</Text>
+                  </Pressable>
+                </Link>
+                <Text className="text-gray-400 text-sm font-medium mx-1">/</Text>
+                <Link href={`/${username}/${repo}`} asChild>
+                  <Pressable>
+                    <Text className="text-blue-400 text-sm font-medium">{repo}</Text>
+                  </Pressable>
+                </Link>
+                {pathParts.map((part, index) => {
+                  if (index === pathParts.length - 1) {
+                    return (
+                      <View key={index} className="flex-row items-center">
+                        <Text className="text-gray-400 text-sm font-medium mx-1">/</Text>
+                        <Text className="text-white text-sm font-medium">{part}</Text>
+                      </View>
+                    );
+                  }
+                  const dirPath = pathParts.slice(0, index + 1).join("/");
                   return (
                     <View key={index} className="flex-row items-center">
                       <Text className="text-gray-400 text-[15px] font-medium mx-1">/</Text>
-                      <Text className="text-white text-[15px] font-medium">{part}</Text>
+                      <Link href={`/${username}/${repo}/tree/${branch}/${dirPath}`} asChild>
+                        <Pressable>
+                          <Text className="text-blue-400 text-sm font-medium">{part}</Text>
+                        </Pressable>
+                      </Link>
                     </View>
                   );
-                }
-                const dirPath = pathParts.slice(0, index + 1).join("/");
-                return (
-                  <View key={index} className="flex-row items-center">
-                    <Text className="text-gray-400 text-[15px] font-medium mx-1">/</Text>
-                    <Link href={`/${username}/${repo}/tree/${branch}/${dirPath}`} asChild>
-                      <Pressable>
-                        <Text className="text-blue-400 text-[15px] font-medium">{part}</Text>
-                      </Pressable>
-                    </Link>
-                  </View>
-                );
-              })}
+                })}
+              </View>
             </View>
           </View>
-        </View>
 
-        <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
-          <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-          <View className="relative z-10">
-            <CodeViewer content={data.content} language={language} filename={fileName} />
+          <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
+            <View className="relative z-10 p-4">
+              {path && path[path.length - 1]?.toLowerCase().endsWith(".md") ? (
+                <Markdown style={markdownStyles}>{data.content}</Markdown>
+              ) : (
+                <CodeViewer content={data.content} language={language} filename={fileName} />
+              )}
+            </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </View>
     </View>
   );
 }

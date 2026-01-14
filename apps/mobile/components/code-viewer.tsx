@@ -46,12 +46,63 @@ interface CodeViewerProps {
 }
 
 const KEYWORDS_SET = new Set([
-  "const", "let", "var", "function", "class", "interface", "type", "enum", "export", "import",
-  "from", "return", "if", "else", "for", "while", "do", "switch", "case", "break", "continue",
-  "try", "catch", "finally", "throw", "new", "this", "super", "extends", "implements", "static",
-  "async", "await", "public", "private", "protected", "abstract", "readonly", "namespace", "module",
-  "declare", "as", "of", "in", "typeof", "instanceof", "void", "null", "undefined", "true", "false",
-  "boolean", "number", "string", "object", "any", "never",
+  "const",
+  "let",
+  "var",
+  "function",
+  "class",
+  "interface",
+  "type",
+  "enum",
+  "export",
+  "import",
+  "from",
+  "return",
+  "if",
+  "else",
+  "for",
+  "while",
+  "do",
+  "switch",
+  "case",
+  "break",
+  "continue",
+  "try",
+  "catch",
+  "finally",
+  "throw",
+  "new",
+  "this",
+  "super",
+  "extends",
+  "implements",
+  "static",
+  "async",
+  "await",
+  "public",
+  "private",
+  "protected",
+  "abstract",
+  "readonly",
+  "namespace",
+  "module",
+  "declare",
+  "as",
+  "of",
+  "in",
+  "typeof",
+  "instanceof",
+  "void",
+  "null",
+  "undefined",
+  "true",
+  "false",
+  "boolean",
+  "number",
+  "string",
+  "object",
+  "any",
+  "never",
 ]);
 
 function tokenizeLine(line: string): Array<{ text: string; color: string }> {
@@ -119,7 +170,7 @@ function tokenizeLine(line: string): Array<{ text: string; color: string }> {
 function highlightCode(content: string, language: string): React.ReactElement[] {
   if (language === "markdown" || language === "md" || language === "plaintext") {
     return [
-      <MonoText key="text" className="text-white/90 text-xs leading-5" style={{ fontFamily: "SpaceMono" }}>
+      <MonoText key="text" className="text-white/90 text-xs leading-5" style={{ fontFamily: "GeistMono" }}>
         {content}
       </MonoText>,
     ];
@@ -129,10 +180,7 @@ function highlightCode(content: string, language: string): React.ReactElement[] 
   return lines.map((line, lineIndex) => {
     const tokens = tokenizeLine(line);
     const lineElements = tokens.map((token, tokenIndex) => (
-      <MonoText
-        key={`token-${tokenIndex}`}
-        style={{ fontFamily: "SpaceMono", color: token.color, fontSize: 12 }}
-      >
+      <MonoText key={`token-${tokenIndex}`} style={{ fontFamily: "GeistMono", color: token.color, fontSize: 12 }}>
         {token.text}
       </MonoText>
     ));
@@ -147,15 +195,10 @@ function highlightCode(content: string, language: string): React.ReactElement[] 
 
 export function CodeViewer({ content, language, filename }: CodeViewerProps) {
   const detectedLanguage = filename ? getLanguage(filename) : language;
-  const highlightedElements = highlightCode(content, detectedLanguage);
+  const highlightedElements = highlightCode(content.trim(), detectedLanguage);
 
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={true}
-      contentContainerStyle={{ padding: 16 }}
-      nestedScrollEnabled={true}
-    >
+    <ScrollView horizontal showsHorizontalScrollIndicator={true} contentContainerStyle={{ padding: 2 }} nestedScrollEnabled={true}>
       <View style={{ flexDirection: "column" }}>{highlightedElements}</View>
     </ScrollView>
   );

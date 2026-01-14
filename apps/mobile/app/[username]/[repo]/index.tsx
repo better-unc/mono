@@ -5,6 +5,7 @@ import { BlurView } from "expo-blur";
 import { type FileEntry, useRepositoryInfo, useRepoTree, useRepoReadmeOid, useRepoReadme, useToggleStar } from "@gitbruv/hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import Markdown from "react-native-markdown-display";
+import { markdownStyles } from "@/constants/markdownStyles";
 
 export default function RepositoryScreen() {
   const { username, repo: repoName } = useLocalSearchParams<{ username: string; repo: string }>();
@@ -25,11 +26,7 @@ export default function RepositoryScreen() {
     refetch: refetchTree,
     isRefetching: isRefetchingTree,
   } = useRepoTree(username || "", repoName || "", defaultBranch);
-  const {
-    data: readmeOidData,
-    isLoading: isLoadingReadmeOid,
-    refetch: refetchReadmeOid,
-  } = useRepoReadmeOid(username || "", repoName || "", defaultBranch);
+  const { data: readmeOidData, isLoading: isLoadingReadmeOid, refetch: refetchReadmeOid } = useRepoReadmeOid(username || "", repoName || "", defaultBranch);
   const { data: readmeData, isLoading: readmeLoading } = useRepoReadme(username || "", repoName || "", readmeOidData?.readmeOid || null);
 
   const toggleStar = useToggleStar(repoInfo?.repo.id || "");
@@ -249,15 +246,7 @@ export default function RepositoryScreen() {
                   </View>
                 ) : readmeData?.content ? (
                   <ScrollView showsVerticalScrollIndicator={true} className="max-h-[400px]" nestedScrollEnabled={true}>
-                    <Markdown
-                      style={StyleSheet.create({
-                        text: {
-                          color: "#ffffff",
-                        },
-                      })}
-                    >
-                      {readmeData.content}
-                    </Markdown>
+                    <Markdown style={markdownStyles}>{readmeData.content}</Markdown>
                   </ScrollView>
                 ) : (
                   <Text className="text-white/40 text-xs">Failed to load README content</Text>

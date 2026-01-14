@@ -2,13 +2,13 @@ import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator, S
 import { useLocalSearchParams, Link, Stack, RelativePathString } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { BlurView } from "expo-blur";
-import { type FileEntry, useRepoTree, useRepoPageData } from "@gitbruv/hooks";
+import { type FileEntry, useRepoTree, useRepositoryInfo } from "@gitbruv/hooks";
 
 export default function TreeScreen() {
   const { username, repo, path } = useLocalSearchParams<{ username: string; repo: string; path?: string[] }>();
 
-  const { data: repoData } = useRepoPageData(username || "", repo || "");
-  const defaultBranch = repoData?.repo.defaultBranch || "main";
+  const { data: repoInfo, isLoading: isLoadingInfo } = useRepositoryInfo(username || "", repo || "");
+  const defaultBranch = repoInfo?.repo.defaultBranch || "main";
 
   const pathArray = path ? (Array.isArray(path) ? path : [path]) : [];
   const branch = pathArray[0] || defaultBranch;
@@ -41,7 +41,7 @@ export default function TreeScreen() {
     return `/${username}/${repo}/blob/${branch}/${file.path}`;
   };
 
-  if (isLoading) {
+  if (isLoading || isLoadingInfo) {
     return (
       <View style={{ flex: 1 }} className="items-center justify-center">
         <Stack.Screen
@@ -98,24 +98,24 @@ export default function TreeScreen() {
             <View className="flex-row items-center flex-wrap">
               <Link href={`/${username}/${repo}`} asChild>
                 <Pressable>
-                  <Text className="text-blue-400 text-[15px] font-medium">{username}</Text>
+                  <Text className="text-blue-400 text-sm font-medium">{username}</Text>
                 </Pressable>
               </Link>
-              <Text className="text-gray-400 text-[15px] font-medium mx-1">/</Text>
+              <Text className="text-gray-400 text-sm font-medium mx-1">/</Text>
               <Link href={`/${username}/${repo}`} asChild>
                 <Pressable>
-                  <Text className="text-blue-400 text-[15px] font-medium">{repo}</Text>
+                  <Text className="text-blue-400 text-sm font-medium">{repo}</Text>
                 </Pressable>
               </Link>
               {pathParts.map((part, index) => (
                 <View key={index} className="flex-row items-center">
-                  <Text className="text-gray-400 text-[15px] font-medium mx-1">/</Text>
+                  <Text className="text-gray-400 text-sm font-medium mx-1">/</Text>
                   {index === pathParts.length - 1 ? (
-                    <Text className="text-white text-[15px] font-medium">{part}</Text>
+                    <Text className="text-white text-sm font-medium">{part}</Text>
                   ) : (
                     <Link href={`/${username}/${repo}/tree/${branch}/${pathParts.slice(0, index + 1).join("/")}`} asChild>
                       <Pressable>
-                        <Text className="text-blue-400 text-[15px] font-medium">{part}</Text>
+                        <Text className="text-blue-400 text-sm font-medium">{part}</Text>
                       </Pressable>
                     </Link>
                   )}
