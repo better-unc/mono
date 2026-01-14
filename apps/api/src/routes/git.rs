@@ -251,12 +251,12 @@ async fn get_users_by_emails(
 
     let placeholders: Vec<String> = (1..=emails.len()).map(|i| format!("${}", i)).collect();
     let query = format!("SELECT email, id, username, avatar_url FROM users WHERE email IN ({})", placeholders.join(", "));
-    
+
     let mut query_builder = sqlx::query_as::<_, UserEmailRow>(&query);
     for email in emails {
         query_builder = query_builder.bind(email);
     }
-    
+
     let users = query_builder.fetch_all(&db.pool).await?;
     Ok(users.into_iter().map(|u| (u.email.clone(), u)).collect())
 }
@@ -524,57 +524,9 @@ async fn get_page_data(
         }
     }
 
-    let repo_prefix = S3Client::get_repo_prefix(&row.owner_id, &row.name);
-    tracing::info!("page-data: repo_prefix = {}", repo_prefix);
-    let store = R2GitStore::new(state.s3.clone(), repo_prefix);
-
-    let branches = list_branches(&store).await;
-    tracing::info!("page-data: found {} branches", branches.len());
-
-    let star_count: (i64,) = sqlx::query_as(
-        "SELECT COUNT(*) FROM stars WHERE repository_id = $1"
-    )
-    .bind(row.id)
-    .fetch_one(&state.db.pool)
-    .await
-    .unwrap_or((0,));
-
-    let starred = if let Some(user) = &auth.0 {
-        let existing: Option<(String,)> = sqlx::query_as(
-            "SELECT user_id FROM stars WHERE user_id = $1 AND repository_id = $2"
-        )
-        .bind(&user.id)
-        .bind(row.id)
-        .fetch_optional(&state.db.pool)
-        .await
-        .ok()
-        .flatten();
-        existing.is_some()
-    } else {
-        false
-    };
-
     let is_owner = auth.0.as_ref().map(|u| u.id == row.owner_id).unwrap_or(false);
 
     Ok(Json(serde_json::json!({
-        "repo": {
-            "id": row.id,
-            "name": row.name,
-            "description": row.description,
-            "visibility": row.visibility,
-            "defaultBranch": row.default_branch,
-            "createdAt": format!("{}Z", row.created_at.format("%Y-%m-%dT%H:%M:%S%.3f")),
-            "updatedAt": format!("{}Z", row.updated_at.format("%Y-%m-%dT%H:%M:%S%.3f")),
-            "owner": {
-                "id": row.owner_id,
-                "username": row.username,
-                "name": row.user_name,
-                "avatarUrl": row.avatar_url,
-            },
-            "starCount": star_count.0,
-            "starred": starred,
-        },
-        "branches": branches,
         "isOwner": is_owner,
     })))
 }

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useRepoPageData, useUpdateRepository, useDeleteRepository } from "@gitbruv/hooks";
+import { useRepoPageData, useUpdateRepository, useDeleteRepository, useRepositoryInfo } from "@gitbruv/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +18,8 @@ function RepoSettingsPage() {
   const { username, repo: repoName } = Route.useParams();
   const navigate = useNavigate();
   const { data: pageData, isLoading } = useRepoPageData(username, repoName);
-  const repo = pageData?.repo;
+  const { data: repoInfo, isLoading: isLoadingInfo } = useRepositoryInfo(username, repoName);
+  const repo = repoInfo?.repo;
   const isOwner = pageData?.isOwner ?? false;
   const { mutate: updateRepo, isPending: saving } = useUpdateRepository(repo?.id || "");
   const { mutate: deleteRepo, isPending: deleting } = useDeleteRepository(repo?.id || "");
@@ -82,7 +83,7 @@ function RepoSettingsPage() {
     });
   }
 
-  if (isLoading) {
+  if (isLoading || isLoadingInfo) {
     return (
       <div className="container max-w-3xl py-8">
         <div className="flex items-center justify-center py-12">

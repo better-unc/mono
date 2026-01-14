@@ -16,7 +16,6 @@ function RepoLayout() {
 
   const { isOwner } = data;
   const isSettings = location.pathname.includes("/settings");
-  const isCode = !isSettings;
 
   return (
     <div>
