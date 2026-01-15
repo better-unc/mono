@@ -15,9 +15,10 @@ interface ChunkedCodeViewerProps {
   language: string;
   initialContent?: string;
   totalSize?: number;
+  wordWrap?: boolean;
 }
 
-export function ChunkedCodeViewer({ username, repoName, branch, filePath, language, initialContent, totalSize }: ChunkedCodeViewerProps) {
+export function ChunkedCodeViewer({ username, repoName, branch, filePath, language, initialContent, totalSize, wordWrap }: ChunkedCodeViewerProps) {
   const [content, setContent] = useState(initialContent || "");
   const [loading, setLoading] = useState(!initialContent);
   const [progress, setProgress] = useState(initialContent ? 100 : 0);
@@ -97,7 +98,7 @@ export function ChunkedCodeViewer({ username, repoName, branch, filePath, langua
         </div>
       )}
       {content ? (
-        <CodeViewer content={content} language={language} showLineNumbers />
+        <CodeViewer content={content} language={language} showLineNumbers wordWrap={wordWrap} />
       ) : (
         <div className="p-8 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

@@ -6,10 +6,22 @@ import { useEffect, useState, useCallback } from "react";
 import { codeToHtml } from "shiki";
 import { useTheme } from "tanstack-theme-kit";
 import { Check, Copy } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export function CodeViewer({ content, language, showLineNumbers = false }: { content: string; language: string; showLineNumbers?: boolean }) {
+export function CodeViewer({
+  content,
+  language,
+  showLineNumbers = false,
+  wordWrap = true,
+}: {
+  content: string;
+  language: string;
+  showLineNumbers?: boolean;
+  wordWrap?: boolean;
+}) {
   const [highlightedCode, setHighlightedCode] = useState<string | null>(null);
   const { theme } = useTheme();
+  const displayLineNumbers = showLineNumbers && !wordWrap;
 
   useEffect(() => {
     if (language === "markdown" || language === "md") return;
@@ -31,7 +43,7 @@ export function CodeViewer({ content, language, showLineNumbers = false }: { con
 
   if (language === "markdown" || language === "md") {
     return (
-      <div className="markdown-body">
+      <div className="p-6 md:p-8 markdown-body">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{
@@ -69,11 +81,15 @@ export function CodeViewer({ content, language, showLineNumbers = false }: { con
 
   if (highlightedCode) {
     const lines = content.split("\n");
+    const overflowClassName = wordWrap ? "overflow-x-hidden" : "overflow-x-auto";
+    const codeClassName = wordWrap
+      ? "p-4 [&>pre]:whitespace-pre-wrap! [&>pre]:break-words! [&_code]:leading-6 [&_code]:whitespace-pre-wrap! [&_code]:break-words!"
+      : "[&>pre]:bg-transparent! [&_code]:leading-6";
     return (
-      <div className="overflow-x-auto">
+      <div className={overflowClassName}>
         <div className="flex font-mono text-sm">
-          {showLineNumbers && (
-            <div className="text-right text-muted-foreground select-none pr-4 pl-4 py-2 border-r border-border bg-muted/30 shrink-0">
+          {displayLineNumbers && (
+            <div className="text-right text-muted-foreground select-none pr-4 pl-4 py-2 border-r border-border bg-muted/30 shrink-0 wrap-normal">
               {lines.map((_, i) => (
                 <div key={i} className="leading-6">
                   {i + 1}
@@ -81,27 +97,26 @@ export function CodeViewer({ content, language, showLineNumbers = false }: { con
               ))}
             </div>
           )}
-          <div
-            className="flex-1 pl-4 py-2 [&>pre]:bg-transparent! [&>pre]:m-0! [&>pre]:p-0! [&_code]:leading-6"
-            dangerouslySetInnerHTML={{ __html: highlightedCode }}
-          />
+          <div className={cn("flex-1 min-w-0 pl-4 py-2 [&>pre]:bg-transparent!", codeClassName)} dangerouslySetInnerHTML={{ __html: highlightedCode }} />
         </div>
       </div>
     );
   }
 
   const lines = content.split("\n");
+  const plainContainerClassName = wordWrap ? "font-mono text-sm overflow-x-hidden" : "font-mono text-sm overflow-x-auto";
+  const plainLineClassName = wordWrap ? "pl-4 py-0.5 whitespace-pre-wrap break-words" : "pl-4 py-0.5 whitespace-pre";
 
   return (
-    <div className="font-mono text-sm overflow-x-auto">
+    <div className={plainContainerClassName}>
       <table className="w-full border-collapse">
         <tbody>
           {lines.map((line, i) => (
             <tr key={i} className="hover:bg-muted/30">
-              {showLineNumbers && (
+              {displayLineNumbers && (
                 <td className="text-right text-muted-foreground select-none pr-4 pl-4 py-0.5 w-12 align-top border-r border-border">{i + 1}</td>
               )}
-              <td className="pl-4 py-0.5 whitespace-pre">{line || " "}</td>
+              <td className={plainLineClassName}>{line || " "}</td>
             </tr>
           ))}
         </tbody>
@@ -139,10 +154,7 @@ function CodeBlock({ children, language, theme }: { children: string; language: 
     <div className="code-block group relative my-4 border border-border overflow-hidden">
       <div className="flex items-center justify-between px-4 py-2 bg-secondary/50 border-b border-border">
         <span className="text-xs font-mono text-muted-foreground">{language || "text"}</span>
-        <button
-          onClick={copyCode}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
+        <button onClick={copyCode} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
           {copied ? (
             <>
               <Check className="h-3.5 w-3.5 text-green-500" />
@@ -158,10 +170,7 @@ function CodeBlock({ children, language, theme }: { children: string; language: 
       </div>
       <div className="overflow-x-auto">
         {html ? (
-          <div
-            className="p-4 text-sm [&>pre]:bg-transparent! [&>pre]:m-0! [&>pre]:p-0! [&_code]:leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: html }}
-          />
+          <div className="p-4 text-sm [&>pre]:bg-transparent! [&>pre]:m-0! [&>pre]:p-0! [&_code]:leading-relaxed" dangerouslySetInnerHTML={{ __html: html }} />
         ) : (
           <pre className="p-4 text-sm">
             <code>{children}</code>

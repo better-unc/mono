@@ -6,6 +6,7 @@ export type UserPreferences = {
   theme?: "light" | "dark" | "system";
   language?: string;
   showEmail?: boolean;
+  wordWrap?: boolean;
 };
 
 export const users = pgTable("users", {

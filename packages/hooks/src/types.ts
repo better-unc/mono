@@ -71,6 +71,7 @@ export type UserPreferences = {
   theme?: "light" | "dark" | "system";
   language?: string;
   showEmail?: boolean;
+  wordWrap?: boolean;
 };
 
 export type UserProfile = {
@@ -109,6 +110,11 @@ export type PublicUser = {
   repoCount: number;
 };
 
+export type UserSummary = {
+  name: string;
+  avatarUrl: string | null;
+};
+
 export type ApiClient = {
   repositories: {
     create: (data: { name: string; description?: string; visibility: "public" | "private" }) => Promise<Repository>;
@@ -132,12 +138,14 @@ export type ApiClient = {
   };
   users: {
     getProfile: (username: string) => Promise<UserProfile>;
+    getSummary: () => Promise<UserSummary>;
     getStarred: (username: string) => Promise<{ repos: RepositoryWithStars[] }>;
     getAvatarByUsername: (username: string) => Promise<{ avatarUrl: string | null }>;
     getPublic: (sortBy: "newest" | "oldest", limit: number, offset: number) => Promise<{ users: PublicUser[]; hasMore: boolean }>;
   };
   settings: {
     getCurrentUser: () => Promise<{ user: UserProfile }>;
+    getWordWrap: () => Promise<{ wordWrap: boolean }>;
     updateProfile: (data: {
       name?: string;
       username?: string;
@@ -150,6 +158,7 @@ export type ApiClient = {
       defaultRepositoryVisibility?: "public" | "private";
     }) => Promise<{ success: boolean; username?: string } | UserProfile>;
     updatePreferences: (data: Partial<UserPreferences>) => Promise<{ success: boolean }>;
+    updateWordWrap: (data: { wordWrap: boolean }) => Promise<{ success: boolean; wordWrap: boolean }>;
     updateSocialLinks?: (data: { github?: string; twitter?: string; linkedin?: string; custom?: string[] }) => Promise<{ success: boolean }>;
     updateEmail: (data: { email: string }) => Promise<{ success: boolean } | UserProfile>;
     updatePassword?: (data: { currentPassword: string; newPassword: string }) => Promise<{ success: boolean }>;

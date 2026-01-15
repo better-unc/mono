@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryState, parseAsStringLiteral } from "nuqs";
 import { useSession } from "@/lib/auth-client";
-import { useCurrentUser, useUpdateProfile, useUpdatePreferences } from "@gitbruv/hooks";
+import { useCurrentUser, useUpdateProfile, useUpdatePreferences, useUpdateWordWrapPreference, useWordWrapPreference } from "@gitbruv/hooks";
 import { useApiKeys, useCreateApiKey, useDeleteApiKey } from "@/lib/hooks/use-api-keys";
 import { usePasskeys, useAddPasskey, useDeletePasskey } from "@/lib/hooks/use-passkeys";
 import { ProfileForm } from "@/components/settings/profile-form";
@@ -245,7 +245,9 @@ function GitSettingsForm({ user }: { user: NonNullable<ReturnType<typeof useCurr
 }
 
 function PreferencesForm({ user }: { user: NonNullable<ReturnType<typeof useCurrentUser>["data"]>["user"] }) {
-  const { mutate, isPending } = useUpdatePreferences();
+  const { mutateAsync: updatePreferences, isPending: isUpdatingPreferences } = useUpdatePreferences();
+  const { data: wordWrapData } = useWordWrapPreference();
+  const { mutateAsync: updateWordWrap, isPending: isUpdatingWordWrap } = useUpdateWordWrapPreference();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const preferences = user.preferences || {};
@@ -253,29 +255,34 @@ function PreferencesForm({ user }: { user: NonNullable<ReturnType<typeof useCurr
   const [theme, setTheme] = useState<"light" | "dark" | "system">(preferences.theme || "system");
   const [language, setLanguage] = useState(preferences.language || "");
   const [showEmail, setShowEmail] = useState(preferences.showEmail ?? false);
+  const [wordWrap, setWordWrap] = useState(wordWrapData?.wordWrap ?? false);
+
+  useEffect(() => {
+    if (wordWrapData?.wordWrap !== undefined) {
+      setWordWrap(wordWrapData.wordWrap);
+    }
+  }, [wordWrapData?.wordWrap]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setSuccess(false);
 
-    mutate(
-      {
-        emailNotifications,
-        theme,
-        language: language || undefined,
-        showEmail,
-      },
-      {
-        onSuccess: () => {
-          setSuccess(true);
-          setTimeout(() => setSuccess(false), 3000);
-        },
-        onError: (err) => {
-          setError(err instanceof Error ? err.message : "Failed to update preferences");
-        },
-      }
-    );
+    try {
+      await Promise.all([
+        updatePreferences({
+          emailNotifications,
+          theme,
+          language: language || undefined,
+          showEmail,
+        }),
+        updateWordWrap({ wordWrap }),
+      ]);
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update preferences");
+    }
   }
 
   return (
@@ -336,11 +343,27 @@ function PreferencesForm({ user }: { user: NonNullable<ReturnType<typeof useCurr
         </div>
       </div>
 
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label htmlFor="wordWrap">Word Wrap</Label>
+            <p className="text-xs text-muted-foreground">Wrap long lines when viewing files</p>
+          </div>
+          <input
+            id="wordWrap"
+            type="checkbox"
+            checked={wordWrap}
+            onChange={(e) => setWordWrap(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300"
+          />
+        </div>
+      </div>
+
       {error && <div className="text-sm text-red-500 bg-red-500/10 border border-red-500/20 px-3 py-2 rounded">{error}</div>}
       {success && <div className="text-sm text-green-500 bg-green-500/10 border border-green-500/20 px-3 py-2 rounded">Preferences updated successfully!</div>}
 
-      <Button type="submit" disabled={isPending}>
-        {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+      <Button type="submit" disabled={isUpdatingPreferences || isUpdatingWordWrap}>
+        {(isUpdatingPreferences || isUpdatingWordWrap) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
         Save Changes
       </Button>
     </form>

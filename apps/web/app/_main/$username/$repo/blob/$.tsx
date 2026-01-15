@@ -1,10 +1,11 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useRepositoryWithStars, useRepoFile, useRepoBranches } from "@gitbruv/hooks";
+import { useRepositoryWithStars, useRepoFile, useRepoBranches, useWordWrapPreference } from "@gitbruv/hooks";
 import { ChunkedCodeViewer } from "@/components/chunked-code-viewer";
 import { CodeViewer } from "@/components/code-viewer";
 import { BranchSelector } from "@/components/branch-selector";
 import { Badge } from "@/components/ui/badge";
 import { Lock, Globe, ChevronRight, Home, FileCode, Loader2 } from "lucide-react";
+import { useSession } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/_main/$username/$repo/blob/$")({
   component: BlobPage,
@@ -68,6 +69,9 @@ function BlobPage() {
   const branch = pathSegments[0] || "main";
   const filePath = pathSegments.slice(1).join("/");
 
+  const { data: session } = useSession();
+  const { data: wordWrapData } = useWordWrapPreference({ enabled: !!session?.user });
+
   const { data: repo, isLoading: repoLoading, error: repoError } = useRepositoryWithStars(username, repoName);
   const { data: branchesData, isLoading: branchesLoading } = useRepoBranches(username, repoName);
   const { data: fileData, isLoading: fileLoading, error: fileError } = useRepoFile(username, repoName, branch, filePath);
@@ -84,16 +88,17 @@ function BlobPage() {
   const pathParts = filePath.split("/").filter(Boolean);
   const fileName = pathParts[pathParts.length - 1];
   const language = getLanguage(fileName);
+  const wordWrap = wordWrapData?.wordWrap ?? false;
 
   return (
     <div className="container px-4 py-6">
-      <div className="flex flex-col lg:flex-row items-start h-9 lg:items-center justify-between gap-4 mb-6">
+      {/* <div className="flex flex-col lg:flex-row items-start h-9 lg:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-2 flex-wrap">
-          <Link to="/$username" params={{ username }} className="text-accent hover:underline">
+          <Link to="/$username" params={{ username }} className="text-primary hover:underline">
             <span className="text-xl font-bold">{username}</span>
           </Link>
           <span className="text-muted-foreground">/</span>
-          <Link to="/$username/$repo" params={{ username, repo: repoName }} className="text-accent hover:underline">
+          <Link to="/$username/$repo" params={{ username, repo: repoName }} className="text-primary hover:underline">
             <span className="text-xl font-bold">{repoName}</span>
           </Link>
           <Badge variant="secondary" className="text-xs font-normal">
@@ -110,14 +115,14 @@ function BlobPage() {
             )}
           </Badge>
         </div>
-      </div>
+      </div> */}
 
       <div className="border border-border overflow-hidden">
         <div className="flex items-center gap-2 px-4 py-3 bg-card border-b border-border">
           <BranchSelector branches={branches} currentBranch={branch} username={username} repoName={repoName} />
         </div>
         <nav className="flex items-center gap-1 px-4 py-2 bg-muted/30 border-b border-border text-sm">
-          <Link to="/$username/$repo" params={{ username, repo: repoName }} className="text-accent hover:underline flex items-center gap-1">
+          <Link to="/$username/$repo" params={{ username, repo: repoName }} className="text-primary hover:underline flex items-center gap-1">
             <Home className="h-4 w-4" />
             {repoName}
           </Link>
@@ -167,10 +172,11 @@ function BlobPage() {
                   language={language}
                   initialContent={fileData.content}
                   totalSize={fileSize}
+                  wordWrap={wordWrap}
                 />
               );
             }
-            return <CodeViewer content={fileData.content} language={language} showLineNumbers />;
+            return <CodeViewer content={fileData.content} language={language} showLineNumbers wordWrap={wordWrap} />;
           })()
         )}
       </div>

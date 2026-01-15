@@ -8,7 +8,7 @@ use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
-use crate::{auth::{naive_datetime_as_utc, AuthUser, User}, AppState};
+use crate::{auth::{naive_datetime_as_utc, require_auth, AuthUser, User}, AppState};
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -140,6 +140,16 @@ async fn get_current_user(
         Some(user) => Ok(Json(user)),
         None => Err((StatusCode::UNAUTHORIZED, "Unauthorized")),
     }
+}
+
+async fn get_current_user_summary(
+    Extension(auth): Extension<AuthUser>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let user = require_auth(&auth).map_err(|e| (e.0, e.1.to_string()))?;
+    Ok(Json(serde_json::json!({
+        "name": user.name,
+        "avatarUrl": user.avatar_url
+    })))
 }
 
 async fn get_public_users(
@@ -344,6 +354,7 @@ async fn get_avatar_by_username(
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/api/users/me", get(get_current_user))
+        .route("/api/users/me/summary", get(get_current_user_summary))
         .route("/api/users/public", get(get_public_users))
         .route("/api/users/{username}/avatar", get(get_avatar_by_username))
         .route("/api/users/{username}", get(get_user))

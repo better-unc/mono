@@ -12,6 +12,7 @@ import type {
   PublicUser,
   ApiClient,
   UserPreferences,
+  UserSummary,
 } from "@gitbruv/hooks";
 
 async function getAuthHeaders(): Promise<HeadersInit> {
@@ -105,6 +106,7 @@ export const api: ApiClient = {
 
   users: {
     getProfile: (username: string) => apiFetch<UserProfile>(`/api/users/${username}/profile`),
+    getSummary: () => apiFetch<UserSummary>(`/api/users/me/summary`),
 
     getStarred: (username: string) => apiFetch<{ repos: RepositoryWithStars[] }>(`/api/users/${username}/starred`),
 
@@ -116,8 +118,19 @@ export const api: ApiClient = {
 
   settings: {
     getCurrentUser: () => apiFetch<{ user: UserProfile }>(`/api/settings`),
+    getWordWrap: () => apiFetch<{ wordWrap: boolean }>(`/api/settings/word-wrap`),
 
-    updateProfile: (data: { name?: string; username?: string; bio?: string; location?: string; website?: string; pronouns?: string; company?: string; gitEmail?: string; defaultRepositoryVisibility?: "public" | "private" }) =>
+    updateProfile: (data: {
+      name?: string;
+      username?: string;
+      bio?: string;
+      location?: string;
+      website?: string;
+      pronouns?: string;
+      company?: string;
+      gitEmail?: string;
+      defaultRepositoryVisibility?: "public" | "private";
+    }) =>
       apiFetch<{ success: boolean; username: string }>(`/api/settings/profile`, {
         method: "PATCH",
         body: JSON.stringify(data),
@@ -125,6 +138,12 @@ export const api: ApiClient = {
 
     updatePreferences: (data: Partial<UserPreferences>) =>
       apiFetch<{ success: boolean }>(`/api/settings/preferences`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+
+    updateWordWrap: (data: { wordWrap: boolean }) =>
+      apiFetch<{ success: boolean; wordWrap: boolean }>(`/api/settings/word-wrap`, {
         method: "PATCH",
         body: JSON.stringify(data),
       }),

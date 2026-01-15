@@ -129,7 +129,7 @@ function RepoHeaderSkeleton() {
         <div className="space-y-2 flex-1 min-w-0">
           <div className="flex items-center gap-3">
             <div className="h-8 w-40 bg-secondary/50" />
-            <div className="h-5 w-14 bg-secondary/50 border border-border" />
+            <div className="h-5 w-14 bg-secondary/50" />
           </div>
           <div className="h-5 w-64 bg-secondary/50 max-w-2xl" />
         </div>

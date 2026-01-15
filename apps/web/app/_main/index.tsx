@@ -2,7 +2,7 @@ import RepositoryCard from "@/components/repository-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/auth-client";
-import { useUserRepositories, useUserProfile } from "@gitbruv/hooks";
+import { useCurrentUserSummary, useUserRepositories } from "@gitbruv/hooks";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { GitBranch, Loader2, Plus } from "lucide-react";
 
@@ -31,7 +31,7 @@ function HomePage() {
 function LoggedInHomePage({ session }: { session: { user: { username?: string; [key: string]: any }; [key: string]: any } }) {
   // @ts-ignore
   const username = session?.user?.username || "";
-  const { data: user, isLoading: userLoading } = useUserProfile(username);
+  const { data: user, isLoading: userLoading } = useCurrentUserSummary(!!session?.user);
   const { data, isLoading: reposLoading } = useUserRepositories(username);
 
   const repos = data?.repos || [];

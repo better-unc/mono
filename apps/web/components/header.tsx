@@ -2,7 +2,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { signOut, useSession } from "@/lib/auth-client";
-import { useUserProfile } from "@gitbruv/hooks";
+import { useCurrentUserSummary } from "@gitbruv/hooks";
 import { Link, useNavigate, useLocation, useParams } from "@tanstack/react-router";
 import { Bell, Inbox, LogOut, Moon, Plus, Settings, Sun, User } from "lucide-react";
 import { useTheme } from "tanstack-theme-kit";
@@ -14,8 +14,7 @@ export function Header() {
   const params = useParams({ strict: false });
 
   const { data: session } = useSession();
-  // @ts-ignore
-  const { data: user } = useUserProfile(session?.user?.username || "");
+  const { data: user } = useCurrentUserSummary(!!session?.user);
 
   const isRepoPage = location.pathname.match(/\/[^/]+\/[^/]+/);
   const username = params.username as string | undefined;
@@ -96,14 +95,14 @@ export function Header() {
                     <Avatar className="h-8 w-8 border border-border rounded-none">
                       <AvatarImage src={user?.avatarUrl || undefined} className="rounded-none" />
                       <AvatarFallback className="bg-accent/10 text-accent text-xs font-semibold rounded-none">
-                        {session.user.name?.charAt(0).toUpperCase() || "U"}
+                        {(user?.name || session.user.name || "U").charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuItem className="px-3 py-2 flex items-start flex-col gap-1">
-                    <p className="text-sm font-medium">{session.user.name}</p>
+                    <p className="text-sm font-medium">{user?.name || session.user.name}</p>
                     <p className="text-xs text-muted-foreground">@{(session.user as { username?: string }).username}</p>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />

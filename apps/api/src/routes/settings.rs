@@ -35,6 +35,12 @@ pub struct UpdatePreferencesRequest {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct UpdateWordWrapRequest {
+    #[serde(rename = "wordWrap")]
+    pub word_wrap: bool,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct UpdateEmailRequest {
     pub email: String,
 }
@@ -353,6 +359,8 @@ pub fn router() -> Router<AppState> {
         .route("/api/settings", get(get_settings))
         .route("/api/settings/profile", patch(update_profile))
         .route("/api/settings/preferences", patch(update_preferences))
+        .route("/api/settings/word-wrap", get(get_word_wrap))
+        .route("/api/settings/word-wrap", patch(update_word_wrap))
         .route("/api/settings/email", patch(update_email))
         .route("/api/settings/avatar", post(upload_avatar))
         .route("/api/settings/social-links", patch(update_social_links))
@@ -431,13 +439,14 @@ async fn update_preferences(
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let user = require_auth(&auth).map_err(|e| (e.0, e.1.to_string()))?;
 
-    let current_preferences: Option<serde_json::Value> = sqlx::query_scalar(
+    let current_preferences: Option<serde_json::Value> = sqlx::query_scalar::<_, Option<serde_json::Value>>(
         "SELECT preferences FROM users WHERE id = $1"
     )
     .bind(&user.id)
     .fetch_optional(&state.db.pool)
     .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+    .flatten();
 
     let mut preferences = current_preferences
         .and_then(|p| serde_json::from_value::<serde_json::Map<String, serde_json::Value>>(p).ok())
@@ -466,4 +475,61 @@ async fn update_preferences(
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     Ok(Json(serde_json::json!({ "success": true })))
+}
+
+async fn get_word_wrap(
+    State(state): State<AppState>,
+    Extension(auth): Extension<AuthUser>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let user = require_auth(&auth).map_err(|e| (e.0, e.1.to_string()))?;
+
+    let current_preferences: Option<serde_json::Value> = sqlx::query_scalar::<_, Option<serde_json::Value>>(
+        "SELECT preferences FROM users WHERE id = $1"
+    )
+    .bind(&user.id)
+    .fetch_optional(&state.db.pool)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+    .flatten();
+
+    let word_wrap = current_preferences
+        .and_then(|prefs| prefs.get("wordWrap").cloned())
+        .and_then(|value| value.as_bool())
+        .unwrap_or(false);
+
+    Ok(Json(serde_json::json!({ "wordWrap": word_wrap })))
+}
+
+async fn update_word_wrap(
+    State(state): State<AppState>,
+    Extension(auth): Extension<AuthUser>,
+    Json(body): Json<UpdateWordWrapRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let user = require_auth(&auth).map_err(|e| (e.0, e.1.to_string()))?;
+
+    let current_preferences: Option<serde_json::Value> = sqlx::query_scalar::<_, Option<serde_json::Value>>(
+        "SELECT preferences FROM users WHERE id = $1"
+    )
+    .bind(&user.id)
+    .fetch_optional(&state.db.pool)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+    .flatten();
+
+    let mut preferences = current_preferences
+        .and_then(|p| serde_json::from_value::<serde_json::Map<String, serde_json::Value>>(p).ok())
+        .unwrap_or_default();
+
+    preferences.insert("wordWrap".to_string(), serde_json::json!(body.word_wrap));
+
+    sqlx::query(
+        "UPDATE users SET preferences = $1, updated_at = NOW() WHERE id = $2"
+    )
+    .bind(&serde_json::Value::Object(preferences))
+    .bind(&user.id)
+    .execute(&state.db.pool)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(Json(serde_json::json!({ "success": true, "wordWrap": body.word_wrap })))
 }

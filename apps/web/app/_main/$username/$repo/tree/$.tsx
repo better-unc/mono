@@ -63,7 +63,7 @@ function TreePage() {
 
   return (
     <div className="container px-4 py-6">
-      <div className="flex flex-col lg:flex-row items-start h-9 lg:items-center justify-between gap-4 mb-6">
+      {/* <div className="flex flex-col lg:flex-row items-start h-9 lg:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-2 flex-wrap">
           <Link to="/$username" params={{ username }} className="text-accent hover:underline">
             <span className="text-xl font-bold">{username}</span>
@@ -86,7 +86,7 @@ function TreePage() {
             )}
           </Badge>
         </div>
-      </div>
+      </div> */}
 
       <div className="border border-border overflow-hidden">
         <div className="flex items-center gap-2 px-4 py-3 bg-card border-b border-border">
@@ -94,7 +94,7 @@ function TreePage() {
         </div>
 
         <nav className="flex items-center gap-1 px-4 py-2 bg-muted/30 border-b border-border text-sm">
-          <Link to="/$username/$repo" params={{ username, repo: repoName }} className="text-accent hover:underline flex items-center gap-1">
+          <Link to="/$username/$repo" params={{ username, repo: repoName }} className="text-primary hover:underline flex items-center gap-1">
             <Home className="h-4 w-4" />
             {repoName}
           </Link>

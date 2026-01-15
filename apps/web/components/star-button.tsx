@@ -38,7 +38,7 @@ export function StarButton({
       size="sm"
       onClick={handleClick}
       disabled={isPending}
-      className={cn("gap-2 border border-border transition-all", starred && "bg-primary/10 border-primary/30 hover:bg-primary/20", className)}
+      className={cn("gap-2 border border-border transition-all", starred && "bg-primary/10 border-primary/30 hover:bg-primary/20 pr-0.75", className)}
     >
       <Star className={cn("h-4 w-4", starred ? "fill-primary text-primary" : "text-muted-foreground")} />
       <span>{starred ? "Starred" : "Star"}</span>

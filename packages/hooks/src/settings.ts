@@ -1,12 +1,22 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, type UseQueryOptions } from "@tanstack/react-query";
 import { useApi } from "./context";
-import type { UserPreferences } from "./types";
+import type { UserPreferences, UserProfile } from "./types";
 
-export function useCurrentUser() {
+export function useCurrentUser(options?: UseQueryOptions<{ user: UserProfile }, Error>) {
   const api = useApi();
   return useQuery({
+    ...options,
     queryKey: ["settings", "currentUser"],
     queryFn: () => api.settings.getCurrentUser(),
+  });
+}
+
+export function useWordWrapPreference(options?: Omit<UseQueryOptions<{ wordWrap: boolean }, Error>, "queryKey" | "queryFn">) {
+  const api = useApi();
+  return useQuery({
+    ...options,
+    queryKey: ["settings", "wordWrap"],
+    queryFn: () => api.settings.getWordWrap(),
   });
 }
 
@@ -31,6 +41,17 @@ export function useUpdatePreferences() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings"] });
       queryClient.invalidateQueries({ queryKey: ["user"] });
+    },
+  });
+}
+
+export function useUpdateWordWrapPreference() {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { wordWrap: boolean }) => api.settings.updateWordWrap(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settings", "wordWrap"] });
     },
   });
 }

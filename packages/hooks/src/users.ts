@@ -1,6 +1,15 @@
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { useApi } from "./context";
 
+export function useCurrentUserSummary(enabled = true) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ["user", "me", "summary"],
+    queryFn: () => api.users.getSummary(),
+    enabled,
+  });
+}
+
 export function useUserProfile(username: string) {
   const api = useApi();
   return useQuery({
