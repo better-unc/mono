@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, uuid, jsonb, primaryKey, integer, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, uuid, jsonb, primaryKey, integer, index, bigint } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 export type UserPreferences = {
@@ -92,6 +92,31 @@ export const repositories = pgTable("repositories", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const repoBranchMetadata = pgTable(
+  "repo_branch_metadata",
+  {
+    repoId: uuid("repo_id")
+      .notNull()
+      .references(() => repositories.id, { onDelete: "cascade" }),
+    branch: text("branch").notNull(),
+    headOid: text("head_oid").notNull(),
+    commitCount: bigint("commit_count", { mode: "number" }).notNull().default(0),
+    lastCommitOid: text("last_commit_oid").notNull(),
+    lastCommitMessage: text("last_commit_message").notNull(),
+    lastCommitAuthorName: text("last_commit_author_name").notNull(),
+    lastCommitAuthorEmail: text("last_commit_author_email").notNull(),
+    lastCommitTimestamp: timestamp("last_commit_timestamp").notNull(),
+    readmeOid: text("readme_oid"),
+    rootTree: jsonb("root_tree").$type<Array<{ name: string; type: string; oid: string; path: string }>>(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.repoId, table.branch] }),
+    index("repo_branch_metadata_repo_id_idx").on(table.repoId),
+  ]
+);
+
 export const stars = pgTable(
   "stars",
   {
@@ -184,5 +209,12 @@ export const apiKeyRelations = relations(apiKeys, ({ one }) => ({
   user: one(users, {
     fields: [apiKeys.userId],
     references: [users.id],
+  }),
+}));
+
+export const repoBranchMetadataRelations = relations(repoBranchMetadata, ({ one }) => ({
+  repo: one(repositories, {
+    fields: [repoBranchMetadata.repoId],
+    references: [repositories.id],
   }),
 }));

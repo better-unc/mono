@@ -1,7 +1,7 @@
 use crate::git::objects::R2GitStore;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TreeEntry {
     pub name: String,
     #[serde(rename = "type")]
@@ -74,6 +74,44 @@ pub async fn get_commits(
     (commits, has_more)
 }
 
+pub async fn get_commit_by_oid(store: &R2GitStore, oid: &str) -> Option<(CommitInfo, Option<String>)> {
+    let data = store.get_object(oid).await?;
+    parse_commit(&data, oid)
+}
+
+pub async fn count_commits_until(
+    store: &R2GitStore,
+    start_oid: &str,
+    stop_oid: Option<&str>,
+    max_steps: usize,
+) -> Option<usize> {
+    let mut count = 0usize;
+    let mut current = Some(start_oid.to_string());
+
+    while let Some(oid) = current {
+        if let Some(stop) = stop_oid {
+            if oid == stop {
+                return Some(count);
+            }
+        }
+        if count >= max_steps {
+            return None;
+        }
+        let next = match get_commit_by_oid(store, &oid).await {
+            Some((_commit, parent)) => parent,
+            None => return None,
+        };
+        count += 1;
+        current = next;
+    }
+
+    if stop_oid.is_none() {
+        Some(count)
+    } else {
+        None
+    }
+}
+
 pub async fn get_tree(
     store: &R2GitStore,
     branch: &str,
@@ -81,7 +119,7 @@ pub async fn get_tree(
 ) -> Option<Vec<TreeEntry>> {
     let ref_path = format!("refs/heads/{}", branch);
     tracing::debug!("get_tree: resolving ref {}", ref_path);
-    
+
     let head_oid = store.resolve_ref(&ref_path).await;
     if head_oid.is_none() {
         tracing::warn!("get_tree: failed to resolve ref {}", ref_path);
@@ -97,7 +135,7 @@ pub async fn get_tree(
     }
     let commit_data = commit_data.unwrap();
     tracing::debug!("get_tree: got commit data ({} bytes)", commit_data.len());
-    
+
     let tree_oid = extract_tree_oid(&commit_data);
     if tree_oid.is_none() {
         tracing::warn!("get_tree: failed to extract tree oid from commit");
@@ -125,7 +163,7 @@ pub async fn get_tree(
     }
     let tree_data = tree_data.unwrap();
     tracing::debug!("get_tree: got tree data ({} bytes)", tree_data.len());
-    
+
     let entries = parse_tree(&tree_data, path);
     tracing::debug!("get_tree: parsed {} entries", entries.len());
 
@@ -189,7 +227,7 @@ async fn navigate_to_path(store: &R2GitStore, tree_oid: &str, path: &str) -> Opt
 
 fn find_entry_in_tree(data: &[u8], name: &str) -> Option<String> {
     let decompressed = decompress_zlib(data)?;
-    
+
     let null_pos = decompressed.iter().position(|&b| b == 0)?;
     let content = &decompressed[null_pos + 1..];
 
@@ -200,7 +238,7 @@ fn find_entry_in_tree(data: &[u8], name: &str) -> Option<String> {
 
         let header = std::str::from_utf8(&content[pos..entry_null]).ok()?;
         let parts: Vec<&str> = header.splitn(2, ' ').collect();
-        
+
         if parts.len() != 2 {
             break;
         }
@@ -225,7 +263,7 @@ fn find_entry_in_tree(data: &[u8], name: &str) -> Option<String> {
 
 fn parse_commit(data: &[u8], oid: &str) -> Option<(CommitInfo, Option<String>)> {
     let decompressed = decompress_zlib(data)?;
-    
+
     let null_pos = decompressed.iter().position(|&b| b == 0)?;
     let content = std::str::from_utf8(&decompressed[null_pos + 1..]).ok()?;
 

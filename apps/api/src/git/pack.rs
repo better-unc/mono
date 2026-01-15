@@ -36,7 +36,7 @@ pub async fn handle_upload_pack(store: &R2GitStore, body: &[u8]) -> Vec<u8> {
     response
 }
 
-pub async fn handle_receive_pack(store: &R2GitStore, body: &[u8]) -> Vec<u8> {
+pub async fn handle_receive_pack(store: &R2GitStore, body: &[u8]) -> (Vec<u8>, Vec<(String, String, String)>) {
     let pack_signature = [0x50, 0x41, 0x43, 0x4b]; // "PACK"
     let mut pack_start = None;
 
@@ -49,7 +49,7 @@ pub async fn handle_receive_pack(store: &R2GitStore, body: &[u8]) -> Vec<u8> {
 
     let pack_start = match pack_start {
         Some(s) => s,
-        None => return b"000eunpack ok\n0000".to_vec(),
+        None => return (b"000eunpack ok\n0000".to_vec(), Vec::new()),
     };
 
     let command_section = &body[..pack_start];
@@ -75,7 +75,7 @@ pub async fn handle_receive_pack(store: &R2GitStore, body: &[u8]) -> Vec<u8> {
     let pack_path = format!("{}/objects/pack/pack-{}.pack", store.prefix, pack_hash);
     if let Err(e) = store.s3.put_object(&pack_path, pack_data.to_vec()).await {
         tracing::error!("Failed to write pack file: {:?}", e);
-        return format!("0019ng unpack error {}\n0000", e).into_bytes();
+        return (format!("0019ng unpack error {}\n0000", e).into_bytes(), updates);
     }
 
     if let Some(idx_data) = create_pack_index(pack_data) {
@@ -107,7 +107,7 @@ pub async fn handle_receive_pack(store: &R2GitStore, body: &[u8]) -> Vec<u8> {
     }
     response.push_str("0000");
 
-    response.into_bytes()
+    (response.into_bytes(), updates)
 }
 
 async fn collect_reachable_objects(store: &R2GitStore, oids: &[String]) -> Vec<String> {

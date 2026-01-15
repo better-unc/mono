@@ -97,9 +97,7 @@ function RepoPage() {
               <BookOpen className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium">README.md</span>
             </div>
-            <div className="p-6 md:p-8 markdown-body">
-              <ReadmeContent username={username} repoName={repoName} readmeOid={readmeOid} />
-            </div>
+            <ReadmeContent username={username} repoName={repoName} readmeOid={readmeOid} />
           </div>
         ) : null}
       </div>

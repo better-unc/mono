@@ -15,7 +15,7 @@ use uuid::Uuid;
 use crate::{
     auth::{require_auth, AuthUser},
     git::{
-        handler::{get_blob_by_oid, get_commits, get_file, get_tree, list_branches},
+        handler::{get_blob_by_oid, get_commits, get_commit_by_oid, get_file, get_tree, list_branches, count_commits_until, CommitAuthor, CommitInfo, TreeEntry},
         objects::R2GitStore,
         pack::{handle_receive_pack, handle_upload_pack},
         refs::get_refs_advertisement,
@@ -49,6 +49,31 @@ struct RepoWithUserRow {
     username: String,
     user_name: String,
     avatar_url: Option<String>,
+}
+
+#[derive(FromRow)]
+struct RepoBranchMetadataRow {
+    head_oid: String,
+    commit_count: i64,
+    last_commit_oid: String,
+    last_commit_message: String,
+    last_commit_author_name: String,
+    last_commit_author_email: String,
+    last_commit_timestamp: NaiveDateTime,
+    readme_oid: Option<String>,
+    root_tree: Option<serde_json::Value>,
+}
+
+struct BranchMetadata {
+    head_oid: String,
+    commit_count: i64,
+    last_commit_oid: String,
+    last_commit_message: String,
+    last_commit_author_name: String,
+    last_commit_author_email: String,
+    last_commit_timestamp: NaiveDateTime,
+    readme_oid: Option<String>,
+    root_tree: serde_json::Value,
 }
 
 #[derive(Deserialize)]
@@ -261,6 +286,175 @@ async fn get_users_by_emails(
     Ok(users.into_iter().map(|u| (u.email.clone(), u)).collect())
 }
 
+async fn get_repo_branch_metadata(
+    db: &crate::db::Database,
+    repo_id: Uuid,
+    branch: &str,
+) -> Option<RepoBranchMetadataRow> {
+    sqlx::query_as::<_, RepoBranchMetadataRow>(
+        r#"
+        SELECT head_oid, commit_count, last_commit_oid, last_commit_message,
+               last_commit_author_name, last_commit_author_email, last_commit_timestamp,
+               readme_oid, root_tree
+        FROM repo_branch_metadata
+        WHERE repo_id = $1 AND branch = $2
+        "#
+    )
+    .bind(repo_id)
+    .bind(branch)
+    .fetch_optional(&db.pool)
+    .await
+    .ok()
+    .flatten()
+}
+
+async fn upsert_repo_branch_metadata(
+    db: &crate::db::Database,
+    repo_id: Uuid,
+    branch: &str,
+    metadata: BranchMetadata,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"
+        INSERT INTO repo_branch_metadata (
+            repo_id, branch, head_oid, commit_count,
+            last_commit_oid, last_commit_message, last_commit_author_name, last_commit_author_email,
+            last_commit_timestamp, readme_oid, root_tree
+        )
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+        ON CONFLICT (repo_id, branch) DO UPDATE SET
+            head_oid = EXCLUDED.head_oid,
+            commit_count = EXCLUDED.commit_count,
+            last_commit_oid = EXCLUDED.last_commit_oid,
+            last_commit_message = EXCLUDED.last_commit_message,
+            last_commit_author_name = EXCLUDED.last_commit_author_name,
+            last_commit_author_email = EXCLUDED.last_commit_author_email,
+            last_commit_timestamp = EXCLUDED.last_commit_timestamp,
+            readme_oid = EXCLUDED.readme_oid,
+            root_tree = EXCLUDED.root_tree,
+            updated_at = NOW()
+        "#
+    )
+    .bind(repo_id)
+    .bind(branch)
+    .bind(&metadata.head_oid)
+    .bind(metadata.commit_count)
+    .bind(&metadata.last_commit_oid)
+    .bind(&metadata.last_commit_message)
+    .bind(&metadata.last_commit_author_name)
+    .bind(&metadata.last_commit_author_email)
+    .bind(metadata.last_commit_timestamp)
+    .bind(&metadata.readme_oid)
+    .bind(&metadata.root_tree)
+    .execute(&db.pool)
+    .await?;
+
+    Ok(())
+}
+
+async fn delete_repo_branch_metadata(
+    db: &crate::db::Database,
+    repo_id: Uuid,
+    branch: &str,
+) -> Result<(), sqlx::Error> {
+    sqlx::query("DELETE FROM repo_branch_metadata WHERE repo_id = $1 AND branch = $2")
+        .bind(repo_id)
+        .bind(branch)
+        .execute(&db.pool)
+        .await?;
+    Ok(())
+}
+
+async fn build_branch_metadata(
+    store: &R2GitStore,
+    branch: &str,
+    old_oid: &str,
+    new_oid: &str,
+    existing: Option<RepoBranchMetadataRow>,
+) -> Option<BranchMetadata> {
+    let max_steps = 200000usize;
+    let mut commit_count: Option<i64> = None;
+
+    if let Some(ref meta) = existing {
+        if meta.head_oid == old_oid && old_oid != "0".repeat(40) {
+            if let Some(increment) = count_commits_until(store, new_oid, Some(old_oid), max_steps).await {
+                commit_count = Some(meta.commit_count + increment as i64);
+            }
+        }
+    }
+
+    if commit_count.is_none() {
+        if let Some(total) = count_commits_until(store, new_oid, None, max_steps).await {
+            commit_count = Some(total as i64);
+        } else {
+            commit_count = Some(0);
+        }
+    }
+
+    let (commit, _parent) = get_commit_by_oid(store, new_oid).await?;
+    let last_commit_timestamp = chrono::DateTime::<chrono::Utc>::from_timestamp_millis(commit.timestamp)
+    .map(|dt| dt.naive_utc())
+    .unwrap_or_else(|| chrono::DateTime::<chrono::Utc>::from_timestamp(0, 0).unwrap().naive_utc());
+
+    let entries = get_tree(store, branch, "").await.unwrap_or_default();
+    let readme_oid = entries.iter().find_map(|f| {
+        if f.entry_type == "blob" && f.name.to_lowercase() == "readme.md" {
+            Some(f.oid.clone())
+        } else {
+            None
+        }
+    });
+    let root_tree = serde_json::to_value(&entries).ok()?;
+
+    Some(BranchMetadata {
+        head_oid: new_oid.to_string(),
+        commit_count: commit_count.unwrap_or(0),
+        last_commit_oid: commit.oid,
+        last_commit_message: commit.message,
+        last_commit_author_name: commit.author.name,
+        last_commit_author_email: commit.author.email,
+        last_commit_timestamp,
+        readme_oid,
+        root_tree,
+    })
+}
+
+async fn update_metadata_for_updates(
+    state: &AppState,
+    repo_id: Uuid,
+    store: &R2GitStore,
+    updates: &[(String, String, String)],
+) {
+    let zero_oid = "0".repeat(40);
+
+    for (old_oid, new_oid, ref_name) in updates {
+        let branch = if ref_name.starts_with("refs/heads/") {
+            Some(ref_name.trim_start_matches("refs/heads/").to_string())
+        } else if ref_name.starts_with("refs/") {
+            None
+        } else {
+            Some(ref_name.to_string())
+        };
+
+        let Some(branch) = branch else { continue };
+
+        if new_oid == &zero_oid {
+            if let Err(err) = delete_repo_branch_metadata(&state.db, repo_id, &branch).await {
+                tracing::warn!("metadata delete failed {}", err);
+            }
+            continue;
+        }
+
+        let existing = get_repo_branch_metadata(&state.db, repo_id, &branch).await;
+        let metadata = build_branch_metadata(store, &branch, old_oid, new_oid, existing).await;
+        if let Some(metadata) = metadata {
+            if let Err(err) = upsert_repo_branch_metadata(&state.db, repo_id, &branch, metadata).await {
+                tracing::warn!("metadata upsert failed {}", err);
+            }
+        }
+    }
+}
+
 async fn get_commits_route(
     State(state): State<AppState>,
     Extension(auth): Extension<AuthUser>,
@@ -278,6 +472,38 @@ async fn get_commits_route(
     let branch = query.branch.as_deref().unwrap_or("main");
     let limit = query.limit.unwrap_or(30) as usize;
     let skip = query.skip.unwrap_or(0) as usize;
+
+    if limit == 1 && skip == 0 {
+        if let Some(meta) = get_repo_branch_metadata(&state.db, repo.id, branch).await {
+            let timestamp = meta.last_commit_timestamp.and_utc().timestamp_millis();
+            let mut commit = CommitInfo {
+                oid: meta.last_commit_oid,
+                message: meta.last_commit_message,
+                author: CommitAuthor {
+                    name: meta.last_commit_author_name,
+                    email: meta.last_commit_author_email,
+                    username: None,
+                    userId: None,
+                    avatarUrl: None,
+                },
+                timestamp,
+            };
+
+            let emails = vec![commit.author.email.clone()];
+            let user_map = get_users_by_emails(&state.db, &emails).await.unwrap_or_default();
+            if let Some(user) = user_map.get(&commit.author.email) {
+                commit.author.username = Some(user.username.clone());
+                commit.author.userId = Some(user.id.clone());
+                commit.author.avatarUrl = user.avatar_url.clone();
+            }
+
+            let has_more = meta.commit_count > 1;
+            return Ok(Json(serde_json::json!({
+                "commits": vec![commit],
+                "hasMore": has_more,
+            })));
+        }
+    }
 
     let (mut commits, has_more) = get_commits(&store, branch, limit, skip).await;
 
@@ -313,6 +539,9 @@ async fn get_commit_count(
     }
 
     let branch = query.branch.as_deref().unwrap_or("main");
+    if let Some(meta) = get_repo_branch_metadata(&state.db, repo.id, branch).await {
+        return Ok(Json(serde_json::json!({ "count": meta.commit_count })));
+    }
     let (commits, _) = get_commits(&store, branch, 10000, 0).await;
 
     Ok(Json(serde_json::json!({ "count": commits.len() })))
@@ -334,6 +563,19 @@ async fn get_tree_route(
 
     let branch = query.branch.as_deref().unwrap_or("main");
     let path = query.path.as_deref().unwrap_or("");
+
+    if path.is_empty() {
+        if let Some(meta) = get_repo_branch_metadata(&state.db, repo.id, branch).await {
+            if let Some(root_tree) = meta.root_tree {
+                if let Ok(entries) = serde_json::from_value::<Vec<TreeEntry>>(root_tree) {
+                    return Ok(Json(serde_json::json!({
+                        "files": entries,
+                        "isEmpty": entries.is_empty(),
+                    })));
+                }
+            }
+        }
+    }
 
     let files = get_tree(&store, branch, path).await;
 
@@ -366,6 +608,9 @@ async fn get_readme_oid(
     }
 
     let branch = query.branch.as_deref().unwrap_or("main");
+    if let Some(meta) = get_repo_branch_metadata(&state.db, repo.id, branch).await {
+        return Ok(Json(serde_json::json!({ "readmeOid": meta.readme_oid })));
+    }
     let files = get_tree(&store, branch, "").await;
 
     let readme_oid = files.and_then(|entries| {
@@ -620,7 +865,10 @@ async fn receive_pack(
         return Ok(unauthorized_basic());
     }
 
-    let response = handle_receive_pack(&store, &body).await;
+    let (response, updates) = handle_receive_pack(&store, &body).await;
+    if !updates.is_empty() {
+        update_metadata_for_updates(&state, repo.id, &store, &updates).await;
+    }
 
     Ok(Response::builder()
         .status(StatusCode::OK)
