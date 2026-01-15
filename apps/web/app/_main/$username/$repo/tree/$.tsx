@@ -27,10 +27,6 @@ function TreeSkeleton() {
 function PageSkeleton() {
   return (
     <div className="container px-4 py-6">
-      <div className="flex items-center gap-2 mb-6">
-        <div className="h-8 w-32 bg-muted animate-pulse" />
-        <div className="h-8 w-32 bg-muted animate-pulse" />
-      </div>
       <div className="border border-border overflow-hidden">
         <div className="h-12 bg-card border-b border-border" />
         <TreeSkeleton />
