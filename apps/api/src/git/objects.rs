@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::io::Read;
+use sha1::{Digest, Sha1};
 use crate::s3::S3Client;
 
 pub struct R2GitStore {
@@ -9,6 +10,7 @@ pub struct R2GitStore {
     pack_list_cache: tokio::sync::RwLock<Option<Vec<String>>>,
     idx_cache: tokio::sync::RwLock<HashMap<String, Vec<u8>>>,
     pack_cache: tokio::sync::RwLock<HashMap<String, Vec<u8>>>,
+    pack_object_cache: tokio::sync::RwLock<HashMap<String, HashMap<String, Vec<u8>>>>,
 }
 
 impl R2GitStore {
@@ -20,6 +22,7 @@ impl R2GitStore {
             pack_list_cache: tokio::sync::RwLock::new(None),
             idx_cache: tokio::sync::RwLock::new(HashMap::new()),
             pack_cache: tokio::sync::RwLock::new(HashMap::new()),
+            pack_object_cache: tokio::sync::RwLock::new(HashMap::new()),
         }
     }
     
@@ -160,11 +163,34 @@ impl R2GitStore {
                         }
                     }
                 }
+            } else {
+                let pack_path = idx_path.replace(".idx", ".pack");
+                if let Some(cached) = self.get_cached_pack_object(&pack_path, oid).await {
+                    return Some(cached);
+                }
+                let pack_data = match self.get_pack_data(&pack_path).await {
+                    Some(data) => data,
+                    None => continue,
+                };
+                if let Some(map) = build_pack_object_map(&pack_data) {
+                    let obj = map.get(oid).cloned();
+                    let mut cache = self.pack_object_cache.write().await;
+                    cache.insert(pack_path.clone(), map);
+                    if let Some(found) = obj {
+                        return Some(found);
+                    }
+                }
             }
         }
         
         tracing::warn!("Object {} not found in any pack", oid);
         None
+    }
+
+    async fn get_cached_pack_object(&self, pack_path: &str, oid: &str) -> Option<Vec<u8>> {
+        let cache = self.pack_object_cache.read().await;
+        let pack_map = cache.get(pack_path)?;
+        pack_map.get(oid).cloned()
     }
 
     async fn resolve_ref_delta(&self, pack_data: &[u8], header_end: usize) -> Option<Vec<u8>> {
@@ -840,9 +866,166 @@ fn decompress_zlib(data: &[u8]) -> Option<Vec<u8>> {
     Some(result)
 }
 
+fn decompress_zlib_with_len(data: &[u8]) -> Option<(Vec<u8>, usize)> {
+    let mut decoder = flate2::read::ZlibDecoder::new(data);
+    let mut result = Vec::new();
+    decoder.read_to_end(&mut result).ok()?;
+    let consumed = decoder.total_in() as usize;
+    Some((result, consumed))
+}
+
 fn compress_zlib(data: &[u8]) -> Option<Vec<u8>> {
     use std::io::Write;
     let mut encoder = flate2::write::ZlibEncoder::new(Vec::new(), flate2::Compression::default());
     encoder.write_all(data).ok()?;
     encoder.finish().ok()
+}
+
+#[derive(Clone)]
+struct PendingDelta {
+    base_oid: Option<String>,
+    base_offset: Option<u64>,
+    delta: Vec<u8>,
+    offset: u64,
+}
+
+fn build_pack_object_map(pack_data: &[u8]) -> Option<HashMap<String, Vec<u8>>> {
+    if pack_data.len() < 12 {
+        return None;
+    }
+    if &pack_data[0..4] != b"PACK" {
+        return None;
+    }
+    let version = u32::from_be_bytes([pack_data[4], pack_data[5], pack_data[6], pack_data[7]]);
+    if version != 2 && version != 3 {
+        return None;
+    }
+    let count = u32::from_be_bytes([pack_data[8], pack_data[9], pack_data[10], pack_data[11]]) as usize;
+    let mut pos = 12usize;
+    let mut resolved_by_offset: HashMap<u64, (String, Vec<u8>, String)> = HashMap::new();
+    let mut resolved_by_oid: HashMap<String, (String, Vec<u8>)> = HashMap::new();
+    let mut result: HashMap<String, Vec<u8>> = HashMap::new();
+    let mut pending: Vec<PendingDelta> = Vec::new();
+
+    for _ in 0..count {
+        if pos >= pack_data.len() {
+            break;
+        }
+        let offset = pos as u64;
+        let (obj_type, _size, header_end) = read_pack_object_header(pack_data, offset)?;
+        pos = header_end;
+
+        match obj_type {
+            1 | 2 | 3 | 4 => {
+                let (content, consumed) = decompress_zlib_with_len(&pack_data[pos..])?;
+                pos += consumed;
+                let type_str = match obj_type {
+                    1 => "commit",
+                    2 => "tree",
+                    3 => "blob",
+                    4 => "tag",
+                    _ => return None,
+                };
+                let oid = compute_oid(type_str, &content);
+                if let Some(compressed) = build_loose_object(type_str, &content) {
+                    result.insert(oid.clone(), compressed);
+                }
+                resolved_by_offset.insert(offset, (type_str.to_string(), content.clone(), oid.clone()));
+                resolved_by_oid.insert(oid, (type_str.to_string(), content));
+                resolve_pending(&mut pending, &mut resolved_by_offset, &mut resolved_by_oid, &mut result);
+            }
+            6 => {
+                let (base_delta, bytes_read) = read_ofs_delta_offset(&pack_data[pos..])?;
+                pos += bytes_read;
+                let (delta, consumed) = decompress_zlib_with_len(&pack_data[pos..])?;
+                pos += consumed;
+                let base_offset = offset.saturating_sub(base_delta);
+                pending.push(PendingDelta {
+                    base_oid: None,
+                    base_offset: Some(base_offset),
+                    delta,
+                    offset,
+                });
+                resolve_pending(&mut pending, &mut resolved_by_offset, &mut resolved_by_oid, &mut result);
+            }
+            7 => {
+                if pos + 20 > pack_data.len() {
+                    return None;
+                }
+                let base_oid = hex::encode(&pack_data[pos..pos + 20]);
+                pos += 20;
+                let (delta, consumed) = decompress_zlib_with_len(&pack_data[pos..])?;
+                pos += consumed;
+                pending.push(PendingDelta {
+                    base_oid: Some(base_oid),
+                    base_offset: None,
+                    delta,
+                    offset,
+                });
+                resolve_pending(&mut pending, &mut resolved_by_offset, &mut resolved_by_oid, &mut result);
+            }
+            _ => return None,
+        }
+    }
+
+    resolve_pending(&mut pending, &mut resolved_by_offset, &mut resolved_by_oid, &mut result);
+    Some(result)
+}
+
+fn resolve_pending(
+    pending: &mut Vec<PendingDelta>,
+    resolved_by_offset: &mut HashMap<u64, (String, Vec<u8>, String)>,
+    resolved_by_oid: &mut HashMap<String, (String, Vec<u8>)>,
+    result: &mut HashMap<String, Vec<u8>>,
+) {
+    loop {
+        let mut progress = false;
+        let mut i = 0;
+        while i < pending.len() {
+            let base = if let Some(ref oid) = pending[i].base_oid {
+                resolved_by_oid.get(oid).map(|(t, c)| (t.clone(), c.clone()))
+            } else if let Some(offset) = pending[i].base_offset {
+                resolved_by_offset.get(&offset).map(|(t, c, _)| (t.clone(), c.clone()))
+            } else {
+                None
+            };
+
+            if let Some((base_type, base_content)) = base {
+                if let Some(new_content) = apply_delta(&base_content, &pending[i].delta) {
+                    let oid = compute_oid(&base_type, &new_content);
+                    if let Some(compressed) = build_loose_object(&base_type, &new_content) {
+                        result.insert(oid.clone(), compressed);
+                    }
+                    resolved_by_offset.insert(pending[i].offset, (base_type.clone(), new_content.clone(), oid.clone()));
+                    resolved_by_oid.insert(oid, (base_type, new_content));
+                    pending.remove(i);
+                    progress = true;
+                    continue;
+                } else {
+                    pending.remove(i);
+                    progress = true;
+                    continue;
+                }
+            }
+            i += 1;
+        }
+        if !progress {
+            break;
+        }
+    }
+}
+
+fn compute_oid(obj_type: &str, content: &[u8]) -> String {
+    let header = format!("{} {}\0", obj_type, content.len());
+    let mut hasher = Sha1::new();
+    hasher.update(header.as_bytes());
+    hasher.update(content);
+    hex::encode(hasher.finalize())
+}
+
+fn build_loose_object(obj_type: &str, content: &[u8]) -> Option<Vec<u8>> {
+    let header = format!("{} {}\0", obj_type, content.len());
+    let mut data = header.into_bytes();
+    data.extend_from_slice(content);
+    compress_zlib(&data)
 }

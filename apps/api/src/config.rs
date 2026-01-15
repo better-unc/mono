@@ -7,6 +7,8 @@ pub struct Config {
     pub r2_access_key_id: String,
     pub r2_secret_access_key: String,
     pub r2_bucket_name: String,
+    pub internal_auth_url: String,
+    pub internal_auth_secret: String,
 }
 
 impl Config {
@@ -26,6 +28,10 @@ impl Config {
                 .expect("R2_SECRET_ACCESS_KEY must be set"),
             r2_bucket_name: env::var("R2_BUCKET_NAME")
                 .expect("R2_BUCKET_NAME must be set"),
+            internal_auth_url: env::var("INTERNAL_AUTH_URL")
+                .expect("INTERNAL_AUTH_URL must be set"),
+            internal_auth_secret: env::var("BETTER_AUTH_SECRET")
+                .expect("BETTER_AUTH_SECRET must be set"),
         }
     }
 }

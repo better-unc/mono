@@ -44,6 +44,8 @@ DATABASE_URL=postgresql://postgres:password@localhost:5432/gitbruv
 BETTER_AUTH_SECRET=your-secret-key-here-at-least-32-characters
 BETTER_AUTH_URL=http://localhost:3000
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+INTERNAL_AUTH_URL=http://localhost:3000/api/auth/verify-credentials
+BETTER_AUTH_SECRET=your-internal-auth-secret
 
 # Cloudflare R2 Configuration
 R2_ACCOUNT_ID=your-cloudflare-account-id

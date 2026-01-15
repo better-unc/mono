@@ -33,3 +33,5 @@ flate2 = "1"
 bcrypt = "0.17"
 regex = "1"
 dashmap = "5.5"
+base64 = "0.22"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }

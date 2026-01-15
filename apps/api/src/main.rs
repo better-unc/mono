@@ -6,6 +6,7 @@ mod git;
 mod routes;
 
 use std::sync::Arc;
+use std::time::Duration;
 use axum::{middleware, Router};
 use axum::http::Method;
 use tower_http::cors::CorsLayer;
@@ -15,7 +16,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use crate::config::Config;
 use crate::db::Database;
 use crate::s3::S3Client;
-use crate::auth::{auth_middleware, SessionCache};
+use crate::auth::{auth_middleware, SessionCache, BasicAuthCache};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -23,6 +24,8 @@ pub struct AppState {
     pub s3: S3Client,
     pub config: Arc<Config>,
     pub session_cache: SessionCache,
+    pub http_client: reqwest::Client,
+    pub basic_auth_cache: BasicAuthCache,
 }
 
 #[tokio::main]
@@ -40,12 +43,19 @@ async fn main() {
     let db = Database::connect(&config.database_url).await;
     let s3 = S3Client::new(&config).await;
     let session_cache = SessionCache::new();
+    let http_client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .build()
+        .unwrap();
+    let basic_auth_cache = BasicAuthCache::new(Duration::from_secs(60));
 
     let state = AppState { 
         db, 
         s3, 
         config: config.clone(),
         session_cache,
+        http_client,
+        basic_auth_cache,
     };
 
     let cors = CorsLayer::new()

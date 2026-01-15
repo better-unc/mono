@@ -546,9 +546,12 @@ async fn info_refs(
     let (repo, store, _) = get_repo_and_store(&state, &owner, &name).await?;
 
     if service == "git-receive-pack" {
-        let user = require_auth(&auth).map_err(|e| (e.0, e.1.to_string()))?;
+        let user = match require_auth(&auth) {
+            Ok(user) => user,
+            Err(_) => return Ok(unauthorized_basic()),
+        };
         if user.id != repo.owner_id {
-            return Err((StatusCode::UNAUTHORIZED, "Unauthorized".to_string()));
+            return Ok(unauthorized_basic());
         }
     } else if repo.visibility == "private" {
         let user = require_auth(&auth).map_err(|e| (e.0, e.1.to_string()))?;
@@ -609,9 +612,12 @@ async fn receive_pack(
 ) -> Result<Response, (StatusCode, String)> {
     let (repo, store, _) = get_repo_and_store(&state, &owner, &name).await?;
 
-    let user = require_auth(&auth).map_err(|e| (e.0, e.1.to_string()))?;
+    let user = match require_auth(&auth) {
+        Ok(user) => user,
+        Err(_) => return Ok(unauthorized_basic()),
+    };
     if user.id != repo.owner_id {
-        return Err((StatusCode::UNAUTHORIZED, "Unauthorized".to_string()));
+        return Ok(unauthorized_basic());
     }
 
     let response = handle_receive_pack(&store, &body).await;
@@ -622,6 +628,14 @@ async fn receive_pack(
         .header(header::CACHE_CONTROL, "no-cache")
         .body(Body::from(response))
         .unwrap())
+}
+
+fn unauthorized_basic() -> Response {
+    Response::builder()
+        .status(StatusCode::UNAUTHORIZED)
+        .header(header::WWW_AUTHENTICATE, "Basic realm=\"gitbruv\"")
+        .body(Body::from("Unauthorized"))
+        .unwrap()
 }
 
 pub fn router() -> Router<AppState> {

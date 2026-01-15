@@ -1,6 +1,6 @@
 import { eq, and } from "drizzle-orm";
 import { users, accounts, repositories, type Database } from "@gitbruv/db";
-import type { AuthenticatedUser, Credentials, AuthResult } from "./types";
+import type { Credentials, AuthResult } from "./types";
 import { verifyPassword } from "./password";
 
 export async function getUserByEmail(db: Database, email: string) {
@@ -28,8 +28,7 @@ export async function getCredentialAccount(db: Database, userId: string) {
 }
 
 export async function verifyCredentials(db: Database, credentials: Credentials): Promise<AuthResult> {
-  const user =
-    (await getUserByEmail(db, credentials.identifier)) || (await getUserByUsername(db, credentials.identifier));
+  const user = (await getUserByEmail(db, credentials.identifier)) || (await getUserByUsername(db, credentials.identifier));
 
   if (!user) {
     return { success: false, user: null, error: "User not found" };

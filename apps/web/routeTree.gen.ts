@@ -22,6 +22,7 @@ import { Route as AuthRegisterRouteImport } from './app/_auth/register'
 import { Route as AuthLoginRouteImport } from './app/_auth/login'
 import { Route as MainUsernameIndexRouteImport } from './app/_main/$username/index'
 import { Route as ApiAvatarSplatRouteImport } from './app/api/avatar/$'
+import { Route as ApiAuthVerifyCredentialsRouteImport } from './app/api/auth/verify-credentials'
 import { Route as ApiAuthSplatRouteImport } from './app/api/auth/$'
 import { Route as MainUsernameRepoRouteImport } from './app/_main/$username/$repo'
 import { Route as MainUsernameRepoIndexRouteImport } from './app/_main/$username/$repo/index'
@@ -94,6 +95,12 @@ const ApiAvatarSplatRoute = ApiAvatarSplatRouteImport.update({
   path: '/api/avatar/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAuthVerifyCredentialsRoute =
+  ApiAuthVerifyCredentialsRouteImport.update({
+    id: '/api/auth/verify-credentials',
+    path: '/api/auth/verify-credentials',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -151,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/': typeof MainIndexRoute
   '/$username/$repo': typeof MainUsernameRepoRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/auth/verify-credentials': typeof ApiAuthVerifyCredentialsRoute
   '/api/avatar/$': typeof ApiAvatarSplatRoute
   '/$username/': typeof MainUsernameIndexRoute
   '/$username/$repo/commits': typeof MainUsernameRepoCommitsRouteWithChildren
@@ -170,6 +178,7 @@ export interface FileRoutesByTo {
   '/api/$': typeof ApiSplatRoute
   '/': typeof MainIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/auth/verify-credentials': typeof ApiAuthVerifyCredentialsRoute
   '/api/avatar/$': typeof ApiAvatarSplatRoute
   '/$username': typeof MainUsernameIndexRoute
   '/$username/$repo/commits': typeof MainUsernameRepoCommitsRouteWithChildren
@@ -194,6 +203,7 @@ export interface FileRoutesById {
   '/_main/': typeof MainIndexRoute
   '/_main/$username/$repo': typeof MainUsernameRepoRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/auth/verify-credentials': typeof ApiAuthVerifyCredentialsRoute
   '/api/avatar/$': typeof ApiAvatarSplatRoute
   '/_main/$username/': typeof MainUsernameIndexRoute
   '/_main/$username/$repo/commits': typeof MainUsernameRepoCommitsRouteWithChildren
@@ -217,6 +227,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$username/$repo'
     | '/api/auth/$'
+    | '/api/auth/verify-credentials'
     | '/api/avatar/$'
     | '/$username/'
     | '/$username/$repo/commits'
@@ -236,6 +247,7 @@ export interface FileRouteTypes {
     | '/api/$'
     | '/'
     | '/api/auth/$'
+    | '/api/auth/verify-credentials'
     | '/api/avatar/$'
     | '/$username'
     | '/$username/$repo/commits'
@@ -259,6 +271,7 @@ export interface FileRouteTypes {
     | '/_main/'
     | '/_main/$username/$repo'
     | '/api/auth/$'
+    | '/api/auth/verify-credentials'
     | '/api/avatar/$'
     | '/_main/$username/'
     | '/_main/$username/$repo/commits'
@@ -275,6 +288,7 @@ export interface RootRouteChildren {
   MainRoute: typeof MainRouteWithChildren
   ApiSplatRoute: typeof ApiSplatRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiAuthVerifyCredentialsRoute: typeof ApiAuthVerifyCredentialsRoute
   ApiAvatarSplatRoute: typeof ApiAvatarSplatRoute
 }
 
@@ -369,6 +383,13 @@ declare module '@tanstack/react-router' {
       path: '/api/avatar/$'
       fullPath: '/api/avatar/$'
       preLoaderRoute: typeof ApiAvatarSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/verify-credentials': {
+      id: '/api/auth/verify-credentials'
+      path: '/api/auth/verify-credentials'
+      fullPath: '/api/auth/verify-credentials'
+      preLoaderRoute: typeof ApiAuthVerifyCredentialsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -513,6 +534,7 @@ const rootRouteChildren: RootRouteChildren = {
   MainRoute: MainRouteWithChildren,
   ApiSplatRoute: ApiSplatRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiAuthVerifyCredentialsRoute: ApiAuthVerifyCredentialsRoute,
   ApiAvatarSplatRoute: ApiAvatarSplatRoute,
 }
 export const routeTree = rootRouteImport
