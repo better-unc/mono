@@ -257,8 +257,12 @@ function ReadmeContent({ username, repoName, readmeOid }: { username: string; re
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      <div className="p-6 md:p-8 space-y-3 animate-pulse">
+        <div className="h-6 w-3/4 bg-secondary/50" />
+        <div className="h-4 w-full bg-secondary/50" />
+        <div className="h-4 w-5/6 bg-secondary/50" />
+        <div className="h-4 w-4/5 bg-secondary/50" />
+        <div className="h-4 w-full bg-secondary/50" />
       </div>
     );
   }

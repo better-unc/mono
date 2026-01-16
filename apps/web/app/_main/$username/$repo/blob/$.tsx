@@ -41,8 +41,12 @@ function getLanguage(filename: string): string {
 
 function CodeSkeleton() {
   return (
-    <div className="p-4 min-h-[400px] flex items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+    <div className="p-6 md:p-8 space-y-3">
+      <div className="h-6 w-3/4 bg-secondary/50" />
+      <div className="h-4 w-full bg-secondary/50" />
+      <div className="h-4 w-5/6 bg-secondary/50" />
+      <div className="h-4 w-4/5 bg-secondary/50" />
+      <div className="h-4 w-full bg-secondary/50" />
     </div>
   );
 }
