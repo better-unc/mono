@@ -372,9 +372,11 @@ async fn build_branch_metadata(
     new_oid: &str,
     existing: Option<RepoBranchMetadataRow>,
 ) -> Option<BranchMetadata> {
+    let overall_start = std::time::Instant::now();
     let max_steps = 200000usize;
     let mut commit_count: Option<i64> = None;
 
+    let commit_count_start = std::time::Instant::now();
     if let Some(ref meta) = existing {
         if meta.head_oid == old_oid && old_oid != "0".repeat(40) {
             if let Some(increment) = count_commits_until(store, new_oid, Some(old_oid), max_steps).await {
@@ -390,13 +392,45 @@ async fn build_branch_metadata(
             commit_count = Some(0);
         }
     }
+    tracing::info!(
+        "metadata commit_count={} elapsed_ms={}",
+        commit_count.unwrap_or(0),
+        commit_count_start.elapsed().as_millis()
+    );
 
+    let commit_start = std::time::Instant::now();
     let (commit, _parent) = get_commit_by_oid(store, new_oid).await?;
     let last_commit_timestamp = chrono::DateTime::<chrono::Utc>::from_timestamp_millis(commit.timestamp)
     .map(|dt| dt.naive_utc())
     .unwrap_or_else(|| chrono::DateTime::<chrono::Utc>::from_timestamp(0, 0).unwrap().naive_utc());
+    tracing::info!(
+        "metadata last_commit_oid={} elapsed_ms={}",
+        commit.oid,
+        commit_start.elapsed().as_millis()
+    );
 
-    let entries = get_tree(store, branch, "").await.unwrap_or_default();
+    let skip_root_tree = std::env::var("GITBRUV_SKIP_ROOT_TREE")
+        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+        .unwrap_or(false);
+    let root_tree_timeout_ms = std::env::var("GITBRUV_ROOT_TREE_TIMEOUT_MS")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok());
+    let tree_start = std::time::Instant::now();
+    let entries = if skip_root_tree {
+        Vec::new()
+    } else if let Some(timeout_ms) = root_tree_timeout_ms {
+        match tokio::time::timeout(std::time::Duration::from_millis(timeout_ms), get_tree(store, branch, "")).await {
+            Ok(entries) => entries.unwrap_or_default(),
+            Err(_) => Vec::new(),
+        }
+    } else {
+        get_tree(store, branch, "").await.unwrap_or_default()
+    };
+    tracing::info!(
+        "metadata root_tree_entries={} elapsed_ms={}",
+        entries.len(),
+        tree_start.elapsed().as_millis()
+    );
     let readme_oid = entries.iter().find_map(|f| {
         if f.entry_type == "blob" && f.name.to_lowercase() == "readme.md" {
             Some(f.oid.clone())
@@ -404,8 +438,21 @@ async fn build_branch_metadata(
             None
         }
     });
+    let root_tree_start = std::time::Instant::now();
     let root_tree = serde_json::to_value(&entries).ok()?;
+    tracing::info!(
+        "metadata root_tree_json_bytes={} elapsed_ms={}",
+        root_tree.to_string().len(),
+        root_tree_start.elapsed().as_millis()
+    );
 
+    tracing::info!(
+        "metadata branch={} old_oid={} new_oid={} total_elapsed_ms={}",
+        branch,
+        old_oid,
+        new_oid,
+        overall_start.elapsed().as_millis()
+    );
     Some(BranchMetadata {
         head_oid: new_oid.to_string(),
         commit_count: commit_count.unwrap_or(0),
