@@ -212,11 +212,13 @@ async fn delete_account(
 
     for repo in repos {
         let repo_prefix = S3Client::get_repo_prefix(&user.id, &repo.name);
-        let _ = state.s3.delete_prefix(&repo_prefix).await;
+        state.s3.delete_prefix(&repo_prefix).await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to delete repository storage: {}", e)))?;
     }
 
     let avatar_prefix = format!("avatars/{}", user.id);
-    let _ = state.s3.delete_prefix(&avatar_prefix).await;
+    state.s3.delete_prefix(&avatar_prefix).await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to delete avatar storage: {}", e)))?;
 
     sqlx::query("DELETE FROM users WHERE id = $1")
         .bind(&user.id)

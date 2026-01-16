@@ -309,7 +309,8 @@ async fn delete_repository(
     }
 
     let repo_prefix = S3Client::get_repo_prefix(&user.id, &repo.name);
-    let _ = state.s3.delete_prefix(&repo_prefix).await;
+    state.s3.delete_prefix(&repo_prefix).await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to delete repository storage: {}", e)))?;
 
     sqlx::query("DELETE FROM repositories WHERE id = $1")
         .bind(id)
