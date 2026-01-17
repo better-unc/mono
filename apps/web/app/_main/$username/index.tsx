@@ -145,7 +145,7 @@ function ProfilePage() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-12">
       <div className="flex flex-col lg:flex-row gap-12 items-start">
-        <aside className="lg:w-72 shrink-0 space-y-6">
+        <aside className="lg:w-72 shrink-0 space-y-3">
           <Avatar className="lg:w-64 lg:h-64 w-40 h-40 border-none after:border-none rounded-none">
             <AvatarImage src={user.avatarUrl || undefined} className="object-cover rounded-none border-none" />
             <AvatarFallback className="bg-muted text-muted-foreground font-semibold rounded-none">{user.name.charAt(0).toUpperCase()}</AvatarFallback>
