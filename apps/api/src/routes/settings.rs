@@ -1,7 +1,7 @@
 use axum::{
     extract::{Multipart, State},
     http::StatusCode,
-    routing::{get, patch, post},
+    routing::{delete, get, patch, post},
     Extension, Json, Router,
 };
 use serde::{Deserialize, Serialize};
@@ -417,6 +417,44 @@ async fn upload_avatar(
     Err(json_error(StatusCode::BAD_REQUEST, "No avatar file provided"))
 }
 
+async fn delete_avatar(
+    State(state): State<AppState>,
+    Extension(auth): Extension<AuthUser>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let user = require_auth(&auth).map_err(|e| json_error(e.0, e.1))?;
+    let existing_avatar: Option<String> = sqlx::query_scalar(
+        "SELECT avatar_url FROM users WHERE id = $1"
+    )
+    .bind(&user.id)
+    .fetch_optional(&state.db.pool)
+    .await
+    .map_err(|e| json_error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+    .flatten();
+
+    if let Some(current_url) = existing_avatar.as_ref() {
+        let without_query = current_url.split('?').next().unwrap_or(current_url);
+        let filename = without_query.trim_start_matches("/api/avatar/");
+        if !filename.is_empty() {
+            let old_key = format!("avatars/{}", filename);
+            state.s3
+                .delete_object(&old_key)
+                .await
+                .map_err(|e| json_error(StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to delete avatar: {}", e)))?;
+        }
+    }
+
+    sqlx::query("UPDATE users SET avatar_url = NULL, updated_at = NOW() WHERE id = $1")
+        .bind(&user.id)
+        .execute(&state.db.pool)
+        .await
+        .map_err(|e| json_error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(Json(serde_json::json!({
+        "success": true,
+        "avatarUrl": null
+    })))
+}
+
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/api/settings", get(get_settings))
@@ -426,6 +464,7 @@ pub fn router() -> Router<AppState> {
         .route("/api/settings/word-wrap", patch(update_word_wrap))
         .route("/api/settings/email", patch(update_email))
         .route("/api/settings/avatar", post(upload_avatar))
+        .route("/api/settings/avatar", delete(delete_avatar))
         .route("/api/settings/social-links", patch(update_social_links))
         .route("/api/settings/password", patch(update_password))
         .route("/api/settings/account", axum::routing::delete(delete_account))
