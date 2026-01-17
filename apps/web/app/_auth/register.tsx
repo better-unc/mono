@@ -61,7 +61,7 @@ function RegisterPage() {
 
   return (
     <div className="w-full">
-      <div className="border border-border bg-card/80 backdrop-blur-sm p-8">
+      <div className="border border-border bg-card/80 p-8">
         <div className="text-center mb-8">
           <h1 className="text-xl font-semibold">Create your account</h1>
         </div>

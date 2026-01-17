@@ -19,11 +19,7 @@ function LoginPage() {
   const [password, setPassword] = useState("");
 
   useEffect(() => {
-    if (
-      typeof window !== "undefined" &&
-      PublicKeyCredential.isConditionalMediationAvailable &&
-      PublicKeyCredential.isConditionalMediationAvailable()
-    ) {
+    if (typeof window !== "undefined" && PublicKeyCredential.isConditionalMediationAvailable && PublicKeyCredential.isConditionalMediationAvailable()) {
       void authClient.signIn.passkey({ autoFill: true });
     }
   }, []);
@@ -76,7 +72,7 @@ function LoginPage() {
 
   return (
     <div className="w-full">
-      <div className="border border-border bg-card/80 backdrop-blur-sm p-8">
+      <div className="border border-border bg-card/80 p-8">
         <div className="text-center mb-8">
           <h1 className="text-xl font-semibold">Sign in to gitbruv</h1>
         </div>
@@ -126,13 +122,7 @@ function LoginPage() {
             <span className="bg-card px-2 text-muted-foreground">Or</span>
           </div>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handlePasskeySignIn}
-          disabled={loading || passkeyLoading}
-          className="w-full h-11"
-        >
+        <Button type="button" variant="outline" onClick={handlePasskeySignIn} disabled={loading || passkeyLoading} className="w-full h-11">
           {passkeyLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
