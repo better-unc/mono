@@ -4,10 +4,11 @@ A GitHub clone built with Next.js, featuring real Git repository support with Cl
 
 ## Tech Stack
 
-- **Framework**: Next.js 16 (App Router)
+- **Framework**: Tanstack Start
 - **Auth**: better-auth (email/password)
-- **Database**: PostgreSQL + Drizzle ORM
-- **Storage**: Cloudflare R2 (S3-compatible)
+- **Database**: Railway PostgreSQL + Drizzle ORM
+- **Storage**: Railway (S3-compatible)
+- **Hosting**: Frontend: Vercel. Backend: Railway.
 - **UI**: shadcn/ui + Tailwind CSS
 - **Data Fetching**: TanStack React Query
 - **Git**: isomorphic-git + Git HTTP Smart Protocol
