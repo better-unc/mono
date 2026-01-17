@@ -105,13 +105,13 @@ function ProfilePage() {
   const { data: user, isLoading, error } = useUserProfile(username);
   const { data: reposData } = useUserRepositories(username);
   const { data: starredData } = useUserStarredRepos(username);
-  
+
   const repoCount = reposData?.repos?.length || 0;
   const starredCount = starredData?.repos?.length || 0;
 
   if (isLoading) {
     return (
-      <div className="container max-w-7xl mx-auto px-4 py-12">
+      <div className="max-w-7xl mx-auto px-4 py-12">
         <div className="flex flex-col lg:flex-row gap-12 animate-pulse">
           <div className="lg:w-72 space-y-6">
             <div className="w-64 h-64 bg-muted" />
@@ -132,10 +132,10 @@ function ProfilePage() {
   }
 
   return (
-    <div className="container max-w-7xl mx-auto px-4 py-12">
+    <div className="max-w-7xl mx-auto px-4 py-12">
       <div className="flex flex-col lg:flex-row gap-12 items-start">
         <aside className="lg:w-72 shrink-0 space-y-6">
-          <Avatar className="w-64 h-64 border shadow-sm rounded-none">
+          <Avatar className="lg:w-64 lg:h-64 w-40 h-40 border shadow-sm rounded-none">
             <AvatarImage src={user.avatarUrl || undefined} className="object-cover rounded-none" />
             <AvatarFallback className="text-6xl bg-muted rounded-none">{user.name.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
@@ -143,9 +143,7 @@ function ProfilePage() {
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-semibold">{user.name}</h1>
-              {user.pronouns && (
-                <span className="text-sm text-muted-foreground">({user.pronouns})</span>
-              )}
+              {user.pronouns && <span className="text-sm text-muted-foreground">({user.pronouns})</span>}
             </div>
             <p className="text-base text-muted-foreground">@{user.username}</p>
           </div>
@@ -222,13 +220,7 @@ function ProfilePage() {
                 </a>
               )}
               {user.socialLinks.custom?.map((url, i) => (
-                <a
-                  key={i}
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
+                <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
                   <Link className="h-5 w-5" />
                 </a>
               ))}
@@ -236,22 +228,18 @@ function ProfilePage() {
           )}
         </aside>
 
-        <div className="flex-1 min-w-0">
+        <div className="w-full">
           <Tabs value={tab} onValueChange={(value) => setTab(value === "repositories" ? null : (value as "starred"))}>
             <TabsList variant="default" className="w-full mb-6 h-12">
               <TabsTrigger value="repositories" className="gap-2">
                 <BookOpen className="h-4 w-4" />
                 <span>Repositories</span>
-                {repoCount > 0 && (
-                  <span className="ml-1 text-xs text-muted-foreground">({repoCount})</span>
-                )}
+                {repoCount > 0 && <span className="ml-1 text-xs text-muted-foreground">({repoCount})</span>}
               </TabsTrigger>
               <TabsTrigger value="starred" className="gap-2">
                 <Star className="h-4 w-4" />
                 <span>Starred</span>
-                {starredCount > 0 && (
-                  <span className="ml-1 text-xs text-muted-foreground">({starredCount})</span>
-                )}
+                {starredCount > 0 && <span className="ml-1 text-xs text-muted-foreground">({starredCount})</span>}
               </TabsTrigger>
             </TabsList>
 

@@ -142,13 +142,45 @@ async fn get_current_user(
     }
 }
 
+fn cache_bust_avatar_url(
+    avatar_url: Option<String>,
+    updated_at: chrono::NaiveDateTime,
+) -> Option<String> {
+    avatar_url.map(|url| {
+        if url.contains("v=") {
+            url
+        } else {
+            let separator = if url.contains('?') { "&" } else { "?" };
+            format!("{url}{separator}v={}", updated_at.and_utc().timestamp_millis())
+        }
+    })
+}
+
 async fn get_current_user_summary(
+    State(state): State<AppState>,
     Extension(auth): Extension<AuthUser>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let user = require_auth(&auth).map_err(|e| (e.0, e.1.to_string()))?;
+
+    #[derive(sqlx::FromRow)]
+    struct SummaryRow {
+        name: String,
+        avatar_url: Option<String>,
+        updated_at: chrono::NaiveDateTime,
+    }
+
+    let row: SummaryRow = sqlx::query_as(
+        "SELECT name, avatar_url, updated_at FROM users WHERE id = $1"
+    )
+    .bind(&user.id)
+    .fetch_optional(&state.db.pool)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+    .ok_or((StatusCode::NOT_FOUND, "User not found".to_string()))?;
+
     Ok(Json(serde_json::json!({
-        "name": user.name,
-        "avatarUrl": user.avatar_url
+        "name": row.name,
+        "avatarUrl": cache_bust_avatar_url(row.avatar_url, row.updated_at)
     })))
 }
 
@@ -228,7 +260,7 @@ async fn get_user_profile(
         "id": row.id,
         "name": row.name,
         "username": row.username,
-        "avatarUrl": row.avatar_url,
+        "avatarUrl": cache_bust_avatar_url(row.avatar_url, row.updated_at),
         "bio": row.bio,
         "location": row.location,
         "website": row.website,
@@ -338,16 +370,17 @@ async fn get_avatar_by_username(
     #[derive(FromRow)]
     struct AvatarRow {
         avatar_url: Option<String>,
+        updated_at: chrono::NaiveDateTime,
     }
 
-    let row: Option<AvatarRow> = sqlx::query_as("SELECT avatar_url FROM users WHERE username = $1")
+    let row: Option<AvatarRow> = sqlx::query_as("SELECT avatar_url, updated_at FROM users WHERE username = $1")
         .bind(&username)
         .fetch_optional(&state.db.pool)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     Ok(Json(serde_json::json!({
-        "avatarUrl": row.and_then(|r| r.avatar_url)
+        "avatarUrl": row.and_then(|r| cache_bust_avatar_url(r.avatar_url, r.updated_at))
     })))
 }
 

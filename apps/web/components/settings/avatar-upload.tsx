@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { updateAvatar } from "@/lib/api/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Camera, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface AvatarUploadProps {
   currentAvatar?: string | null;
@@ -15,7 +16,6 @@ interface AvatarUploadProps {
 export function AvatarUpload({ currentAvatar, name }: AvatarUploadProps) {
   const queryClient = useQueryClient();
   const [preview, setPreview] = useState<string | null>(currentAvatar || null);
-  const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -24,12 +24,12 @@ export function AvatarUpload({ currentAvatar, name }: AvatarUploadProps) {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      setError("Please select an image file");
+      toast.error("Please select an image file");
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setError("Image must be less than 5MB");
+      toast.error("Image must be less than 5MB");
       return;
     }
 
@@ -39,7 +39,6 @@ export function AvatarUpload({ currentAvatar, name }: AvatarUploadProps) {
     };
     reader.readAsDataURL(file);
 
-    setError(null);
     setIsUploading(true);
 
     try {
@@ -50,7 +49,7 @@ export function AvatarUpload({ currentAvatar, name }: AvatarUploadProps) {
         queryClient.invalidateQueries({ queryKey: ["user"] });
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to upload avatar");
+      toast.error(err instanceof Error ? err.message : "Failed to upload avatar");
       setPreview(currentAvatar || null);
     } finally {
       setIsUploading(false);
@@ -78,7 +77,6 @@ export function AvatarUpload({ currentAvatar, name }: AvatarUploadProps) {
           Change Avatar
         </Button>
         <p className="text-xs text-muted-foreground">JPG, PNG or GIF. Max 5MB.</p>
-        {error && <p className="text-xs text-red-500">{error}</p>}
       </div>
     </div>
   );

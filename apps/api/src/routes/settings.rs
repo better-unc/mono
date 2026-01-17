@@ -78,10 +78,26 @@ struct RepoRow {
 }
 
 async fn get_settings(
+    State(state): State<AppState>,
     Extension(auth): Extension<AuthUser>,
-) -> Result<Json<SettingsResponse>, (StatusCode, &'static str)> {
-    let user = require_auth(&auth)?;
-    Ok(Json(SettingsResponse { user: user.clone() }))
+) -> Result<Json<SettingsResponse>, (StatusCode, String)> {
+    let user = require_auth(&auth).map_err(|e| (e.0, e.1.to_string()))?;
+    let mut fresh_user: User = sqlx::query_as(
+        r#"
+        SELECT id, name, email, username, bio, location, website, pronouns,
+               avatar_url, company, last_active_at, git_email,
+               default_repository_visibility, preferences, social_links,
+               created_at, updated_at
+        FROM users WHERE id = $1
+        "#
+    )
+    .bind(&user.id)
+    .fetch_optional(&state.db.pool)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+    .ok_or((StatusCode::NOT_FOUND, "User not found".to_string()))?;
+    fresh_user.avatar_url = cache_bust_avatar_url(fresh_user.avatar_url, fresh_user.updated_at);
+    Ok(Json(SettingsResponse { user: fresh_user }))
 }
 
 async fn update_profile(
@@ -295,14 +311,44 @@ async fn update_password(
     Ok(Json(serde_json::json!({ "success": true })))
 }
 
+fn json_error(status: StatusCode, message: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
+    (status, Json(serde_json::json!({ "error": message.into() })))
+}
+
+fn cache_bust_avatar_url(
+    avatar_url: Option<String>,
+    updated_at: chrono::NaiveDateTime,
+) -> Option<String> {
+    avatar_url.map(|url| {
+        if url.contains("v=") {
+            url
+        } else {
+            let separator = if url.contains('?') { "&" } else { "?" };
+            format!("{url}{separator}v={}", updated_at.and_utc().timestamp_millis())
+        }
+    })
+}
+
 async fn upload_avatar(
     State(state): State<AppState>,
     Extension(auth): Extension<AuthUser>,
     mut multipart: Multipart,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let user = require_auth(&auth).map_err(|e| (e.0, e.1.to_string()))?;
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let user = require_auth(&auth).map_err(|e| json_error(e.0, e.1))?;
+    let existing_avatar: Option<String> = sqlx::query_scalar(
+        "SELECT avatar_url FROM users WHERE id = $1"
+    )
+    .bind(&user.id)
+    .fetch_optional(&state.db.pool)
+    .await
+    .map_err(|e| json_error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+    .flatten();
 
-    while let Some(field) = multipart.next_field().await.map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))? {
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|e| json_error(StatusCode::BAD_REQUEST, format!("Invalid multipart data: {}", e)))?
+    {
         let name = field.name().unwrap_or("").to_string();
         if name != "avatar" {
             continue;
@@ -310,16 +356,31 @@ async fn upload_avatar(
 
         let content_type = field.content_type().unwrap_or("application/octet-stream").to_string();
         if !content_type.starts_with("image/") {
-            return Err((StatusCode::BAD_REQUEST, "File must be an image".to_string()));
+            return Err(json_error(StatusCode::BAD_REQUEST, "File must be an image"));
         }
 
         let filename = field.file_name().unwrap_or("avatar.png").to_string();
         let ext = filename.split('.').last().unwrap_or("png");
 
-        let data = field.bytes().await.map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
+        let data = field
+            .bytes()
+            .await
+            .map_err(|e| json_error(StatusCode::BAD_REQUEST, format!("Failed to read upload: {}", e)))?;
 
         if data.len() > 5 * 1024 * 1024 {
-            return Err((StatusCode::BAD_REQUEST, "File size must be less than 5MB".to_string()));
+            return Err(json_error(StatusCode::BAD_REQUEST, "File size must be less than 5MB"));
+        }
+
+        if let Some(current_url) = existing_avatar.as_ref() {
+            let without_query = current_url.split('?').next().unwrap_or(current_url);
+            let filename = without_query.trim_start_matches("/api/avatar/");
+            if !filename.is_empty() {
+                let old_key = format!("avatars/{}", filename);
+                state.s3
+                    .delete_object(&old_key)
+                    .await
+                    .map_err(|e| json_error(StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to delete previous avatar: {}", e)))?;
+            }
         }
 
         let key = format!("avatars/{}.{}", user.id, ext);
@@ -332,7 +393,7 @@ async fn upload_avatar(
             .content_type(&content_type)
             .send()
             .await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to upload avatar: {}", e)))?;
+            .map_err(|e| json_error(StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to upload avatar: {}", e)))?;
 
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -345,7 +406,7 @@ async fn upload_avatar(
             .bind(&user.id)
             .execute(&state.db.pool)
             .await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+            .map_err(|e| json_error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
         return Ok(Json(serde_json::json!({
             "success": true,
@@ -353,7 +414,7 @@ async fn upload_avatar(
         })));
     }
 
-    Err((StatusCode::BAD_REQUEST, "No avatar file provided".to_string()))
+    Err(json_error(StatusCode::BAD_REQUEST, "No avatar file provided"))
 }
 
 pub fn router() -> Router<AppState> {
