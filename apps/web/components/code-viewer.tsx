@@ -5,7 +5,8 @@ import remarkGfm from "remark-gfm";
 import { useEffect, useState, useCallback } from "react";
 import { codeToHtml } from "shiki";
 import { useTheme } from "tanstack-theme-kit";
-import { Check, Copy } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { CheckmarkCircleIcon, Copy01Icon } from "@hugeicons-pro/core-stroke-standard";
 import { cn } from "@/lib/utils";
 
 export function CodeViewer({
@@ -157,12 +158,12 @@ function CodeBlock({ children, language, theme }: { children: string; language: 
         <button onClick={copyCode} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
           {copied ? (
             <>
-              <Check className="h-3.5 w-3.5 text-green-500" />
+              <HugeiconsIcon icon={CheckmarkCircleIcon} strokeWidth={2} className="size-3.5 text-green-500" />
               <span>Copied</span>
             </>
           ) : (
             <>
-              <Copy className="h-3.5 w-3.5" />
+              <HugeiconsIcon icon={Copy01Icon} strokeWidth={2} className="size-3.5" />
               <span>Copy</span>
             </>
           )}

@@ -69,6 +69,7 @@
         "@gitbruv/db": "workspace:*",
         "@gitbruv/hooks": "workspace:*",
         "@hookform/resolvers": "^5.2.2",
+        "@hugeicons-pro/core-stroke-standard": "^3.1.0",
         "@hugeicons/core-free-icons": "^3.1.1",
         "@hugeicons/react": "^1.1.4",
         "@noble/hashes": "^2.0.1",
@@ -635,6 +636,8 @@
     "@hono/node-server": ["@hono/node-server@1.19.8", "", { "peerDependencies": { "hono": "^4" } }, "sha512-0/g2lIOPzX8f3vzW1ggQgvG5mjtFBDBHFAzI5SFAi2DzSqS9luJwqg9T6O/gKYLi+inS7eNxBeIFkkghIPvrMA=="],
 
     "@hookform/resolvers": ["@hookform/resolvers@5.2.2", "", { "dependencies": { "@standard-schema/utils": "^0.3.0" }, "peerDependencies": { "react-hook-form": "^7.55.0" } }, "sha512-A/IxlMLShx3KjV/HeTcTfaMxdwy690+L/ZADoeaTltLx+CVuzkeVIPuybK3jrRfw7YZnmdKsVVHAlEPIAEUNlA=="],
+
+    "@hugeicons-pro/core-stroke-standard": ["@hugeicons-pro/core-stroke-standard@3.1.0", "https://npm.hugeicons.com/@hugeicons-pro/core-stroke-standard/-/core-stroke-standard-3.1.0.tgz", {}, "sha512-QcVVlrckBT+KZvClTkFnrzTmdCBa8U1f8dBinrrvTyw+sNHe35wERlKrz9h7S1fJIj69Onm3R5NtzxNEPkaBXQ=="],
 
     "@hugeicons/core-free-icons": ["@hugeicons/core-free-icons@3.1.1", "", {}, "sha512-UpS2lUQFi5sKyJSWwM6rO+BnPLvVz1gsyCpPHeZyVuZqi89YH8ksliza4cwaODqKOZyeXmG8juo1ty4QtQofkg=="],
 

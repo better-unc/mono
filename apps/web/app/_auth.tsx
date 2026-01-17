@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
-import { GitBranch } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { HomeIcon, GitBranchIcon } from "@hugeicons-pro/core-stroke-standard";
 
 export const Route = createFileRoute("/_auth")({
   component: AuthLayout,
@@ -11,7 +12,7 @@ function AuthLayout() {
       <div className="relative z-10 flex flex-col items-center w-full max-w-[400px]">
         <Link to="/" className="flex items-center gap-3 mb-10 group">
           <div className="relative">
-            <GitBranch className="w-10 h-10 text-foreground transition-transform group-hover:scale-110" />
+            <HugeiconsIcon icon={GitBranchIcon} strokeWidth={2} className="size-10 text-foreground transition-transform group-hover:scale-110" />
           </div>
           <span className="text-2xl font-bold tracking-tight">gitbruv</span>
         </Link>

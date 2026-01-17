@@ -21,6 +21,7 @@
     "@gitbruv/db": "workspace:*",
     "@gitbruv/hooks": "workspace:*",
     "@hookform/resolvers": "^5.2.2",
+    "@hugeicons-pro/core-stroke-standard": "^3.1.0",
     "@hugeicons/core-free-icons": "^3.1.1",
     "@hugeicons/react": "^1.1.4",
     "@noble/hashes": "^2.0.1",

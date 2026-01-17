@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Check, Copy, ChevronDown } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { CheckmarkCircleIcon, Copy01Icon, ArrowDown01Icon } from "@hugeicons-pro/core-stroke-standard";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { getApiUrl } from "@/lib/utils";
 
@@ -30,7 +31,7 @@ export function CloneUrl({ username, repoName }: { username: string; repoName: s
           <Button variant="outline" className="gap-1">
             {/* {protocol.toUpperCase()} */}
             HTTPS
-            <ChevronDown className="h-3 w-3" />
+            <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} className="size-3" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
@@ -41,7 +42,11 @@ export function CloneUrl({ username, repoName }: { username: string; repoName: s
       <div className="relative flex-1 min-w-[280px]">
         <Input value={url} readOnly className="pr-10 font-mono text-xs bg-muted" />
         <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={copyToClipboard}>
-          {copied ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5" />}
+          {copied ? (
+            <HugeiconsIcon icon={CheckmarkCircleIcon} strokeWidth={2} className="size-3.5 text-primary" />
+          ) : (
+            <HugeiconsIcon icon={Copy01Icon} strokeWidth={2} className="size-3.5" />
+          )}
         </Button>
       </div>
     </div>

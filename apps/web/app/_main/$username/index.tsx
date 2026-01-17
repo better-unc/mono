@@ -1,12 +1,23 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
-import { useQueryState, parseAsStringLiteral } from "nuqs";
-import { useUserProfile, useUserStarredRepos, useUserRepositories } from "@gitbruv/hooks";
+import { GithubIcon, LinkedInIcon, XIcon } from "@/components/icons";
 import RepositoryCard from "@/components/repository-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarDays, GitBranch, MapPin, Star, BookOpen, Globe, Link, Building2, Activity } from "lucide-react";
+import { useUserProfile, useUserRepositories, useUserStarredRepos } from "@gitbruv/hooks";
+import {
+  ActivityIcon,
+  BookOpenIcon,
+  Building02Icon,
+  Calendar01Icon,
+  GitBranchIcon,
+  GlobeIcon,
+  LinkIcon,
+  MapPinIcon,
+  StarAward01Icon,
+} from "@hugeicons-pro/core-stroke-standard";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { format, formatDistanceToNow } from "date-fns";
-import { GithubIcon, XIcon, LinkedInIcon } from "@/components/icons";
+import { parseAsStringLiteral, useQueryState } from "nuqs";
 
 export const Route = createFileRoute("/_main/$username/")({
   component: ProfilePage,
@@ -25,7 +36,7 @@ function RepositoriesTab({ username }: { username: string }) {
   if (repos.length === 0) {
     return (
       <div className="py-20 text-center border border-dashed bg-muted/20">
-        <GitBranch className="h-10 w-10 mx-auto mb-4 text-muted-foreground/50" />
+        <HugeiconsIcon icon={GitBranchIcon} strokeWidth={2} className="size-10 mx-auto mb-4 text-muted-foreground/50" />
         <h3 className="text-base font-medium">No repositories yet</h3>
         <p className="text-sm text-muted-foreground">This user hasn't created any public repositories.</p>
       </div>
@@ -65,7 +76,7 @@ function StarredTab({ username }: { username: string }) {
   if (repos.length === 0) {
     return (
       <div className="py-20 text-center border border-dashed bg-muted/20">
-        <Star className="h-10 w-10 mx-auto mb-4 text-muted-foreground/50" />
+        <HugeiconsIcon icon={StarAward01Icon} strokeWidth={2} className="size-10 mx-auto mb-4 text-muted-foreground/50" />
         <h3 className="text-base font-medium">No starred repositories</h3>
         <p className="text-sm text-muted-foreground">This user hasn't starred any repositories yet.</p>
       </div>
@@ -135,9 +146,9 @@ function ProfilePage() {
     <div className="max-w-7xl mx-auto px-4 py-12">
       <div className="flex flex-col lg:flex-row gap-12 items-start">
         <aside className="lg:w-72 shrink-0 space-y-6">
-          <Avatar className="lg:w-64 lg:h-64 w-40 h-40 border shadow-sm rounded-none">
-            <AvatarImage src={user.avatarUrl || undefined} className="object-cover rounded-none" />
-            <AvatarFallback className="text-6xl bg-muted rounded-none">{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+          <Avatar className="lg:w-64 lg:h-64 w-40 h-40 border-none after:border-none rounded-none">
+            <AvatarImage src={user.avatarUrl || undefined} className="object-cover rounded-none border-none" />
+            <AvatarFallback className="bg-muted text-muted-foreground font-semibold rounded-none">{user.name.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
 
           <div className="space-y-1">
@@ -157,19 +168,19 @@ function ProfilePage() {
           <div className="space-y-3 pt-2">
             {user.company && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Building2 className="h-4 w-4" />
+                <HugeiconsIcon icon={Building02Icon} strokeWidth={2} className="size-4" />
                 <span>{user.company}</span>
               </div>
             )}
             {user.location && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <MapPin className="h-4 w-4" />
+                <HugeiconsIcon icon={MapPinIcon} strokeWidth={2} className="size-4" />
                 <span>{user.location}</span>
               </div>
             )}
             {user.website && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Globe className="h-4 w-4" />
+                <HugeiconsIcon icon={GlobeIcon} strokeWidth={2} className="size-4" />
                 <a href={user.website} target="_blank" rel="noopener noreferrer" className="hover:text-primary hover:underline truncate">
                   {user.website.replace(/^https?:\/\//, "")}
                 </a>
@@ -177,12 +188,12 @@ function ProfilePage() {
             )}
             {user.lastActiveAt && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Activity className="h-4 w-4" />
+                <HugeiconsIcon icon={ActivityIcon} strokeWidth={2} className="size-4" />
                 <span>Active {formatDistanceToNow(new Date(user.lastActiveAt), { addSuffix: true })}</span>
               </div>
             )}
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <CalendarDays className="h-4 w-4" />
+              <HugeiconsIcon icon={Calendar01Icon} strokeWidth={2} className="size-4" />
               <span>Joined {format(new Date(user.createdAt), "MMMM yyyy")}</span>
             </div>
           </div>
@@ -221,7 +232,7 @@ function ProfilePage() {
               )}
               {user.socialLinks.custom?.map((url, i) => (
                 <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
-                  <Link className="h-5 w-5" />
+                  <HugeiconsIcon icon={LinkIcon} strokeWidth={2} className="size-5" />
                 </a>
               ))}
             </div>
@@ -232,12 +243,12 @@ function ProfilePage() {
           <Tabs value={tab} onValueChange={(value) => setTab(value === "repositories" ? null : (value as "starred"))}>
             <TabsList variant="default" className="w-full mb-6 h-12">
               <TabsTrigger value="repositories" className="gap-2">
-                <BookOpen className="h-4 w-4" />
+                <HugeiconsIcon icon={BookOpenIcon} strokeWidth={2} className="size-4" />
                 <span>Repositories</span>
                 {repoCount > 0 && <span className="ml-1 text-xs text-muted-foreground">({repoCount})</span>}
               </TabsTrigger>
               <TabsTrigger value="starred" className="gap-2">
-                <Star className="h-4 w-4" />
+                <HugeiconsIcon icon={StarAward01Icon} strokeWidth={2} className="size-4" />
                 <span>Starred</span>
                 {starredCount > 0 && <span className="ml-1 text-xs text-muted-foreground">({starredCount})</span>}
               </TabsTrigger>

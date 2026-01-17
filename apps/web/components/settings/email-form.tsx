@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUpdateEmail } from "@gitbruv/hooks";
-import { Loader2 } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Loading02Icon } from "@hugeicons-pro/core-stroke-standard";
 
 interface EmailFormProps {
   currentEmail: string;
@@ -56,7 +57,7 @@ export function EmailForm({ currentEmail }: EmailFormProps) {
       {success && <div className="text-sm text-green-500 bg-green-500/10 border border-green-500/20 px-3 py-2">Email updated successfully!</div>}
 
       <Button type="submit" disabled={isPending}>
-        {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+        {isPending && <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />}
         Update Email
       </Button>
     </form>

@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, Fingerprint } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { FingerPrintIcon, Loading02Icon } from "@hugeicons-pro/core-stroke-standard";
 
 export const Route = createFileRoute("/_auth/login")({
   component: LoginPage,
@@ -106,7 +107,7 @@ function LoginPage() {
           <Button type="submit" disabled={loading || passkeyLoading} className="w-full h-11">
             {loading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />
                 Signing in...
               </>
             ) : (
@@ -125,12 +126,12 @@ function LoginPage() {
         <Button type="button" variant="outline" onClick={handlePasskeySignIn} disabled={loading || passkeyLoading} className="w-full h-11">
           {passkeyLoading ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />
               Signing in...
             </>
           ) : (
             <>
-              <Fingerprint className="mr-2 h-4 w-4" />
+              <HugeiconsIcon icon={FingerPrintIcon} strokeWidth={2} className="size-4 mr-2" />
               Sign in with Passkey
             </>
           )}

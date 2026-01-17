@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/auth-client";
 import { useCurrentUserSummary, useUserRepositories } from "@gitbruv/hooks";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { GitBranch, Loader2, Plus } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { GitBranchIcon, Loading02Icon, PlusSignIcon } from "@hugeicons-pro/core-stroke-standard";
 
 export const Route = createFileRoute("/_main/")({
   component: HomePage,
@@ -16,7 +17,7 @@ function HomePage() {
   if (sessionLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -50,9 +51,9 @@ function LoggedInHomePage({ session }: { session: { user: { username?: string; [
             </div>
           ) : (
             <div className="flex items-center gap-3 p-4 bg-card border border-border">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={user?.avatarUrl || undefined} />
-                <AvatarFallback className="bg-linear-to-br from-accent/40 to-primary/40 text-foreground text-xs font-semibold">
+              <Avatar className="size-12 rounded-none border-none after:border-none">
+                <AvatarImage src={user?.avatarUrl || undefined} className="rounded-none border-none" />
+                <AvatarFallback className="bg-muted text-muted-foreground font-semibold rounded-none">
                   {user?.name?.charAt(0).toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
@@ -69,7 +70,7 @@ function LoggedInHomePage({ session }: { session: { user: { username?: string; [
             <h2 className="text-xl font-semibold">Your repositories</h2>
             <Link to="/new">
               <Button size="sm" className="gap-2">
-                <Plus className="h-4 w-4" />
+                <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} className="size-4" />
                 New
               </Button>
             </Link>
@@ -83,12 +84,12 @@ function LoggedInHomePage({ session }: { session: { user: { username?: string; [
             </div>
           ) : repos.length === 0 ? (
             <div className="border border-dashed border-border p-12 text-center bg-card/30 flex flex-col items-center justify-center">
-              <GitBranch className="h-8 w-8 text-primary" />
+              <HugeiconsIcon icon={GitBranchIcon} strokeWidth={2} className="size-8 text-primary" />
               <h3 className="text-lg font-semibold mb-2">No repositories yet</h3>
               <p className="text-muted-foreground mb-6 max-w-sm mx-auto">Create your first repository to start building something awesome</p>
               <Link to="/new">
                 <Button size="lg" className="gap-2 flex items-center">
-                  <Plus className="h-4 w-4 mr-2" />
+                  <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} className="size-4 mr-2" />
                   Create repository
                 </Button>
               </Link>

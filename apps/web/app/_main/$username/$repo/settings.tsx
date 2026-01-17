@@ -8,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Loader2, Lock, Globe, Trash2, AlertTriangle } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { LockKeyIcon, GlobeIcon, Delete01Icon, Alert01Icon, Loading02Icon } from "@hugeicons-pro/core-stroke-standard";
 
 export const Route = createFileRoute("/_main/$username/$repo/settings")({
   component: RepoSettingsPage,
@@ -87,7 +88,7 @@ function RepoSettingsPage() {
     return (
       <div className="container max-w-3xl py-8">
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-8 animate-spin text-muted-foreground" />
         </div>
       </div>
     );
@@ -98,7 +99,7 @@ function RepoSettingsPage() {
       <div className="container max-w-3xl py-8">
         <Card>
           <CardContent className="p-12 text-center">
-            <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <HugeiconsIcon icon={Alert01Icon} strokeWidth={2} className="size-12 mx-auto mb-4 text-muted-foreground" />
             <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
             <p className="text-muted-foreground mb-6">You don't have permission to access this page</p>
             <Link to="/$username/$repo" params={{ username, repo: repoName }}>
@@ -167,7 +168,7 @@ function RepoSettingsPage() {
                     onChange={() => setFormData({ ...formData, visibility: "public" })}
                     className="sr-only"
                   />
-                  <Globe className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <HugeiconsIcon icon={GlobeIcon} strokeWidth={2} className="size-5 text-muted-foreground mt-0.5" />
                   <div>
                     <p className="font-medium">Public</p>
                     <p className="text-sm text-muted-foreground">Anyone can see this repository</p>
@@ -187,7 +188,7 @@ function RepoSettingsPage() {
                     onChange={() => setFormData({ ...formData, visibility: "private" })}
                     className="sr-only"
                   />
-                  <Lock className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <HugeiconsIcon icon={LockKeyIcon} strokeWidth={2} className="size-5 text-muted-foreground mt-0.5" />
                   <div>
                     <p className="font-medium">Private</p>
                     <p className="text-sm text-muted-foreground">Only you can see this repository</p>
@@ -198,7 +199,7 @@ function RepoSettingsPage() {
 
             <div className="flex justify-end">
               <Button type="submit" disabled={saving}>
-                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {saving && <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />}
                 Save changes
               </Button>
             </div>
@@ -220,7 +221,7 @@ function RepoSettingsPage() {
             <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
               <DialogTrigger>
                 <Button variant="destructive" size="sm">
-                  <Trash2 className="mr-2 h-4 w-4" />
+                  <HugeiconsIcon icon={Delete01Icon} strokeWidth={2} className="size-4 mr-2" />
                   Delete
                 </Button>
               </DialogTrigger>
@@ -246,7 +247,7 @@ function RepoSettingsPage() {
                     Cancel
                   </Button>
                   <Button variant="destructive" onClick={handleDelete} disabled={deleteConfirm !== repo.name || deleting}>
-                    {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {deleting && <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />}
                     Delete repository
                   </Button>
                 </DialogFooter>

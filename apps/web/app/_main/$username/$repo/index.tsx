@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { useRepoBranches, useRepoCommitCount, useRepoCommits, useRepoReadme, useRepoReadmeOid, useRepositoryInfo, useRepoTree } from "@gitbruv/hooks";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
-import { BookOpen, Eye, GitBranch, GitFork, History, Loader2, Star } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { BookOpenIcon, EyeIcon, GitBranchIcon, GitForkIcon, WorkHistoryIcon, Loading02Icon, StarIcon } from "@hugeicons-pro/core-stroke-standard";
 
 export const Route = createFileRoute("/_main/$username/$repo/")({
   component: RepoPage,
@@ -54,9 +55,9 @@ function RepoPage() {
                 params={{ username, repo: repoName, branch: defaultBranch }}
                 className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
-                <History className="h-4 w-4" />
+                <HugeiconsIcon icon={WorkHistoryIcon} strokeWidth={2} className="size-4" />
                 <span className="font-mono flex items-center gap-2">
-                  {isLoadingCommitCount ? <Loader2 className="h-4 w-4 animate-spin" /> : commitCount} commits
+                  {isLoadingCommitCount ? <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 animate-spin" /> : commitCount} commits
                 </span>
               </Link>
             )}
@@ -94,7 +95,7 @@ function RepoPage() {
         ) : readmeOid ? (
           <div className="border border-border bg-card overflow-hidden">
             <div className="flex items-center gap-2 px-5 py-3 border-b border-border">
-              <BookOpen className="h-4 w-4 text-primary" />
+              <HugeiconsIcon icon={BookOpenIcon} strokeWidth={2} className="size-4 text-primary" />
               <span className="text-sm font-medium">README.md</span>
             </div>
             <ReadmeContent username={username} repoName={repoName} readmeOid={readmeOid} />
@@ -187,7 +188,7 @@ function RepoHeader({ repo }: { repo: any }) {
         <div className="flex items-center gap-2">
           <StarButton repoId={repo.id} initialStarred={repo.starred} initialCount={repo.starCount} />
           <Button variant="secondary" size="sm" className="gap-1.5 border border-border">
-            <GitFork className="h-3.5 w-3.5" />
+            <HugeiconsIcon icon={GitForkIcon} strokeWidth={2} className="size-3.5" />
             <span>Fork</span>
           </Button>
         </div>
@@ -195,17 +196,17 @@ function RepoHeader({ repo }: { repo: any }) {
 
       <div className="flex items-center gap-6 text-sm">
         <div className="flex items-center gap-1.5 text-muted-foreground">
-          <Star className="h-4 w-4" />
+          <HugeiconsIcon icon={StarIcon} strokeWidth={2} className="size-4" />
           <span className="font-medium text-foreground">{repo.starCount}</span>
           <span>stars</span>
         </div>
         <div className="flex items-center gap-1.5 text-muted-foreground">
-          <GitFork className="h-4 w-4" />
+          <HugeiconsIcon icon={GitForkIcon} strokeWidth={2} className="size-4" />
           <span className="font-medium text-foreground">0</span>
           <span>forks</span>
         </div>
         <div className="flex items-center gap-1.5 text-muted-foreground">
-          <Eye className="h-4 w-4" />
+          <HugeiconsIcon icon={EyeIcon} strokeWidth={2} className="size-4" />
           <span className="font-medium text-foreground">0</span>
           <span>watching</span>
         </div>
@@ -219,9 +220,9 @@ function LastCommitBar({ lastCommit }: { lastCommit: any }) {
 
   return (
     <div className="flex items-center gap-3 px-4 py-3 bg-secondary/30 border border-border">
-      <Avatar className="h-6 w-6 shrink-0">
-        <AvatarImage src={lastCommit.author.avatarUrl || undefined} />
-        <AvatarFallback className="text-[10px] bg-muted">{lastCommit.author.name.charAt(0)}</AvatarFallback>
+      <Avatar className="h-6 w-6 shrink-0 rounded-none border-none after:border-none">
+        <AvatarImage src={lastCommit.author.avatarUrl || undefined} className="rounded-none border-none" />
+        <AvatarFallback className="bg-muted text-muted-foreground font-semibold rounded-none">{lastCommit.author.name.charAt(0)}</AvatarFallback>
       </Avatar>
       <div className="flex items-center gap-2 min-w-0 flex-1">
         <span className="text-sm font-medium shrink-0">{lastCommit.author.name}</span>
@@ -239,7 +240,7 @@ function EmptyRepoState({ username, repoName }: { username: string; repoName: st
   return (
     <div className="border border-dashed border-border p-12 text-center space-y-6">
       <div className="w-16 h-16 mx-auto bg-primary/10 flex items-center justify-center">
-        <GitBranch className="h-8 w-8 text-primary" />
+        <HugeiconsIcon icon={GitBranchIcon} strokeWidth={2} className="size-8 text-primary" />
       </div>
       <div className="space-y-2">
         <h2 className="text-xl font-semibold">This repository is empty</h2>
