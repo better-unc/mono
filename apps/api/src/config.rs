@@ -20,7 +20,7 @@ impl Config {
                 .expect("PORT must be a number"),
             database_url: env::var("DATABASE_URL")
                 .expect("DATABASE_URL must be set"),
-            aws_endpoint_url_url: env::var("AWS_ENDPOINT_URL")
+            aws_endpoint_url: env::var("AWS_ENDPOINT_URL")
                 .expect("AWS_ENDPOINT_URL must be set"),
             aws_access_key_id: env::var("AWS_ACCESS_KEY_ID")
                 .expect("AWS_ACCESS_KEY_ID must be set"),
