@@ -18,10 +18,10 @@ declare global {
     interface ProcessEnv {
       readonly DATABASE_URL: string;
       readonly CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_DB: string;
-      readonly R2_ACCESS_KEY_ID: string;
-      readonly R2_SECRET_ACCESS_KEY: string;
-      readonly R2_BUCKET_NAME: string;
-      readonly R2_ENDPOINT: string;
+      readonly AWS_ACCESS_KEY_ID: string;
+      readonly AWS_SECRET_ACCESS_KEY: string;
+      readonly AWS_BUCKET_NAME: string;
+      readonly AWS_ENDPOINT_URL: string;
       readonly RAILWAY_PUBLIC_DOMAIN?: string;
       readonly API_URL?: string;
       readonly NODE_ENV: "development" | "production" | "test";

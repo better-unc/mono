@@ -14,15 +14,15 @@ pub struct S3Client {
 impl S3Client {
     pub async fn new(config: &AppConfig) -> Self {
         let credentials = Credentials::new(
-            &config.r2_access_key_id,
-            &config.r2_secret_access_key,
+            &config.aws_access_key_id,
+            &config.aws_secret_access_key,
             None,
             None,
             "r2",
         );
 
         let s3_config = Config::builder()
-            .endpoint_url(&config.r2_endpoint)
+            .endpoint_url(&config.aws_endpoint_url)
             .region(Region::new("auto"))
             .credentials_provider(credentials)
             .force_path_style(true)
@@ -30,11 +30,11 @@ impl S3Client {
 
         let client = Client::from_conf(s3_config);
 
-        tracing::info!("S3 client initialized for bucket: {}", config.r2_bucket_name);
+        tracing::info!("S3 client initialized for bucket: {}", config.aws_bucket_name);
 
         Self {
             client,
-            bucket: config.r2_bucket_name.clone(),
+            bucket: config.aws_bucket_name.clone(),
         }
     }
 
