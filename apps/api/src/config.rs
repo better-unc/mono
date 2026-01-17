@@ -6,7 +6,7 @@ pub struct Config {
     pub aws_endpoint_url: String,
     pub aws_access_key_id: String,
     pub aws_secret_access_key: String,
-    pub aws_bucket_name: String,
+    pub aws_s3_bucket_name: String,
     pub internal_auth_url: String,
     pub internal_auth_secret: String,
 }
@@ -26,8 +26,8 @@ impl Config {
                 .expect("AWS_ACCESS_KEY_ID must be set"),
             aws_secret_access_key: env::var("AWS_SECRET_ACCESS_KEY")
                 .expect("AWS_SECRET_ACCESS_KEY must be set"),
-            aws_bucket_name: env::var("AWS_BUCKET_NAME")
-                .expect("AWS_BUCKET_NAME must be set"),
+            aws_s3_bucket_name: env::var("AWS_S3_BUCKET_NAME")
+                .expect("AWS_S3_BUCKET_NAME must be set"),
             internal_auth_url: env::var("INTERNAL_AUTH_URL")
                 .expect("INTERNAL_AUTH_URL must be set"),
             internal_auth_secret: env::var("BETTER_AUTH_SECRET")

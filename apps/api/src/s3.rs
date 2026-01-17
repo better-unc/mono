@@ -30,11 +30,11 @@ impl S3Client {
 
         let client = Client::from_conf(s3_config);
 
-        tracing::info!("S3 client initialized for bucket: {}", config.aws_bucket_name);
+        tracing::info!("S3 client initialized for bucket: {}", config.aws_s3_bucket_name);
 
         Self {
             client,
-            bucket: config.aws_bucket_name.clone(),
+            bucket: config.aws_s3_bucket_name.clone(),
         }
     }
 

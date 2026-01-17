@@ -51,7 +51,7 @@ BETTER_AUTH_SECRET=your-internal-auth-secret
 AWS_ACCOUNT_ID=your-cloudflare-account-id
 AWS_ACCESS_KEY_ID=your-r2-access-key-id
 AWS_SECRET_ACCESS_KEY=your-r2-secret-access-key
-AWS_BUCKET_NAME=gitbruv-repos
+AWS_S3_BUCKET_NAME=gitbruv-repos
 ```
 
 3. Push the database schema:

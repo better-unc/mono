@@ -23,7 +23,7 @@ app.use("*", loggerMiddleware);
 app.use("*", async (c, next) => {
   const env = getEnv();
   const s3Client = createS3Client(env.AWS_ENDPOINT_URL, env.AWS_ACCESS_KEY_ID, env.AWS_SECRET_ACCESS_KEY);
-  c.set("s3", { client: s3Client, bucket: env.AWS_BUCKET_NAME });
+  c.set("s3", { client: s3Client, bucket: env.AWS_S3_BUCKET_NAME });
   c.set("db", createDb(env.DATABASE_URL));
   await next();
 });

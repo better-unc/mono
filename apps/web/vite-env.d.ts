@@ -20,7 +20,7 @@ declare global {
       readonly CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_DB: string;
       readonly AWS_ACCESS_KEY_ID: string;
       readonly AWS_SECRET_ACCESS_KEY: string;
-      readonly AWS_BUCKET_NAME: string;
+      readonly AWS_S3_BUCKET_NAME: string;
       readonly AWS_ENDPOINT_URL: string;
       readonly RAILWAY_PUBLIC_DOMAIN?: string;
       readonly API_URL?: string;
