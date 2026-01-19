@@ -18,7 +18,7 @@ impl S3Client {
             &config.aws_secret_access_key,
             None,
             None,
-            "r2",
+            "s3",
         );
 
         let s3_config = Config::builder()
@@ -118,7 +118,7 @@ impl S3Client {
 
     pub async fn delete_prefix(&self, prefix: &str) -> Result<(), aws_sdk_s3::Error> {
         let keys = self.list_objects(prefix).await;
-        
+
         for chunk in keys.chunks(1000) {
             let objects: Vec<_> = chunk
                 .iter()

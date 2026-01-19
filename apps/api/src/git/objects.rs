@@ -3,7 +3,7 @@ use std::io::Read;
 use sha1::{Digest, Sha1};
 use crate::s3::S3Client;
 
-pub struct R2GitStore {
+pub struct S3GitStore {
     pub s3: S3Client,
     pub prefix: String,
     object_cache: tokio::sync::RwLock<HashMap<String, Vec<u8>>>,
@@ -13,7 +13,7 @@ pub struct R2GitStore {
     pack_object_cache: tokio::sync::RwLock<HashMap<String, HashMap<String, Vec<u8>>>>,
 }
 
-impl R2GitStore {
+impl S3GitStore {
     pub fn new(s3: S3Client, prefix: String) -> Self {
         Self {
             s3,

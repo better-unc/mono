@@ -16,7 +16,7 @@ use crate::{
     auth::{require_auth, AuthUser},
     git::{
         handler::{get_blob_by_oid, get_commits, get_commit_by_oid, get_file, get_tree, list_branches, count_commits_until, CommitAuthor, CommitInfo, TreeEntry},
-        objects::R2GitStore,
+        objects::S3GitStore,
         pack::{handle_receive_pack, handle_upload_pack},
         refs::get_refs_advertisement,
     },
@@ -109,7 +109,7 @@ async fn get_repo_and_store(
     state: &AppState,
     owner: &str,
     name: &str,
-) -> Result<(Repository, R2GitStore, String), (StatusCode, String)> {
+) -> Result<(Repository, S3GitStore, String), (StatusCode, String)> {
     #[derive(FromRow)]
     struct RepoUserRow {
         id: Uuid,
@@ -151,7 +151,7 @@ async fn get_repo_and_store(
     };
 
     let repo_prefix = S3Client::get_repo_prefix(&row.user_id, &repo.name);
-    let store = R2GitStore::new(state.s3.clone(), repo_prefix);
+    let store = S3GitStore::new(state.s3.clone(), repo_prefix);
 
     Ok((repo, store, row.user_id))
 }
@@ -366,7 +366,7 @@ async fn delete_repo_branch_metadata(
 }
 
 async fn build_branch_metadata(
-    store: &R2GitStore,
+    store: &S3GitStore,
     branch: &str,
     old_oid: &str,
     new_oid: &str,
@@ -469,7 +469,7 @@ async fn build_branch_metadata(
 async fn update_metadata_for_updates(
     state: &AppState,
     repo_id: Uuid,
-    store: &R2GitStore,
+    store: &S3GitStore,
     updates: &[(String, String, String)],
 ) {
     let zero_oid = "0".repeat(40);

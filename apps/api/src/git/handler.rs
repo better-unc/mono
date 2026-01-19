@@ -1,4 +1,4 @@
-use crate::git::objects::R2GitStore;
+use crate::git::objects::S3GitStore;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -31,7 +31,7 @@ pub struct CommitAuthor {
     pub avatarUrl: Option<String>,
 }
 
-pub async fn list_branches(store: &R2GitStore) -> Vec<String> {
+pub async fn list_branches(store: &S3GitStore) -> Vec<String> {
     let refs = store.list_refs("refs/heads").await;
     refs.into_iter()
         .map(|(name, _)| name.strip_prefix("refs/heads/").unwrap_or(&name).to_string())
@@ -39,7 +39,7 @@ pub async fn list_branches(store: &R2GitStore) -> Vec<String> {
 }
 
 pub async fn get_commits(
-    store: &R2GitStore,
+    store: &S3GitStore,
     branch: &str,
     limit: usize,
     skip: usize,
@@ -74,13 +74,13 @@ pub async fn get_commits(
     (commits, has_more)
 }
 
-pub async fn get_commit_by_oid(store: &R2GitStore, oid: &str) -> Option<(CommitInfo, Option<String>)> {
+pub async fn get_commit_by_oid(store: &S3GitStore, oid: &str) -> Option<(CommitInfo, Option<String>)> {
     let data = store.get_object(oid).await?;
     parse_commit(&data, oid)
 }
 
 pub async fn count_commits_until(
-    store: &R2GitStore,
+    store: &S3GitStore,
     start_oid: &str,
     stop_oid: Option<&str>,
     max_steps: usize,
@@ -113,7 +113,7 @@ pub async fn count_commits_until(
 }
 
 pub async fn get_tree(
-    store: &R2GitStore,
+    store: &S3GitStore,
     branch: &str,
     path: &str,
 ) -> Option<Vec<TreeEntry>> {
@@ -171,7 +171,7 @@ pub async fn get_tree(
 }
 
 pub async fn get_file(
-    store: &R2GitStore,
+    store: &S3GitStore,
     branch: &str,
     path: &str,
 ) -> Option<(String, String)> {
@@ -208,12 +208,12 @@ pub async fn get_file(
     Some((content, file_oid))
 }
 
-pub async fn get_blob_by_oid(store: &R2GitStore, oid: &str) -> Option<String> {
+pub async fn get_blob_by_oid(store: &S3GitStore, oid: &str) -> Option<String> {
     let blob_data = store.get_object(oid).await?;
     parse_blob(&blob_data)
 }
 
-async fn navigate_to_path(store: &R2GitStore, tree_oid: &str, path: &str) -> Option<String> {
+async fn navigate_to_path(store: &S3GitStore, tree_oid: &str, path: &str) -> Option<String> {
     let parts: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
     let mut current_oid = tree_oid.to_string();
 

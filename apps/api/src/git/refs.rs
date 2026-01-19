@@ -1,6 +1,6 @@
-use crate::git::objects::R2GitStore;
+use crate::git::objects::S3GitStore;
 
-pub async fn get_refs_advertisement(store: &R2GitStore, service: &str) -> Vec<u8> {
+pub async fn get_refs_advertisement(store: &S3GitStore, service: &str) -> Vec<u8> {
     let capabilities = if service == "git-upload-pack" {
         vec!["ofs-delta", "shallow", "no-progress", "include-tag", "symref=HEAD:refs/heads/main"]
     } else {
@@ -33,7 +33,7 @@ pub async fn get_refs_advertisement(store: &R2GitStore, service: &str) -> Vec<u8
         } else {
             refs[0].clone()
         };
-        
+
         let caps_line = format!("{} {}\0{}\n", first_ref.1, first_ref.0, capabilities.join(" "));
         lines.push(caps_line);
 
