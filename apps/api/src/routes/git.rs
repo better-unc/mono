@@ -10,6 +10,7 @@ use chrono::NaiveDateTime;
 use serde::Deserialize;
 use sqlx::FromRow;
 use std::collections::HashMap;
+use std::time::Instant;
 use uuid::Uuid;
 
 use crate::{
@@ -829,6 +830,7 @@ async fn info_refs(
     Path((owner, name)): Path<(String, String)>,
     Query(query): Query<ServiceQuery>,
 ) -> Result<Response, (StatusCode, String)> {
+    let overall_start = Instant::now();
     let service = query.service.ok_or((StatusCode::NOT_FOUND, "Service not specified".to_string()))?;
 
     if service != "git-upload-pack" && service != "git-receive-pack" {
@@ -863,6 +865,7 @@ async fn info_refs(
     response.extend(b"0000");
     response.extend(&refs);
 
+    tracing::info!("info_refs service={} elapsed_ms={}", service, overall_start.elapsed().as_millis());
     Ok(Response::builder()
         .status(StatusCode::OK)
         .header(header::CONTENT_TYPE, format!("application/x-{}-advertisement", service))
@@ -902,6 +905,7 @@ async fn receive_pack(
     Path((owner, name)): Path<(String, String)>,
     body: axum::body::Bytes,
 ) -> Result<Response, (StatusCode, String)> {
+    let overall_start = Instant::now();
     let (repo, store, _) = get_repo_and_store(&state, &owner, &name).await?;
 
     let user = match require_auth(&auth) {
@@ -912,10 +916,15 @@ async fn receive_pack(
         return Ok(unauthorized_basic());
     }
 
+    let receive_start = Instant::now();
     let (response, updates) = handle_receive_pack(&store, &body).await;
+    tracing::info!("receive_pack handle_receive_pack elapsed_ms={}", receive_start.elapsed().as_millis());
     if !updates.is_empty() {
+        let meta_start = Instant::now();
         update_metadata_for_updates(&state, repo.id, &store, &updates).await;
+        tracing::info!("receive_pack update_metadata elapsed_ms={}", meta_start.elapsed().as_millis());
     }
+    tracing::info!("receive_pack request_elapsed_ms={}", overall_start.elapsed().as_millis());
 
     Ok(Response::builder()
         .status(StatusCode::OK)
