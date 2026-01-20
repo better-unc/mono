@@ -39,18 +39,18 @@ export default function LoginScreen() {
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
           <ScrollView contentContainerClassName="justify-center px-6" keyboardShouldPersistTaps="handled">
             <View className="items-center mb-8">
-              <View className="w-[72px] h-[72px] rounded-2xl bg-blue-600 items-center justify-center mb-5">
+              <View className="w-[72px] h-[72px] bg-blue-600 items-center justify-center mb-5">
                 <FontAwesome name="code-fork" size={36} color="white" />
               </View>
               <Text className="text-white text-3xl font-bold mb-2">Welcome back</Text>
               <Text className="text-gray-400 text-base">Sign in to your GitBruv account</Text>
             </View>
 
-            <View className="rounded-2xl bg-gray-800/50 border border-gray-700/50 overflow-hidden">
+            <View className="bg-gray-800/50 border border-gray-700/50 overflow-hidden">
               <View className="p-6">
                 <View className="mb-5">
                   <Text className="text-gray-200 text-sm font-semibold mb-2">Email</Text>
-                  <View className="flex-row items-center bg-white/5 rounded-xl border border-gray-700/50">
+                  <View className="flex-row items-center bg-white/5 border border-gray-700/50">
                     <View className="pl-4">
                       <FontAwesome name="envelope" size={16} color="rgba(255,255,255,0.4)" />
                     </View>
@@ -70,7 +70,7 @@ export default function LoginScreen() {
 
                 <View className="mb-5">
                   <Text className="text-gray-200 text-sm font-semibold mb-2">Password</Text>
-                  <View className="flex-row items-center bg-white/5 rounded-xl border border-gray-700/50">
+                  <View className="flex-row items-center bg-white/5 border border-gray-700/50">
                     <View className="pl-4">
                       <FontAwesome name="lock" size={18} color="rgba(255,255,255,0.4)" />
                     </View>
@@ -91,7 +91,7 @@ export default function LoginScreen() {
                 </View>
 
                 <Pressable onPress={handleLogin} disabled={loading}>
-                  <View className={`py-4 rounded-xl items-center mt-2 bg-blue-600 border border-blue-500 ${loading ? "opacity-60" : ""}`}>
+                  <View className={`py-4 items-center mt-2 bg-blue-600 border border-blue-500 ${loading ? "opacity-60" : ""}`}>
                     <Text className="text-white text-base font-semibold">{loading ? "Signing in..." : "Sign In"}</Text>
                   </View>
                 </Pressable>

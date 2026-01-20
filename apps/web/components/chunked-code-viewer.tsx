@@ -92,7 +92,7 @@ export function ChunkedCodeViewer({ username, repoName, branch, filePath, langua
           <div className="h-1 bg-muted overflow-hidden">
             <div className="h-full bg-accent transition-all duration-300" style={{ width: `${progress}%` }} />
           </div>
-          <div className="absolute top-2 right-2 flex items-center gap-2 text-xs text-muted-foreground bg-card/90 px-2 py-1 rounded">
+          <div className="absolute top-2 right-2 flex items-center gap-2 text-xs text-muted-foreground bg-card/90 px-2 py-1>
             <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-3 animate-spin" />
             <span>{progress}%</span>
           </div>

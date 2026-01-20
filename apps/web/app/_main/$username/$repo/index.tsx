@@ -5,11 +5,11 @@ import { FileTree } from "@/components/file-tree";
 import { StarButton } from "@/components/star-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { useRepoBranches, useRepoCommitCount, useRepoCommits, useRepoReadme, useRepoReadmeOid, useRepositoryInfo, useRepoTree } from "@gitbruv/hooks";
+import { useRepoBranches, useRepoCommitCount, useRepoCommits, useRepoReadme, useRepoReadmeOid, useRepositoryInfo, useRepoTree, useIssueCount } from "@gitbruv/hooks";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { BookOpenIcon, EyeIcon, GitBranchIcon, GitForkIcon, WorkHistoryIcon, Loading02Icon, StarIcon } from "@hugeicons-pro/core-stroke-standard";
+import { BookOpenIcon, EyeIcon, GitBranchIcon, GitForkIcon, WorkHistoryIcon, Loading02Icon, StarIcon, RecordIcon } from "@hugeicons-pro/core-stroke-standard";
 
 export const Route = createFileRoute("/_main/$username/$repo/")({
   component: RepoPage,
@@ -26,6 +26,7 @@ function RepoPage() {
   const { data: readmeOidData, isLoading: isLoadingReadmeOid } = useRepoReadmeOid(username, repoName, defaultBranch);
   const { data: commitData, isLoading: isLoadingLastCommit } = useRepoCommits(username, repoName, defaultBranch, 1);
   const { data: commitCountData, isLoading: isLoadingCommitCount } = useRepoCommitCount(username, repoName, defaultBranch);
+  const { data: issueCountData, isLoading: isLoadingIssueCount } = useIssueCount(username, repoName);
 
   const repo = repoInfo?.repo;
   const files = treeData?.files || [];
@@ -34,10 +35,11 @@ function RepoPage() {
   const readmeOid = readmeOidData?.readmeOid;
   const lastCommit = commitData?.commits?.[0];
   const commitCount = commitCountData?.count || 0;
+  const openIssueCount = issueCountData?.open || 0;
 
   return (
     <div className="container max-w-6xl px-4 py-4">
-      {isLoadingInfo || !repo ? <RepoHeaderSkeleton /> : <RepoHeader repo={repo} />}
+      {isLoadingInfo || !repo ? <RepoHeaderSkeleton /> : <RepoHeader repo={repo} username={username} openIssueCount={openIssueCount} isLoadingIssueCount={isLoadingIssueCount} />}
 
       <div className="mt-8 space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -173,7 +175,7 @@ function FileTreeSkeleton() {
   );
 }
 
-function RepoHeader({ repo }: { repo: any }) {
+function RepoHeader({ repo, username, openIssueCount, isLoadingIssueCount }: { repo: any; username: string; openIssueCount: number; isLoadingIssueCount: boolean }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
@@ -210,6 +212,17 @@ function RepoHeader({ repo }: { repo: any }) {
           <span className="font-medium text-foreground">0</span>
           <span>watching</span>
         </div>
+        <Link
+          to="/$username/$repo/issues"
+          params={{ username, repo: repo.name }}
+          className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <HugeiconsIcon icon={RecordIcon} strokeWidth={2} className="size-4" />
+          <span className="font-medium text-foreground">
+            {isLoadingIssueCount ? <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 animate-spin inline" /> : openIssueCount}
+          </span>
+          <span>issues</span>
+        </Link>
       </div>
     </div>
   );

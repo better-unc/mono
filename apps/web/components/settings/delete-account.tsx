@@ -51,7 +51,7 @@ export function DeleteAccount({ username }: DeleteAccountProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-md">
+      <div className="flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/20">
         <HugeiconsIcon icon={Alert01Icon} strokeWidth={2} className="size-5 text-red-500 shrink-0 mt-0.5" />
         <div className="space-y-2">
           <p className="text-sm font-medium text-red-500">This action cannot be undone</p>

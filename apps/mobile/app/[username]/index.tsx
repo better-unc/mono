@@ -34,7 +34,7 @@ export default function UserProfileScreen() {
     return (
       <View style={{ flex: 1 }} className="items-center justify-center px-6">
         <Stack.Screen options={{ title: "Error" }} />
-        <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
+        <View className="overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
           <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
           <View className="p-8 items-center relative z-10">
             <FontAwesome name="exclamation-circle" size={48} color="#f87171" />
@@ -56,7 +56,7 @@ export default function UserProfileScreen() {
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} tintColor="#60a5fa" />}
       >
-        <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-4">
+        <View className="overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-4">
           <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
           <View className="p-4 relative z-10">
             <View className="flex-row items-start mb-4">
@@ -107,7 +107,7 @@ export default function UserProfileScreen() {
         </View>
 
         {repos.length === 0 ? (
-          <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
+          <View className="overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
             <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
             <View className="p-6 items-center relative z-10">
               <FontAwesome name="inbox" size={28} color="rgba(255,255,255,0.3)" />
@@ -118,7 +118,7 @@ export default function UserProfileScreen() {
           repos.map((repo, index) => (
             <Link key={repo.id} href={`/${username}/${repo.name}`} asChild>
               <Pressable className={index < repos.length - 1 ? "mb-2" : ""}>
-                <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
+                <View className="overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
                   <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
                   <View className="flex-row items-center p-3.5 relative z-10">
                     <View className="w-10 h-10 bg-blue-500/20 items-center justify-center mr-3">
@@ -139,7 +139,7 @@ export default function UserProfileScreen() {
                         </Text>
                       )}
                     </View>
-                    <View className="flex-row items-center bg-yellow-500/20 px-2 py-1 rounded-lg">
+                    <View className="flex-row items-center bg-yellow-500/20 px-2 py-1">
                       <FontAwesome name="star" size={11} color="#fbbf24" />
                       <Text className="text-yellow-400 text-xs font-semibold ml-1">{repo.starCount}</Text>
                     </View>

@@ -14,6 +14,10 @@ import type {
   ApiClient,
   UserPreferences,
   UserSummary,
+  Issue,
+  Label,
+  IssueComment,
+  IssueFilters,
 } from "@gitbruv/hooks";
 
 async function getAuthHeaders(): Promise<HeadersInit> {
@@ -173,6 +177,118 @@ export const api: ApiClient = {
     deleteAccount: () =>
       apiFetch<{ success: boolean }>(`/api/settings/account`, {
         method: "DELETE",
+      }),
+  },
+
+  issues: {
+    list: (owner: string, repo: string, filters?: IssueFilters) => {
+      const params = new URLSearchParams();
+      if (filters?.state) params.set("state", filters.state);
+      if (filters?.label) params.set("label", filters.label);
+      if (filters?.assignee) params.set("assignee", filters.assignee);
+      if (filters?.limit) params.set("limit", String(filters.limit));
+      if (filters?.offset) params.set("offset", String(filters.offset));
+      const query = params.toString();
+      return apiFetch<{ issues: Issue[]; hasMore: boolean }>(
+        `/api/repositories/${owner}/${repo}/issues${query ? `?${query}` : ""}`
+      );
+    },
+
+    get: (owner: string, repo: string, number: number) =>
+      apiFetch<Issue>(`/api/repositories/${owner}/${repo}/issues/${number}`),
+
+    create: (owner: string, repo: string, data: { title: string; body?: string; labels?: string[]; assignees?: string[] }) =>
+      apiFetch<Issue>(`/api/repositories/${owner}/${repo}/issues`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+
+    update: (id: string, data: { title?: string; body?: string; state?: "open" | "closed"; locked?: boolean }) =>
+      apiFetch<{ success: boolean }>(`/api/issues/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+
+    delete: (id: string) =>
+      apiFetch<{ success: boolean }>(`/api/issues/${id}`, {
+        method: "DELETE",
+      }),
+
+    getCount: (owner: string, repo: string) =>
+      apiFetch<{ open: number; closed: number }>(`/api/repositories/${owner}/${repo}/issues/count`),
+
+    listLabels: (owner: string, repo: string) =>
+      apiFetch<{ labels: Label[] }>(`/api/repositories/${owner}/${repo}/labels`),
+
+    createLabel: (owner: string, repo: string, data: { name: string; description?: string; color: string }) =>
+      apiFetch<Label>(`/api/repositories/${owner}/${repo}/labels`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+
+    updateLabel: (id: string, data: { name?: string; description?: string; color?: string }) =>
+      apiFetch<Label>(`/api/labels/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+
+    deleteLabel: (id: string) =>
+      apiFetch<{ success: boolean }>(`/api/labels/${id}`, {
+        method: "DELETE",
+      }),
+
+    addLabels: (issueId: string, labels: string[]) =>
+      apiFetch<{ success: boolean }>(`/api/issues/${issueId}/labels`, {
+        method: "POST",
+        body: JSON.stringify({ labels }),
+      }),
+
+    removeLabel: (issueId: string, labelId: string) =>
+      apiFetch<{ success: boolean }>(`/api/issues/${issueId}/labels/${labelId}`, {
+        method: "DELETE",
+      }),
+
+    addAssignees: (issueId: string, assignees: string[]) =>
+      apiFetch<{ success: boolean }>(`/api/issues/${issueId}/assignees`, {
+        method: "POST",
+        body: JSON.stringify({ assignees }),
+      }),
+
+    removeAssignee: (issueId: string, userId: string) =>
+      apiFetch<{ success: boolean }>(`/api/issues/${issueId}/assignees/${userId}`, {
+        method: "DELETE",
+      }),
+
+    listComments: (issueId: string) =>
+      apiFetch<{ comments: IssueComment[] }>(`/api/issues/${issueId}/comments`),
+
+    createComment: (issueId: string, body: string) =>
+      apiFetch<IssueComment>(`/api/issues/${issueId}/comments`, {
+        method: "POST",
+        body: JSON.stringify({ body }),
+      }),
+
+    updateComment: (commentId: string, body: string) =>
+      apiFetch<{ success: boolean }>(`/api/issues/comments/${commentId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ body }),
+      }),
+
+    deleteComment: (commentId: string) =>
+      apiFetch<{ success: boolean }>(`/api/issues/comments/${commentId}`, {
+        method: "DELETE",
+      }),
+
+    toggleIssueReaction: (issueId: string, emoji: string) =>
+      apiFetch<{ added: boolean }>(`/api/issues/${issueId}/reactions`, {
+        method: "POST",
+        body: JSON.stringify({ emoji }),
+      }),
+
+    toggleCommentReaction: (commentId: string, emoji: string) =>
+      apiFetch<{ added: boolean }>(`/api/issues/comments/${commentId}/reactions`, {
+        method: "POST",
+        body: JSON.stringify({ emoji }),
       }),
   },
 };

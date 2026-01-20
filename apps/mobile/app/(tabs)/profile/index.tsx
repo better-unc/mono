@@ -45,7 +45,7 @@ export default function ProfileScreen() {
     return (
       <View style={{ flex: 1 }}>
         <View style={{ flex: 1 }} className="items-center justify-center px-6">
-          <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 w-full max-w-[320px]">
+          <View className="overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 w-full max-w-[320px]">
             <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
             <View className="p-8 items-center relative z-10">
               <View className="w-20 h-20 bg-white/10 items-center justify-center mb-5">
@@ -54,7 +54,7 @@ export default function ProfileScreen() {
               <Text className="text-white text-[22px] font-bold mb-2">Not signed in</Text>
               <Text className="text-white/50 text-sm text-center mb-6">Sign in to view your profile and repositories</Text>
               <Link href="/(auth)/login" asChild>
-                <Pressable className="py-3.5 px-8 rounded-xl overflow-hidden bg-blue-600/30">
+                <Pressable className="py-3.5 px-8 overflow-hidden bg-blue-600/30">
                   <BlurView intensity={30} tint="light" style={StyleSheet.absoluteFill} />
                   <Text className="text-white font-semibold text-base relative z-10">Sign In</Text>
                 </Pressable>
@@ -74,7 +74,7 @@ export default function ProfileScreen() {
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} tintColor="#60a5fa" />}
       >
-        <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-4">
+        <View className="overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-4">
           <View className="p-4 relative z-10">
             <View className="flex-row items-center">
               <UserAvatar avatarUrl={avatarUrl} size={56} style={{ marginRight: 12 }} />
@@ -96,7 +96,7 @@ export default function ProfileScreen() {
             <ActivityIndicator size="small" color="#60a5fa" />
           </View>
         ) : repos.length === 0 ? (
-          <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-4">
+          <View className="overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-4">
             <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
             <View className="p-6 items-center relative z-10">
               <FontAwesome name="inbox" size={28} color="rgba(255,255,255,0.3)" />
@@ -107,7 +107,7 @@ export default function ProfileScreen() {
           repos.map((repo, index) => (
             <Link key={repo.id} href={`/${user?.username}/${repo.name}`} asChild>
               <Pressable className={index < repos.length - 1 ? "mb-2" : "mb-4"}>
-                <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
+                <View className="overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
                   <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
                   <View className="flex-row items-center p-3.5 relative z-10">
                     <View style={{ flex: 1 }} className="mr-3">
@@ -125,7 +125,7 @@ export default function ProfileScreen() {
                         </Text>
                       )}
                     </View>
-                    <View className="flex-row items-center bg-yellow-500/20 px-2 py-1 rounded-lg">
+                    <View className="flex-row items-center bg-yellow-500/20 px-2 py-1">
                       <FontAwesome name="star" size={11} color="#fbbf24" />
                       <Text className="text-yellow-400 text-xs font-semibold ml-1">{repo.starCount}</Text>
                     </View>
@@ -137,7 +137,7 @@ export default function ProfileScreen() {
         )}
 
         <Pressable onPress={handleSignOut} className="mt-4">
-          <View className="rounded-2xl overflow-hidden bg-red-500/15 border border-red-500/30">
+          <View className="overflow-hidden bg-red-500/15 border border-red-500/30">
             <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
             <View className="flex-row items-center justify-center p-3.5 relative z-10">
               <FontAwesome name="sign-out" size={16} color="#f87171" />

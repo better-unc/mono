@@ -82,7 +82,7 @@ export default function ExploreScreen() {
         <View className="flex-row mb-5">
           <Pressable onPress={() => setTab("repos")} className="mr-2">
             <View
-              className={`py-2.5 px-5 rounded-xl overflow-hidden border ${
+              className={`py-2.5 px-5 overflow-hidden border ${
                 tab === "repos" ? "bg-blue-600/30 border-blue-500/40" : "bg-[rgba(60,60,90,0.4)] border-white/10"
               }`}
             >
@@ -92,7 +92,7 @@ export default function ExploreScreen() {
           </Pressable>
           <Pressable onPress={() => setTab("users")}>
             <View
-              className={`py-2.5 px-5 rounded-xl overflow-hidden border ${
+              className={`py-2.5 px-5 overflow-hidden border ${
                 tab === "users" ? "bg-blue-600/30 border-blue-500/40" : "bg-[rgba(60,60,90,0.4)] border-white/10"
               }`}
             >
@@ -107,7 +107,7 @@ export default function ExploreScreen() {
             {(["stars", "updated", "created"] as SortOption[]).map((option, index) => (
               <Pressable key={option} onPress={() => setSortBy(option)} className={index < 2 ? "mr-2" : ""}>
                 <View
-                  className={`py-1.5 px-3.5 rounded-[10px] overflow-hidden border ${
+                  className={`py-1.5 px-3.5 overflow-hidden border ${
                     sortBy === option ? "bg-purple-500/30 border-purple-500/40" : "bg-[rgba(60,60,90,0.3)] border-white/8"
                   }`}
                 >
@@ -125,7 +125,7 @@ export default function ExploreScreen() {
           ? repos.map((repo) => (
               <Link key={repo.id} href={`/${repo.owner.username}/${repo.name}`} asChild>
                 <Pressable className="mb-3">
-                  <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
+                  <View className="overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
                     <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
                     <View className="flex-row items-center p-4 relative z-10">
                       <UserAvatar avatarUrl={repo.owner.avatarUrl} size={40} style={{ marginRight: 12 }} />
@@ -139,7 +139,7 @@ export default function ExploreScreen() {
                           </Text>
                         )}
                       </View>
-                      <View className="flex-row items-center bg-yellow-500/20 px-2.5 py-1.5 rounded-xl">
+                      <View className="flex-row items-center bg-yellow-500/20 px-2.5 py-1.5">
                         <FontAwesome name="star" size={12} color="#fbbf24" />
                         <Text className="text-yellow-400 text-xs font-semibold ml-1">{repo.starCount}</Text>
                       </View>
@@ -151,7 +151,7 @@ export default function ExploreScreen() {
           : users.map((user) => (
               <Link key={user.id} href={`/${user.username}`} asChild>
                 <Pressable className="mb-3">
-                  <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
+                  <View className="overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
                     <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
                     <View className="flex-row items-center p-4 relative z-10">
                       <UserAvatar
@@ -170,7 +170,7 @@ export default function ExploreScreen() {
                           </Text>
                         )}
                       </View>
-                      <View className="flex-row items-center bg-blue-500/20 px-2.5 py-1.5 rounded-xl">
+                      <View className="flex-row items-center bg-blue-500/20 px-2.5 py-1.5">
                         <FontAwesome name="code-fork" size={12} color="#60a5fa" />
                         <Text className="text-blue-400 text-xs font-semibold ml-1">{user.repoCount}</Text>
                       </View>
@@ -186,7 +186,7 @@ export default function ExploreScreen() {
               <ActivityIndicator size="small" color="#60a5fa" />
             ) : (
               <Pressable onPress={handleLoadMore}>
-                <View className="rounded-xl overflow-hidden bg-[rgba(60,60,90,0.4)] border border-white/10 px-4 py-2">
+                <View className="overflow-hidden bg-[rgba(60,60,90,0.4)] border border-white/10 px-4 py-2">
                   <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
                   <Text className="text-white/70 text-sm font-medium relative z-10">Load More</Text>
                 </View>

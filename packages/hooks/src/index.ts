@@ -3,3 +3,4 @@ export * from "./context";
 export * from "./repositories";
 export * from "./users";
 export * from "./settings";
+export * from "./issues";

@@ -152,6 +152,61 @@ export type UserSummary = {
   avatarUrl: string | null;
 };
 
+export type Label = {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string;
+};
+
+export type IssueAuthor = {
+  id: string;
+  username: string;
+  name: string;
+  avatarUrl: string | null;
+};
+
+export type ReactionSummary = {
+  emoji: string;
+  count: number;
+  reacted: boolean;
+};
+
+export type Issue = {
+  id: string;
+  number: number;
+  title: string;
+  body: string | null;
+  state: "open" | "closed";
+  locked: boolean;
+  author: IssueAuthor;
+  labels: Label[];
+  assignees: IssueAuthor[];
+  reactions: ReactionSummary[];
+  commentCount: number;
+  createdAt: string;
+  updatedAt: string;
+  closedAt: string | null;
+  closedBy: IssueAuthor | null;
+};
+
+export type IssueComment = {
+  id: string;
+  body: string;
+  author: IssueAuthor;
+  reactions: ReactionSummary[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type IssueFilters = {
+  state?: "open" | "closed" | "all";
+  label?: string;
+  assignee?: string;
+  limit?: number;
+  offset?: number;
+};
+
 export type ApiClient = {
   repositories: {
     create: (data: { name: string; description?: string; visibility: "public" | "private" }) => Promise<Repository>;
@@ -201,5 +256,27 @@ export type ApiClient = {
     updateEmail: (data: { email: string }) => Promise<{ success: boolean } | UserProfile>;
     updatePassword?: (data: { currentPassword: string; newPassword: string }) => Promise<{ success: boolean }>;
     deleteAccount: () => Promise<{ success: boolean }>;
+  };
+  issues: {
+    list: (owner: string, repo: string, filters?: IssueFilters) => Promise<{ issues: Issue[]; hasMore: boolean }>;
+    get: (owner: string, repo: string, number: number) => Promise<Issue>;
+    create: (owner: string, repo: string, data: { title: string; body?: string; labels?: string[]; assignees?: string[] }) => Promise<Issue>;
+    update: (id: string, data: { title?: string; body?: string; state?: "open" | "closed"; locked?: boolean }) => Promise<{ success: boolean }>;
+    delete: (id: string) => Promise<{ success: boolean }>;
+    getCount: (owner: string, repo: string) => Promise<{ open: number; closed: number }>;
+    listLabels: (owner: string, repo: string) => Promise<{ labels: Label[] }>;
+    createLabel: (owner: string, repo: string, data: { name: string; description?: string; color: string }) => Promise<Label>;
+    updateLabel: (id: string, data: { name?: string; description?: string; color?: string }) => Promise<Label>;
+    deleteLabel: (id: string) => Promise<{ success: boolean }>;
+    addLabels: (issueId: string, labels: string[]) => Promise<{ success: boolean }>;
+    removeLabel: (issueId: string, labelId: string) => Promise<{ success: boolean }>;
+    addAssignees: (issueId: string, assignees: string[]) => Promise<{ success: boolean }>;
+    removeAssignee: (issueId: string, userId: string) => Promise<{ success: boolean }>;
+    listComments: (issueId: string) => Promise<{ comments: IssueComment[] }>;
+    createComment: (issueId: string, body: string) => Promise<IssueComment>;
+    updateComment: (commentId: string, body: string) => Promise<{ success: boolean }>;
+    deleteComment: (commentId: string) => Promise<{ success: boolean }>;
+    toggleIssueReaction: (issueId: string, emoji: string) => Promise<{ added: boolean }>;
+    toggleCommentReaction: (commentId: string, emoji: string) => Promise<{ added: boolean }>;
   };
 };

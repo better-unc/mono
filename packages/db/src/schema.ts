@@ -131,6 +131,109 @@ export const stars = pgTable(
   (table) => [primaryKey({ columns: [table.userId, table.repositoryId] })]
 );
 
+export const issues = pgTable(
+  "issues",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    number: integer("number").notNull(),
+    repositoryId: uuid("repository_id")
+      .notNull()
+      .references(() => repositories.id, { onDelete: "cascade" }),
+    authorId: text("author_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    body: text("body"),
+    state: text("state", { enum: ["open", "closed"] }).notNull().default("open"),
+    locked: boolean("locked").notNull().default(false),
+    closedAt: timestamp("closed_at"),
+    closedById: text("closed_by_id").references(() => users.id),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("issues_repository_id_idx").on(table.repositoryId),
+    index("issues_repository_number_idx").on(table.repositoryId, table.number),
+  ]
+);
+
+export const labels = pgTable(
+  "labels",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    repositoryId: uuid("repository_id")
+      .notNull()
+      .references(() => repositories.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description"),
+    color: text("color").notNull().default("6b7280"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [index("labels_repository_id_idx").on(table.repositoryId)]
+);
+
+export const issueLabels = pgTable(
+  "issue_labels",
+  {
+    issueId: uuid("issue_id")
+      .notNull()
+      .references(() => issues.id, { onDelete: "cascade" }),
+    labelId: uuid("label_id")
+      .notNull()
+      .references(() => labels.id, { onDelete: "cascade" }),
+  },
+  (table) => [primaryKey({ columns: [table.issueId, table.labelId] })]
+);
+
+export const issueAssignees = pgTable(
+  "issue_assignees",
+  {
+    issueId: uuid("issue_id")
+      .notNull()
+      .references(() => issues.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    assignedAt: timestamp("assigned_at").notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.issueId, table.userId] })]
+);
+
+export const issueComments = pgTable(
+  "issue_comments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    issueId: uuid("issue_id")
+      .notNull()
+      .references(() => issues.id, { onDelete: "cascade" }),
+    authorId: text("author_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [index("issue_comments_issue_id_idx").on(table.issueId)]
+);
+
+export const issueReactions = pgTable(
+  "issue_reactions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    issueId: uuid("issue_id").references(() => issues.id, { onDelete: "cascade" }),
+    commentId: uuid("comment_id").references(() => issueComments.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    emoji: text("emoji").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("issue_reactions_issue_id_idx").on(table.issueId),
+    index("issue_reactions_comment_id_idx").on(table.commentId),
+  ]
+);
+
 export const apiKeys = pgTable("api_key", {
   id: text("id").primaryKey(),
   name: text("name"),
@@ -216,5 +319,81 @@ export const repoBranchMetadataRelations = relations(repoBranchMetadata, ({ one 
   repo: one(repositories, {
     fields: [repoBranchMetadata.repoId],
     references: [repositories.id],
+  }),
+}));
+
+export const issueRelations = relations(issues, ({ one, many }) => ({
+  repository: one(repositories, {
+    fields: [issues.repositoryId],
+    references: [repositories.id],
+  }),
+  author: one(users, {
+    fields: [issues.authorId],
+    references: [users.id],
+  }),
+  closedBy: one(users, {
+    fields: [issues.closedById],
+    references: [users.id],
+  }),
+  labels: many(issueLabels),
+  assignees: many(issueAssignees),
+  comments: many(issueComments),
+  reactions: many(issueReactions),
+}));
+
+export const labelRelations = relations(labels, ({ one, many }) => ({
+  repository: one(repositories, {
+    fields: [labels.repositoryId],
+    references: [repositories.id],
+  }),
+  issues: many(issueLabels),
+}));
+
+export const issueLabelRelations = relations(issueLabels, ({ one }) => ({
+  issue: one(issues, {
+    fields: [issueLabels.issueId],
+    references: [issues.id],
+  }),
+  label: one(labels, {
+    fields: [issueLabels.labelId],
+    references: [labels.id],
+  }),
+}));
+
+export const issueAssigneeRelations = relations(issueAssignees, ({ one }) => ({
+  issue: one(issues, {
+    fields: [issueAssignees.issueId],
+    references: [issues.id],
+  }),
+  user: one(users, {
+    fields: [issueAssignees.userId],
+    references: [users.id],
+  }),
+}));
+
+export const issueCommentRelations = relations(issueComments, ({ one, many }) => ({
+  issue: one(issues, {
+    fields: [issueComments.issueId],
+    references: [issues.id],
+  }),
+  author: one(users, {
+    fields: [issueComments.authorId],
+    references: [users.id],
+  }),
+  reactions: many(issueReactions),
+}));
+
+export const issueReactionRelations = relations(issueReactions, ({ one }) => ({
+  issue: one(issues, {
+    fields: [issueReactions.issueId],
+    references: [issues.id],
+  }),
+  comment: one(issueComments, {
+    fields: [issueReactions.commentId],
+    references: [issueComments.id],
+  }),
+  user: one(users, {
+    fields: [issueReactions.userId],
+    references: [users.id],
   }),
 }));
