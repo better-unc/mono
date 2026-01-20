@@ -23,6 +23,7 @@ ENV UPSTASH_REDIS_REST_TOKEN=$UPSTASH_REDIS_REST_TOKEN
 COPY package.json bun.lock ./
 COPY .npmrc ./
 COPY apps/web/package.json ./apps/web/
+COPY packages/lib/package.json ./packages/lib/
 COPY packages/auth/package.json ./packages/auth/
 COPY packages/hooks/package.json ./packages/hooks/
 COPY packages/db/package.json ./packages/db/
