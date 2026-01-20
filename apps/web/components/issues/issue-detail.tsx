@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { formatDistanceToNow } from "date-fns";
+import { timeAgo } from "@gitbruv/lib";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Edit02Icon, Delete02Icon, LockIcon, UserUnlockIcon } from "@hugeicons-pro/core-stroke-standard";
 import type { Issue, Label, IssueAuthor } from "@gitbruv/hooks";
@@ -138,7 +138,7 @@ export function IssueDetail({
                 {issue.author.username}
               </Link>
               <span className="text-xs text-muted-foreground">
-                opened this issue {formatDistanceToNow(new Date(issue.createdAt))} ago
+                opened this issue {timeAgo(issue.createdAt)}
               </span>
             </div>
 

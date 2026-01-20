@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DiffViewer, DiffToolbar, type DiffViewMode } from "@/components/diff-viewer";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { LockKeyIcon, GlobeIcon, ArrowLeft02Icon, GitCommitIcon } from "@hugeicons-pro/core-stroke-standard";
-import { formatDistanceToNow } from "date-fns";
+import { timeAgo } from "@gitbruv/lib";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_main/$username/$repo/commits/$branch/$oid")({
@@ -112,11 +112,7 @@ function CommitPage() {
                       <span className="font-medium text-foreground">{commit.author.name}</span>
                     )}
                     <span>committed</span>
-                    <span>
-                      {formatDistanceToNow(new Date(commit.timestamp), {
-                        addSuffix: true,
-                      })}
-                    </span>
+                    <span>{timeAgo(commit.timestamp)}</span>
                   </div>
                   <div className="mt-2 text-sm">
                     <span className="text-muted-foreground">Commit: </span>

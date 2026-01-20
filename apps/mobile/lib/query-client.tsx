@@ -1,16 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { PropsWithChildren } from "react";
 import { ApiProvider } from "@gitbruv/hooks";
+import { DEFAULT_QUERY_OPTIONS } from "@gitbruv/lib";
 import { api } from "./api";
 
 export const queryClient = new QueryClient({
   defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5,
-      gcTime: 1000 * 60 * 30,
-      retry: 2,
-      refetchOnWindowFocus: false,
-    },
+    queries: DEFAULT_QUERY_OPTIONS,
   },
 });
 

@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { FingerPrintIcon, Loading02Icon } from "@hugeicons-pro/core-stroke-standard";
+import { Loading02Icon } from "@hugeicons-pro/core-stroke-standard";
+import { validateUsername } from "@gitbruv/lib";
 
 export const Route = createFileRoute("/_auth/register")({
   component: RegisterPage,
@@ -26,14 +27,9 @@ function RegisterPage() {
     e.preventDefault();
     setLoading(true);
 
-    if (formData.username.length < 3) {
-      toast.error("Username must be at least 3 characters");
-      setLoading(false);
-      return;
-    }
-
-    if (!/^[a-zA-Z0-9_-]+$/.test(formData.username)) {
-      toast.error("Username can only contain letters, numbers, hyphens, and underscores");
+    const usernameValidation = validateUsername(formData.username);
+    if (!usernameValidation.valid) {
+      toast.error(usernameValidation.error);
       setLoading(false);
       return;
     }

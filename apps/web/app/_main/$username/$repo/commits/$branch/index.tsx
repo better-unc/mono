@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { WorkHistoryIcon, ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons-pro/core-stroke-standard";
-import { formatDistanceToNow } from "date-fns";
+import { timeAgo, getCommitTitle } from "@gitbruv/lib";
 
 type CommitsSearch = {
   page?: string;
@@ -67,15 +67,11 @@ function CommitRow({
         <AvatarFallback className="bg-muted text-muted-foreground font-semibold rounded-none">{commit.author.name.charAt(0).toUpperCase()}</AvatarFallback>
       </Avatar>
       <div className="flex-1 min-w-0">
-        <p className="font-medium truncate">{commit.message.split("\n")[0]}</p>
+        <p className="font-medium truncate">{getCommitTitle(commit.message)}</p>
         <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
           <span className="font-medium text-foreground">{commit.author.name}</span>
           <span>committed</span>
-          <span>
-            {formatDistanceToNow(new Date(commit.timestamp), {
-              addSuffix: true,
-            })}
-          </span>
+          <span>{timeAgo(commit.timestamp)}</span>
         </div>
       </div>
       <code className="text-xs font-mono bg-muted px-2 py-1 shrink-0">{commit.oid.slice(0, 7)}</code>

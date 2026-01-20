@@ -4,6 +4,7 @@ import { Link, router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { signUpWithUsername } from "@/lib/auth-client";
+import { validateUsername, validatePassword } from "@gitbruv/lib";
 
 export default function RegisterScreen() {
   const [name, setName] = useState("");
@@ -19,8 +20,15 @@ export default function RegisterScreen() {
       return;
     }
 
-    if (password.length < 8) {
-      Alert.alert("Error", "Password must be at least 8 characters");
+    const usernameValidation = validateUsername(username);
+    if (!usernameValidation.valid) {
+      Alert.alert("Error", usernameValidation.error);
+      return;
+    }
+
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
+      Alert.alert("Error", passwordValidation.error);
       return;
     }
 

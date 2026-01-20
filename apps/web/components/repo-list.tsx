@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { formatDistanceToNow } from "date-fns";
+import { timeAgo } from "@gitbruv/lib";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { LockKeyIcon, GlobeIcon, StarIcon } from "@hugeicons-pro/core-stroke-standard";
 import { Button } from "./ui/button";
@@ -58,10 +58,7 @@ const RepoCard = ({ repo }: { repo: Repository }) => {
               <span>{starCount}</span>
             </div>
             <p>
-              Updated{" "}
-              {formatDistanceToNow(new Date(repo.updatedAt), {
-                addSuffix: true,
-              })}
+              Updated {timeAgo(repo.updatedAt)}
             </p>
           </div>
         </div>

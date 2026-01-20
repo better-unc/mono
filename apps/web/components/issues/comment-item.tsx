@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { formatDistanceToNow } from "date-fns";
+import { timeAgo } from "@gitbruv/lib";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { MoreHorizontalIcon, Edit02Icon, Delete02Icon } from "@hugeicons-pro/core-stroke-standard";
 import type { IssueComment } from "@gitbruv/hooks";
@@ -64,7 +64,7 @@ export function CommentItem({ comment, currentUserId, onToggleReaction, onUpdate
             {comment.author.username}
           </Link>
           <span className="text-xs text-muted-foreground">
-            commented {formatDistanceToNow(new Date(comment.createdAt))} ago
+            commented {timeAgo(comment.createdAt)}
           </span>
           {isEdited && <span className="text-xs text-muted-foreground">(edited)</span>}
         </div>

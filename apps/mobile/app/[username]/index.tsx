@@ -3,7 +3,7 @@ import { useLocalSearchParams, Link, Stack } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { BlurView } from "expo-blur";
 import { useUserProfile, useUserRepositories } from "@gitbruv/hooks";
-import { formatDistanceToNow } from "date-fns";
+import { timeAgo } from "@gitbruv/lib";
 import { UserAvatar } from "@/components/user-avatar";
 
 export default function UserProfileScreen() {
@@ -86,7 +86,7 @@ export default function UserProfileScreen() {
               {user.createdAt && (
                 <View className="flex-row items-center">
                   <FontAwesome name="calendar" size={12} color="#60a5fa" />
-                  <Text className="text-white/60 text-[13px] ml-1.5">Joined {formatDistanceToNow(new Date(user.createdAt), { addSuffix: true })}</Text>
+                  <Text className="text-white/60 text-[13px] ml-1.5">Joined {timeAgo(user.createdAt)}</Text>
                 </View>
               )}
             </View>

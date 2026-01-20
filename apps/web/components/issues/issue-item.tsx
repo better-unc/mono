@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { formatDistanceToNow } from "date-fns";
+import { timeAgo } from "@gitbruv/lib";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Comment01Icon } from "@hugeicons-pro/core-stroke-standard";
 import type { Issue } from "@gitbruv/hooks";
@@ -34,7 +34,7 @@ export function IssueItem({ issue, username, repo }: IssueItemProps) {
 
         <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
           <span>#{issue.number}</span>
-          <span>opened {formatDistanceToNow(new Date(issue.createdAt))} ago</span>
+          <span>opened {timeAgo(issue.createdAt)}</span>
           <span>by</span>
           <Link
             to="/$username"

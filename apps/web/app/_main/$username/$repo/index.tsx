@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useRepoCommits, useRepoReadme, useRepoReadmeOid, useRepositoryInfo, useRepoTree } from "@gitbruv/hooks";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryState } from "nuqs";
-import { formatDistanceToNow } from "date-fns";
+import { timeAgo } from "@gitbruv/lib";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { BookOpenIcon, GitBranchIcon } from "@hugeicons-pro/core-stroke-standard";
 
@@ -117,7 +117,7 @@ function LastCommitBar({ lastCommit }: { lastCommit: any }) {
       </div>
       <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
         <code className="font-mono">{lastCommit.oid.substring(0, 7)}</code>
-        <span>{formatDistanceToNow(lastCommit.timestamp)} ago</span>
+        <span>{timeAgo(lastCommit.timestamp)}</span>
       </div>
     </div>
   );

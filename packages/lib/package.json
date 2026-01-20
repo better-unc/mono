@@ -7,7 +7,14 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./language": "./src/language.ts"
+    "./language": "./src/language.ts",
+    "./validation": "./src/validation.ts",
+    "./query": "./src/query.ts",
+    "./date": "./src/date.ts",
+    "./string": "./src/string.ts"
+  },
+  "dependencies": {
+    "date-fns": "^4.1.0"
   },
   "devDependencies": {
     "typescript": "^5"

@@ -16,7 +16,7 @@ import {
 } from "@hugeicons-pro/core-stroke-standard";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { format, formatDistanceToNow } from "date-fns";
+import { timeAgo, formatDate } from "@gitbruv/lib";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 
 export const Route = createFileRoute("/_main/$username/")({
@@ -189,12 +189,12 @@ function ProfilePage() {
             {user.lastActiveAt && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <HugeiconsIcon icon={ActivityIcon} strokeWidth={2} className="size-4" />
-                <span>Active {formatDistanceToNow(new Date(user.lastActiveAt), { addSuffix: true })}</span>
+                <span>Active {timeAgo(user.lastActiveAt)}</span>
               </div>
             )}
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <HugeiconsIcon icon={Calendar01Icon} strokeWidth={2} className="size-4" />
-              <span>Joined {format(new Date(user.createdAt), "MMMM yyyy")}</span>
+              <span>Joined {formatDate(user.createdAt)}</span>
             </div>
           </div>
 

@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { StarIcon, ClockIcon } from "@hugeicons-pro/core-stroke-standard";
-import { format } from "date-fns";
+import { formatDate } from "@gitbruv/lib";
 import { type RepositoryWithStars, useStarRepository } from "@gitbruv/hooks";
 import { Button } from "./ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
@@ -73,7 +73,7 @@ export default function RepositoryCard({ repository, showOwner = false }: { repo
             </div>
             <div className="flex items-center gap-1">
               <HugeiconsIcon icon={ClockIcon} strokeWidth={2} className="size-3" />
-              <span>{format(new Date(repository.createdAt), "MMM d, yyyy")}</span>
+              <span>{formatDate(repository.createdAt, "MMM d, yyyy")}</span>
             </div>
           </div>
         </div>
