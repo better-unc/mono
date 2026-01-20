@@ -511,26 +511,26 @@ pub struct CommitDiffResponse {
 
 pub async fn get_commit_diff(store: &S3GitStore, oid: &str) -> Option<CommitDiffResponse> {
     let (commit, parent_oid) = get_commit_by_oid(store, oid).await?;
-    
+
     let commit_data = store.get_object(oid).await?;
     let commit_tree_oid = extract_tree_oid(&commit_data)?;
-    
+
     let parent_tree_oid = if let Some(ref parent) = parent_oid {
         let parent_data = store.get_object(parent).await?;
         extract_tree_oid(&parent_data)
     } else {
         None
     };
-    
+
     let files = compare_trees(store, parent_tree_oid.as_deref(), &commit_tree_oid, "").await;
-    
+
     let mut total_additions = 0;
     let mut total_deletions = 0;
     for file in &files {
         total_additions += file.additions;
         total_deletions += file.deletions;
     }
-    
+
     Some(CommitDiffResponse {
         commit,
         parent: parent_oid,
@@ -664,50 +664,50 @@ async fn collect_all_blobs_in_tree(store: &S3GitStore, tree_oid: &str, base_path
 
 fn parse_tree_entries(data: &[u8]) -> std::collections::HashMap<String, (String, String)> {
     let mut entries = std::collections::HashMap::new();
-    
+
     let decompressed = match decompress_zlib(data) {
         Some(d) => d,
         None => return entries,
     };
-    
+
     let null_pos = match decompressed.iter().position(|&b| b == 0) {
         Some(p) => p,
         None => return entries,
     };
-    
+
     let content = &decompressed[null_pos + 1..];
     let mut pos = 0;
-    
+
     while pos < content.len() {
         let entry_null = match content[pos..].iter().position(|&b| b == 0) {
             Some(p) => pos + p,
             None => break,
         };
-        
+
         let header = match std::str::from_utf8(&content[pos..entry_null]) {
             Ok(h) => h,
             Err(_) => break,
         };
-        
+
         let parts: Vec<&str> = header.splitn(2, ' ').collect();
         if parts.len() != 2 {
             break;
         }
-        
+
         let mode = parts[0];
         let name = parts[1].to_string();
-        
+
         if entry_null + 21 > content.len() {
             break;
         }
-        
+
         let oid = hex::encode(&content[entry_null + 1..entry_null + 21]);
         let entry_type = if mode == "40000" || mode == "040000" { "tree" } else { "blob" };
-        
+
         entries.insert(name, (oid, entry_type.to_string()));
         pos = entry_null + 21;
     }
-    
+
     entries
 }
 
@@ -727,15 +727,15 @@ async fn diff_blobs(
     } else {
         String::new()
     };
-    
+
     let new_content = if new_oid.is_empty() {
         String::new()
     } else {
         get_blob_by_oid(store, new_oid).await.unwrap_or_default()
     };
-    
+
     let hunks = compute_unified_diff(&old_content, &new_content);
-    
+
     let mut additions = 0;
     let mut deletions = 0;
     for hunk in &hunks {
@@ -747,7 +747,7 @@ async fn diff_blobs(
             }
         }
     }
-    
+
     Some(FileDiff {
         path: path.to_string(),
         status: status.to_string(),
@@ -760,18 +760,18 @@ async fn diff_blobs(
 
 fn compute_unified_diff(old_content: &str, new_content: &str) -> Vec<DiffHunk> {
     use similar::{ChangeTag, TextDiff, DiffOp};
-    
+
     let old_is_empty = old_content.is_empty();
     let new_is_empty = new_content.is_empty();
-    
+
     let diff = TextDiff::from_lines(old_content, new_content);
     let mut hunks = Vec::new();
     let context_radius = 3;
-    
+
     for group in diff.grouped_ops(context_radius) {
         let mut lines: Vec<DiffHunkLine> = Vec::new();
         let mut has_changes = false;
-        
+
         let first_op = group.first();
         let (mut old_start, mut new_start) = match first_op {
             Some(DiffOp::Equal { old_index, new_index, .. }) => (*old_index + 1, *new_index + 1),
@@ -780,19 +780,19 @@ fn compute_unified_diff(old_content: &str, new_content: &str) -> Vec<DiffHunk> {
             Some(DiffOp::Replace { old_index, new_index, .. }) => (*old_index + 1, *new_index + 1),
             None => continue,
         };
-        
+
         if old_is_empty {
             old_start = 0;
         }
         if new_is_empty {
             new_start = 0;
         }
-        
+
         for op in group {
             for change in diff.iter_changes(&op) {
                 let old_idx = change.old_index();
                 let new_idx = change.new_index();
-                
+
                 let line_type = match change.tag() {
                     ChangeTag::Equal => "context",
                     ChangeTag::Delete => {
@@ -804,7 +804,7 @@ fn compute_unified_diff(old_content: &str, new_content: &str) -> Vec<DiffHunk> {
                         "addition"
                     }
                 };
-                
+
                 lines.push(DiffHunkLine {
                     line_type: line_type.to_string(),
                     content: change.value().trim_end_matches('\n').to_string(),
@@ -813,14 +813,14 @@ fn compute_unified_diff(old_content: &str, new_content: &str) -> Vec<DiffHunk> {
                 });
             }
         }
-        
+
         if lines.is_empty() || !has_changes {
             continue;
         }
-        
+
         let old_lines = lines.iter().filter(|l| l.line_type != "addition").count();
         let new_lines = lines.iter().filter(|l| l.line_type != "deletion").count();
-        
+
         hunks.push(DiffHunk {
             old_start,
             old_lines,
@@ -829,7 +829,7 @@ fn compute_unified_diff(old_content: &str, new_content: &str) -> Vec<DiffHunk> {
             lines,
         });
     }
-    
+
     hunks
 }
 
@@ -850,39 +850,39 @@ pub async fn get_file_last_commits(
     file_paths: Vec<String>,
 ) -> Vec<FileLastCommit> {
     use std::collections::HashSet;
-    
+
     const MAX_COMMITS_TO_WALK: usize = 5000;
-    
+
     let ref_path = format!("refs/heads/{}", branch);
     let head_oid = match store.resolve_ref(&ref_path).await {
         Some(oid) => oid,
         None => return Vec::new(),
     };
-    
+
     let mut results: HashMap<String, FileLastCommit> = HashMap::new();
     let mut remaining: HashSet<String> = file_paths.into_iter().collect();
     let mut current_oid = Some(head_oid);
     let mut commits_walked = 0;
-    
+
     while !remaining.is_empty() && current_oid.is_some() && commits_walked < MAX_COMMITS_TO_WALK {
         let oid = current_oid.take().unwrap();
         commits_walked += 1;
-        
+
         let commit_data = match store.get_object(&oid).await {
             Some(data) => data,
             None => break,
         };
-        
+
         let (commit_info, parent_oid) = match parse_commit(&commit_data, &oid) {
             Some(c) => c,
             None => break,
         };
-        
+
         let commit_tree_oid = match extract_tree_oid(&commit_data) {
             Some(t) => t,
             None => break,
         };
-        
+
         let parent_tree_oid = if let Some(ref parent) = parent_oid {
             if let Some(parent_data) = store.get_object(parent).await {
                 extract_tree_oid(&parent_data)
@@ -892,38 +892,38 @@ pub async fn get_file_last_commits(
         } else {
             None
         };
-        
+
         let current_dir_tree = get_dir_tree_oid(store, &commit_tree_oid, dir_path).await;
         let parent_dir_tree = if let Some(ref pt) = parent_tree_oid {
             get_dir_tree_oid(store, pt, dir_path).await
         } else {
             None
         };
-        
+
         let current_entries = if let Some(ref tree_oid) = current_dir_tree {
             get_tree_entries_map(store, tree_oid).await
         } else {
             HashMap::new()
         };
-        
+
         let parent_entries = if let Some(ref tree_oid) = parent_dir_tree {
             get_tree_entries_map(store, tree_oid).await
         } else {
             HashMap::new()
         };
-        
+
         for path in remaining.clone() {
             let file_name = path.split('/').last().unwrap_or(&path);
             let current_file_oid = current_entries.get(file_name);
             let parent_file_oid = parent_entries.get(file_name);
-            
+
             let changed = match (current_file_oid, parent_file_oid) {
                 (Some(curr), Some(par)) => curr != par,
                 (Some(_), None) => true,
                 (None, Some(_)) => true,
                 (None, None) => false,
             };
-            
+
             if changed {
                 results.insert(path.clone(), FileLastCommit {
                     path: path.clone(),
@@ -935,10 +935,10 @@ pub async fn get_file_last_commits(
                 remaining.remove(&path);
             }
         }
-        
+
         current_oid = parent_oid;
     }
-    
+
     results.into_values().collect()
 }
 
@@ -954,7 +954,7 @@ async fn get_tree_entries_map(store: &S3GitStore, tree_oid: &str) -> HashMap<Str
         Some(d) => d,
         None => return HashMap::new(),
     };
-    
+
     parse_tree_entries(&data)
         .into_iter()
         .map(|(name, (oid, _entry_type))| (name, oid))
