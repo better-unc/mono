@@ -16,10 +16,11 @@
     "@better-auth/expo": "^1.4.10",
     "@better-auth/passkey": "^1.4.12",
     "@gitbruv/db": "workspace:*",
-    "@upstash/redis": "^1.36.1",
+    "@gitbruv/lib": "workspace:*",
     "bcryptjs": "^3.0.3",
     "better-auth": "^1.4.10",
-    "drizzle-orm": "^0.45.1"
+    "drizzle-orm": "^0.45.1",
+    "redis": "^5.10.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^3.0.0",

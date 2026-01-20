@@ -5,15 +5,13 @@ import { db, users, sessions, accounts, verifications, apiKeys, passkeys } from 
 import { APIError } from "better-auth/api";
 import { expo } from "@better-auth/expo";
 import { passkey } from "@better-auth/passkey";
-import { secondaryStorage } from "./secondary-storage";
+import { createClient } from "redis";
+import { normalizeUrl } from "@gitbruv/lib";
 
-const normalizeUrl = (url: string) => {
-  if (url.startsWith("http")) return url;
-  if (url.includes("localhost") || url.startsWith("127.0.0.1") || url.startsWith("::1")) {
-    return `http://${url}`;
-  }
-  return `https://${url}`;
-};
+  const redis = createClient({
+    url: process.env.REDIS_URL,
+  });
+  await redis.connect();
 
 const BLOCKED_EMAIL_DOMAINS = [
   "tempmail.com",
@@ -160,7 +158,20 @@ export const auth = betterAuth({
       passkey: passkeys,
     },
   }),
-  secondaryStorage: secondaryStorage(),
+  secondaryStorage: {
+    get: async (key) => {
+      return await redis.get(key);
+    },
+    set: async (key, value, ttl) => {
+      if (ttl) await redis.set(key, value, { EX: ttl });
+      // or for ioredis:
+      // if (ttl) await redis.set(key, value, 'EX', ttl)
+      else await redis.set(key, value);
+    },
+    delete: async (key) => {
+      await redis.del(key);
+    }
+  },
   session: {
     storeSessionInDatabase: true,
   },
