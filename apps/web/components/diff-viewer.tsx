@@ -19,14 +19,18 @@ import { PatchDiff } from "@pierre/diffs/react";
 function fileDiffToUnifiedDiff(file: FileDiff): string {
   const lines: string[] = [];
 
+  const isNewFile = file.status === "added";
+  const isDeletedFile = file.status === "deleted";
   const oldPath = file.oldPath || file.path;
   const newPath = file.path;
 
-  lines.push(`--- a/${oldPath}`);
-  lines.push(`+++ b/${newPath}`);
+  lines.push(isNewFile ? "--- /dev/null" : `--- a/${oldPath}`);
+  lines.push(isDeletedFile ? "+++ /dev/null" : `+++ b/${newPath}`);
 
   for (const hunk of file.hunks) {
-    lines.push(`@@ -${hunk.oldStart},${hunk.oldLines} +${hunk.newStart},${hunk.newLines} @@`);
+    const oldStart = isNewFile ? 0 : hunk.oldStart;
+    const newStart = isDeletedFile ? 0 : hunk.newStart;
+    lines.push(`@@ -${oldStart},${hunk.oldLines} +${newStart},${hunk.newLines} @@`);
 
     for (const line of hunk.lines) {
       const prefix = line.type === "addition" ? "+" : line.type === "deletion" ? "-" : " ";

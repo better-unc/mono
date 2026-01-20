@@ -761,21 +761,32 @@ async fn diff_blobs(
 fn compute_unified_diff(old_content: &str, new_content: &str) -> Vec<DiffHunk> {
     use similar::{ChangeTag, TextDiff, DiffOp};
     
+    let old_is_empty = old_content.is_empty();
+    let new_is_empty = new_content.is_empty();
+    
     let diff = TextDiff::from_lines(old_content, new_content);
     let mut hunks = Vec::new();
     let context_radius = 3;
     
     for group in diff.grouped_ops(context_radius) {
         let mut lines: Vec<DiffHunkLine> = Vec::new();
+        let mut has_changes = false;
         
         let first_op = group.first();
-        let (old_start, new_start) = match first_op {
+        let (mut old_start, mut new_start) = match first_op {
             Some(DiffOp::Equal { old_index, new_index, .. }) => (*old_index + 1, *new_index + 1),
             Some(DiffOp::Delete { old_index, new_index, .. }) => (*old_index + 1, *new_index + 1),
             Some(DiffOp::Insert { old_index, new_index, .. }) => (*old_index + 1, *new_index + 1),
             Some(DiffOp::Replace { old_index, new_index, .. }) => (*old_index + 1, *new_index + 1),
             None => continue,
         };
+        
+        if old_is_empty {
+            old_start = 0;
+        }
+        if new_is_empty {
+            new_start = 0;
+        }
         
         for op in group {
             for change in diff.iter_changes(&op) {
@@ -784,8 +795,14 @@ fn compute_unified_diff(old_content: &str, new_content: &str) -> Vec<DiffHunk> {
                 
                 let line_type = match change.tag() {
                     ChangeTag::Equal => "context",
-                    ChangeTag::Delete => "deletion",
-                    ChangeTag::Insert => "addition",
+                    ChangeTag::Delete => {
+                        has_changes = true;
+                        "deletion"
+                    }
+                    ChangeTag::Insert => {
+                        has_changes = true;
+                        "addition"
+                    }
                 };
                 
                 lines.push(DiffHunkLine {
@@ -797,7 +814,7 @@ fn compute_unified_diff(old_content: &str, new_content: &str) -> Vec<DiffHunk> {
             }
         }
         
-        if lines.is_empty() {
+        if lines.is_empty() || !has_changes {
             continue;
         }
         
