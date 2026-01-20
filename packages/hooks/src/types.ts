@@ -66,6 +66,43 @@ export type Commit = {
   timestamp: number;
 };
 
+export type DiffHunkLine = {
+  type: "context" | "addition" | "deletion";
+  content: string;
+  oldLineNumber?: number;
+  newLineNumber?: number;
+};
+
+export type DiffHunk = {
+  oldStart: number;
+  oldLines: number;
+  newStart: number;
+  newLines: number;
+  lines: DiffHunkLine[];
+};
+
+export type FileDiff = {
+  path: string;
+  status: "added" | "modified" | "deleted" | "renamed";
+  additions: number;
+  deletions: number;
+  hunks: DiffHunk[];
+  oldPath?: string;
+};
+
+export type DiffStats = {
+  additions: number;
+  deletions: number;
+  filesChanged: number;
+};
+
+export type CommitDiff = {
+  commit: Commit;
+  parent: string | null;
+  files: FileDiff[];
+  stats: DiffStats;
+};
+
 export type UserPreferences = {
   emailNotifications?: boolean;
   theme?: "light" | "dark" | "system";
@@ -133,6 +170,7 @@ export type ApiClient = {
     getFile: (owner: string, name: string, branch: string, path: string) => Promise<{ content: string; oid: string; path: string }>;
     getCommits: (owner: string, name: string, branch: string, limit?: number, skip?: number) => Promise<{ commits: Commit[]; hasMore: boolean }>;
     getCommitCount: (owner: string, name: string, branch: string) => Promise<{ count: number }>;
+    getCommitDiff: (owner: string, name: string, oid: string) => Promise<CommitDiff>;
     getReadme: (owner: string, name: string, oid: string) => Promise<{ content: string }>;
     getReadmeOid: (owner: string, name: string, branch: string) => Promise<{ readmeOid: string | null }>;
   };

@@ -8,6 +8,7 @@ import type {
   TreeResponse,
   FileEntry,
   Commit,
+  CommitDiff,
   UserProfile,
   PublicUser,
   ApiClient,
@@ -97,6 +98,9 @@ export const api: ApiClient = {
 
     getCommitCount: (owner: string, name: string, branch: string) =>
       apiFetch<{ count: number }>(`/api/repositories/${owner}/${name}/commits/count?branch=${branch}`),
+
+    getCommitDiff: (owner: string, name: string, oid: string) =>
+      apiFetch<CommitDiff>(`/api/repositories/${owner}/${name}/commits/${oid}/diff`),
 
     getReadme: (owner: string, name: string, oid: string) => apiFetch<{ content: string }>(`/api/repositories/${owner}/${name}/readme?oid=${oid}`),
 
