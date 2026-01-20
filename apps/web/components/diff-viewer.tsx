@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { FileDiff, DiffHunk, DiffHunkLine } from "@gitbruv/hooks";
+import type { FileDiff } from "@gitbruv/hooks";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   ArrowDown01Icon,
@@ -14,6 +14,28 @@ import {
 } from "@hugeicons-pro/core-stroke-standard";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { PatchDiff } from "@pierre/diffs/react";
+
+function fileDiffToUnifiedDiff(file: FileDiff): string {
+  const lines: string[] = [];
+
+  const oldPath = file.oldPath || file.path;
+  const newPath = file.path;
+
+  lines.push(`--- a/${oldPath}`);
+  lines.push(`+++ b/${newPath}`);
+
+  for (const hunk of file.hunks) {
+    lines.push(`@@ -${hunk.oldStart},${hunk.oldLines} +${hunk.newStart},${hunk.newLines} @@`);
+
+    for (const line of hunk.lines) {
+      const prefix = line.type === "addition" ? "+" : line.type === "deletion" ? "-" : " ";
+      lines.push(prefix + line.content);
+    }
+  }
+
+  return lines.join("\n");
+}
 
 export type DiffViewMode = "unified" | "split";
 
@@ -127,232 +149,34 @@ function FileHeader({
   );
 }
 
-function UnifiedDiffHunkView({ hunk }: { hunk: DiffHunk }) {
-  return (
-    <div className="border-t border-border">
-      <div className="px-4 py-1 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 text-xs font-mono">
-        @@ -{hunk.oldStart},{hunk.oldLines} +{hunk.newStart},{hunk.newLines} @@
-      </div>
-      <div className="font-mono text-sm">
-        {hunk.lines.map((line, idx) => {
-          const bgColor =
-            line.type === "addition"
-              ? "bg-green-50 dark:bg-green-950/30"
-              : line.type === "deletion"
-                ? "bg-red-50 dark:bg-red-950/30"
-                : "";
-
-          const textColor =
-            line.type === "addition"
-              ? "text-green-800 dark:text-green-200"
-              : line.type === "deletion"
-                ? "text-red-800 dark:text-red-200"
-                : "text-foreground";
-
-          const lineNumColor =
-            line.type === "addition"
-              ? "text-green-600 dark:text-green-400"
-              : line.type === "deletion"
-                ? "text-red-600 dark:text-red-400"
-                : "text-muted-foreground";
-
-          const prefix = line.type === "addition" ? "+" : line.type === "deletion" ? "-" : " ";
-
-          return (
-            <div key={idx} className={cn("flex", bgColor)}>
-              <div
-                className={cn(
-                  "w-12 shrink-0 text-right pr-2 select-none border-r border-border",
-                  lineNumColor
-                )}
-              >
-                {line.oldLineNumber || ""}
-              </div>
-              <div
-                className={cn(
-                  "w-12 shrink-0 text-right pr-2 select-none border-r border-border",
-                  lineNumColor
-                )}
-              >
-                {line.newLineNumber || ""}
-              </div>
-              <div className={cn("px-2 flex-1 whitespace-pre overflow-x-auto", textColor)}>
-                <span className="select-none mr-1">{prefix}</span>
-                {line.content}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-type SplitLine = {
-  left: DiffHunkLine | null;
-  right: DiffHunkLine | null;
-};
-
-function buildSplitLines(hunk: DiffHunk): SplitLine[] {
-  const lines: SplitLine[] = [];
-  let i = 0;
-  const hunkLines = hunk.lines;
-
-  while (i < hunkLines.length) {
-    const line = hunkLines[i];
-
-    if (line.type === "context") {
-      lines.push({ left: line, right: line });
-      i++;
-    } else if (line.type === "deletion") {
-      const deletions: DiffHunkLine[] = [];
-      while (i < hunkLines.length && hunkLines[i].type === "deletion") {
-        deletions.push(hunkLines[i]);
-        i++;
-      }
-
-      const additions: DiffHunkLine[] = [];
-      while (i < hunkLines.length && hunkLines[i].type === "addition") {
-        additions.push(hunkLines[i]);
-        i++;
-      }
-
-      const maxLen = Math.max(deletions.length, additions.length);
-      for (let j = 0; j < maxLen; j++) {
-        lines.push({
-          left: deletions[j] || null,
-          right: additions[j] || null,
-        });
-      }
-    } else if (line.type === "addition") {
-      lines.push({ left: null, right: line });
-      i++;
-    } else {
-      i++;
-    }
-  }
-
-  return lines;
-}
-
-function SplitDiffHunkView({ hunk }: { hunk: DiffHunk }) {
-  const splitLines = buildSplitLines(hunk);
-
-  return (
-    <div className="border-t border-border">
-      <div className="px-4 py-1 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 text-xs font-mono">
-        @@ -{hunk.oldStart},{hunk.oldLines} +{hunk.newStart},{hunk.newLines} @@
-      </div>
-      <div className="font-mono text-sm flex">
-        <div className="flex-1 min-w-0 border-r border-border">
-          {splitLines.map((pair, idx) => {
-            const line = pair.left;
-            const isEmpty = !line;
-            const isDeletion = line?.type === "deletion";
-
-            const bgColor = isDeletion
-              ? "bg-red-50 dark:bg-red-950/30"
-              : isEmpty
-                ? "bg-muted/20"
-                : "";
-
-            const textColor = isDeletion
-              ? "text-red-800 dark:text-red-200"
-              : "text-foreground";
-
-            const lineNumColor = isDeletion
-              ? "text-red-600 dark:text-red-400"
-              : "text-muted-foreground";
-
-            return (
-              <div key={idx} className={cn("flex", bgColor)}>
-                <div
-                  className={cn(
-                    "w-12 shrink-0 text-right pr-2 select-none border-r border-border",
-                    lineNumColor
-                  )}
-                >
-                  {line?.oldLineNumber || ""}
-                </div>
-                <div className={cn("px-2 flex-1 whitespace-pre overflow-x-auto min-h-6", textColor)}>
-                  {line?.content || ""}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <div className="flex-1 min-w-0">
-          {splitLines.map((pair, idx) => {
-            const line = pair.right;
-            const isEmpty = !line;
-            const isAddition = line?.type === "addition";
-
-            const bgColor = isAddition
-              ? "bg-green-50 dark:bg-green-950/30"
-              : isEmpty
-                ? "bg-muted/20"
-                : "";
-
-            const textColor = isAddition
-              ? "text-green-800 dark:text-green-200"
-              : "text-foreground";
-
-            const lineNumColor = isAddition
-              ? "text-green-600 dark:text-green-400"
-              : "text-muted-foreground";
-
-            return (
-              <div key={idx} className={cn("flex", bgColor)}>
-                <div
-                  className={cn(
-                    "w-12 shrink-0 text-right pr-2 select-none border-r border-border",
-                    lineNumColor
-                  )}
-                >
-                  {line?.newLineNumber || ""}
-                </div>
-                <div className={cn("px-2 flex-1 whitespace-pre overflow-x-auto min-h-6", textColor)}>
-                  {line?.content || ""}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function FileDiffView({ file, viewMode }: { file: FileDiff; viewMode: DiffViewMode }) {
   const [isExpanded, setIsExpanded] = useState(true);
 
-  const HunkComponent = viewMode === "split" ? SplitDiffHunkView : UnifiedDiffHunkView;
+  const patchContent = fileDiffToUnifiedDiff(file);
 
   return (
     <div className="border border-border overflow-hidden">
       <FileHeader file={file} isExpanded={isExpanded} onToggle={() => setIsExpanded(!isExpanded)} />
       {isExpanded && (
-        <div className="overflow-x-auto">
-          {file.hunks.length === 0 ? (
-            <div className="px-4 py-8 text-center text-muted-foreground text-sm">
-              No changes to display (binary file or empty diff)
-            </div>
-          ) : (
-            file.hunks.map((hunk, idx) => <HunkComponent key={idx} hunk={hunk} />)
-          )}
-        </div>
+        file.hunks.length === 0 ? (
+          <div className="px-4 py-8 text-center text-muted-foreground text-sm">
+            No changes to display (binary file or empty diff)
+          </div>
+        ) : (
+          <PatchDiff
+            patch={patchContent}
+            options={{
+              disableFileHeader: true,
+              diffStyle: viewMode === "unified" ? "unified" : "split",
+            }}
+          />
+        )
       )}
     </div>
   );
 }
 
-export function DiffViewer({
-  files,
-  viewMode = "unified",
-}: {
-  files: FileDiff[];
-  viewMode?: DiffViewMode;
-}) {
+export function DiffViewer({ files, viewMode }: { files: FileDiff[]; viewMode: DiffViewMode }) {
   if (files.length === 0) {
     return (
       <div className="border border-border p-8 text-center text-muted-foreground">

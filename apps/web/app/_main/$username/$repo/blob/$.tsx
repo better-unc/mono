@@ -1,42 +1,16 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useRepositoryWithStars, useRepoFile, useWordWrapPreference } from "@gitbruv/hooks";
-import { ChunkedCodeViewer } from "@/components/chunked-code-viewer";
-import { CodeViewer } from "@/components/code-viewer";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowRight01Icon, HomeIcon, CodeIcon } from "@hugeicons-pro/core-stroke-standard";
 import { useSession } from "@/lib/auth-client";
+import { useRepoFile, useRepositoryWithStars, useWordWrapPreference } from "@gitbruv/hooks";
+import { getLanguage } from "@gitbruv/lib";
+import { ArrowRight01Icon, CodeIcon, HomeIcon } from "@hugeicons-pro/core-stroke-standard";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  File
+} from '@pierre/diffs/react';
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_main/$username/$repo/blob/$")({
   component: BlobPage,
 });
-
-const LANGUAGE_MAP: Record<string, string> = {
-  ts: "typescript",
-  tsx: "typescript",
-  js: "javascript",
-  jsx: "javascript",
-  py: "python",
-  rb: "ruby",
-  go: "go",
-  rs: "rust",
-  java: "java",
-  md: "markdown",
-  json: "json",
-  yaml: "yaml",
-  yml: "yaml",
-  css: "css",
-  html: "html",
-  sh: "bash",
-  bash: "bash",
-  zsh: "bash",
-};
-
-const SMALL_FILE_THRESHOLD = 50 * 1024;
-
-function getLanguage(filename: string): string {
-  const ext = filename.split(".").pop()?.toLowerCase() || "";
-  return LANGUAGE_MAP[ext] || "text";
-}
 
 function CodeSkeleton() {
   return (
@@ -129,24 +103,33 @@ function BlobPage() {
         ) : fileError || !fileData ? (
           <div className="p-8 text-center text-muted-foreground">Failed to load file</div>
         ) : (
-          (() => {
-            const fileSize = new TextEncoder().encode(fileData.content).length;
-            if (fileSize > SMALL_FILE_THRESHOLD) {
-              return (
-                <ChunkedCodeViewer
-                  username={username}
-                  repoName={repoName}
-                  branch={branch}
-                  filePath={filePath}
-                  language={language}
-                  initialContent={fileData.content}
-                  totalSize={fileSize}
-                  wordWrap={wordWrap}
-                />
-              );
-            }
-            return <CodeViewer content={fileData.content} language={language} showLineNumbers wordWrap={wordWrap} />;
-          })()
+          // (() => {
+          //   const fileSize = new TextEncoder().encode(fileData.content).length;
+          //   if (fileSize > SMALL_FILE_THRESHOLD) {
+          //     return (
+          //       <ChunkedCodeViewer
+          //         username={username}
+          //         repoName={repoName}
+          //         branch={branch}
+          //         filePath={filePath}
+          //         language={language}
+          //         initialContent={fileData.content}
+          //         totalSize={fileSize}
+          //         wordWrap={wordWrap}
+          //       />
+          //     );
+          //   }
+          //   return <CodeViewer content={fileData.content} language={language} showLineNumbers wordWrap={wordWrap} />;
+          // })()
+          <File
+            file={{
+              name: fileName,
+              contents: fileData.content,
+            }}
+            options={{
+              disableFileHeader: true,
+            }}
+          />
         )}
       </div>
     </div>

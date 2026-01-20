@@ -72,41 +72,7 @@ function CommitPage() {
 
   return (
     <div className={cn("py-6 px-4", fullWidth ? "w-full" : "container")}>
-      <div className="flex flex-col lg:flex-row items-start h-9 lg:items-center justify-between gap-4 mb-6">
-        <div className="flex items-center gap-2 flex-wrap">
-          <Link to="/$username" params={{ username }} className="text-accent hover:underline">
-            <span className="text-xl font-bold">{username}</span>
-          </Link>
-          <span className="text-muted-foreground">/</span>
-          <Link to="/$username/$repo" params={{ username, repo: repoName }} className="text-accent hover:underline">
-            <span className="text-xl font-bold">{repoName}</span>
-          </Link>
-          <Badge variant="secondary" className="text-xs font-normal">
-            {repo.visibility === "private" ? (
-              <>
-                <HugeiconsIcon icon={LockKeyIcon} strokeWidth={2} className="size-3 mr-1" />
-                Private
-              </>
-            ) : (
-              <>
-                <HugeiconsIcon icon={GlobeIcon} strokeWidth={2} className="size-3 mr-1" />
-                Public
-              </>
-            )}
-          </Badge>
-        </div>
-      </div>
-
       <div className="mb-6">
-        <Link
-          to="/$username/$repo/commits/$branch"
-          params={{ username, repo: repoName, branch }}
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
-        >
-          <HugeiconsIcon icon={ArrowLeft02Icon} strokeWidth={2} className="size-4" />
-          Back to commits
-        </Link>
-
         <div className="border border-border overflow-hidden">
           <div className="flex items-center gap-2 px-4 py-3 bg-card border-b border-border">
             <HugeiconsIcon icon={GitCommitIcon} strokeWidth={2} className="size-4 text-muted-foreground" />

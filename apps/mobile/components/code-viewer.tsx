@@ -1,43 +1,8 @@
+import { getLanguage } from "@gitbruv/lib";
 import { ScrollView, Text, View } from "react-native";
 import { MonoText } from "./StyledText";
 
-const LANGUAGE_MAP: Record<string, string> = {
-  ts: "typescript",
-  tsx: "typescript",
-  js: "javascript",
-  jsx: "javascript",
-  py: "python",
-  rb: "ruby",
-  go: "go",
-  rs: "rust",
-  java: "java",
-  md: "markdown",
-  json: "json",
-  yaml: "yaml",
-  yml: "yaml",
-  css: "css",
-  html: "html",
-  sh: "bash",
-  bash: "bash",
-  zsh: "bash",
-  c: "c",
-  cpp: "cpp",
-  h: "c",
-  hpp: "cpp",
-  cs: "csharp",
-  php: "php",
-  swift: "swift",
-  kotlin: "kotlin",
-  sql: "sql",
-  xml: "xml",
-  diff: "diff",
-  dockerfile: "dockerfile",
-};
-
-export function getLanguage(filename: string): string {
-  const ext = filename.split(".").pop()?.toLowerCase() || "";
-  return LANGUAGE_MAP[ext] || "plaintext";
-}
+export { getLanguage };
 
 interface CodeViewerProps {
   content: string;
