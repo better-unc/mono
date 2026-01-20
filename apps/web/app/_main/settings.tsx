@@ -242,8 +242,8 @@ function GitSettingsForm({ user }: { user: NonNullable<ReturnType<typeof useCurr
         <p className="text-xs text-muted-foreground">Default visibility for new repositories</p>
       </div>
 
-      {error && <div className="text-sm text-red-500 bg-red-500/10 border border-red-500/20 px-3 py-2 rounded">{error}</div>}
-      {success && <div className="text-sm text-green-500 bg-green-500/10 border border-green-500/20 px-3 py-2 rounded">Settings updated successfully!</div>}
+      {error && <div className="text-sm text-red-500 bg-red-500/10 border border-red-500/20 px-3 py-2">{error}</div>}
+      {success && <div className="text-sm text-green-500 bg-green-500/10 border border-green-500/20 px-3 py-2">Settings updated successfully!</div>}
 
       <Button type="submit" disabled={isPending}>
         {isPending && <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />}
@@ -307,7 +307,7 @@ function PreferencesForm({ user }: { user: NonNullable<ReturnType<typeof useCurr
             type="checkbox"
             checked={emailNotifications}
             onChange={(e) => setEmailNotifications(e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300"
+            className="h-4 w-4 border-gray-300"
           />
         </div>
       </div>
@@ -342,7 +342,7 @@ function PreferencesForm({ user }: { user: NonNullable<ReturnType<typeof useCurr
             type="checkbox"
             checked={showEmail}
             onChange={(e) => setShowEmail(e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300"
+            className="h-4 w-4 border-gray-300"
           />
         </div>
       </div>
@@ -353,12 +353,12 @@ function PreferencesForm({ user }: { user: NonNullable<ReturnType<typeof useCurr
             <Label htmlFor="wordWrap">Word Wrap</Label>
             <p className="text-xs text-muted-foreground">Wrap long lines when viewing files</p>
           </div>
-          <input id="wordWrap" type="checkbox" checked={wordWrap} onChange={(e) => setWordWrap(e.target.checked)} className="h-4 w-4 rounded border-gray-300" />
+          <input id="wordWrap" type="checkbox" checked={wordWrap} onChange={(e) => setWordWrap(e.target.checked)} className="h-4 w-4 border-gray-300" />
         </div>
       </div>
 
-      {error && <div className="text-sm text-red-500 bg-red-500/10 border border-red-500/20 px-3 py-2 rounded">{error}</div>}
-      {success && <div className="text-sm text-green-500 bg-green-500/10 border border-green-500/20 px-3 py-2 rounded">Preferences updated successfully!</div>}
+      {error && <div className="text-sm text-red-500 bg-red-500/10 border border-red-500/20 px-3 py-2">{error}</div>}
+      {success && <div className="text-sm text-green-500 bg-green-500/10 border border-green-500/20 px-3 py-2">Preferences updated successfully!</div>}
 
       <Button type="submit" disabled={isUpdatingPreferences || isUpdatingWordWrap}>
         {(isUpdatingPreferences || isUpdatingWordWrap) && <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />}

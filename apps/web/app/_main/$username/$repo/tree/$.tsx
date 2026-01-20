@@ -1,9 +1,8 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useRepositoryWithStars, useRepoTree, useRepoBranches } from "@gitbruv/hooks";
+import { useRepositoryWithStars, useRepoTree } from "@gitbruv/hooks";
 import { FileTree } from "@/components/file-tree";
-import { BranchSelector } from "@/components/branch-selector";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { LockKeyIcon, GlobeIcon, ArrowRight01Icon, HomeIcon } from "@hugeicons-pro/core-stroke-standard";
+import { ArrowRight01Icon, HomeIcon } from "@hugeicons-pro/core-stroke-standard";
 
 export const Route = createFileRoute("/_main/$username/$repo/tree/$")({
   component: TreePage,
@@ -43,10 +42,9 @@ function TreePage() {
   const dirPath = pathSegments.slice(1).join("/");
 
   const { data: repo, isLoading: repoLoading, error: repoError } = useRepositoryWithStars(username, repoName);
-  const { data: branchesData, isLoading: branchesLoading } = useRepoBranches(username, repoName);
   const { data: treeData, isLoading: treeLoading, error: treeError } = useRepoTree(username, repoName, branch, dirPath);
 
-  if (repoLoading || branchesLoading) {
+  if (repoLoading) {
     return <PageSkeleton />;
   }
 
@@ -54,16 +52,11 @@ function TreePage() {
     throw notFound();
   }
 
-  const branches = branchesData?.branches || [];
   const pathParts = dirPath.split("/").filter(Boolean);
 
   return (
-    <div className="container px-4 py-6">
+    <div className="container max-w-6xl px-4">
       <div className="border border-border overflow-hidden">
-        <div className="flex items-center gap-2 px-4 py-3 bg-card border-b border-border">
-          <BranchSelector branches={branches} currentBranch={branch} username={username} repoName={repoName} basePath={dirPath} />
-        </div>
-
         <nav className="flex items-center gap-1 px-4 py-2 bg-muted/30 border-b border-border text-sm">
           <Link to="/$username/$repo" params={{ username, repo: repoName }} className="text-primary hover:underline flex items-center gap-1">
             <HugeiconsIcon icon={HomeIcon} strokeWidth={2} className="size-4" />

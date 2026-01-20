@@ -108,6 +108,7 @@ async fn main() {
         .merge(routes::settings::router())
         .merge(routes::git::router())
         .merge(routes::file::router())
+        .merge(routes::issues::router())
         .layer(middleware::from_fn_with_state(state.clone(), auth_middleware))
         .layer(TraceLayer::new_for_http())
         .layer(cors)

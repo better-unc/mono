@@ -14,11 +14,13 @@ export function CodeViewer({
   language,
   showLineNumbers = false,
   wordWrap = true,
+  className,
 }: {
   content: string;
   language: string;
   showLineNumbers?: boolean;
   wordWrap?: boolean;
+  className?: string;
 }) {
   const [highlightedCode, setHighlightedCode] = useState<string | null>(null);
   const { theme } = useTheme();
@@ -44,7 +46,7 @@ export function CodeViewer({
 
   if (language === "markdown" || language === "md") {
     return (
-      <div className="p-6 md:p-8 markdown-body">
+      <div className={cn("p-6 md:p-8 markdown-body", className)}>
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{

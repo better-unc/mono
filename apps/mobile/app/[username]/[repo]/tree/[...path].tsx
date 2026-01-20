@@ -62,7 +62,7 @@ export default function TreeScreen() {
     return (
       <View style={{ flex: 1 }} className="items-center justify-center px-6">
         <Stack.Screen options={{ title: "Error" }} />
-        <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
+        <View className="overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
           <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
           <View className="p-8 items-center relative z-10">
             <FontAwesome name="exclamation-circle" size={48} color="#f87171" />
@@ -92,7 +92,7 @@ export default function TreeScreen() {
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} tintColor="#60a5fa" />}
       >
-        <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-6">
+        <View className="overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-6">
           <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
           <View className="p-4 relative z-10">
             <View className="flex-row items-center flex-wrap">
@@ -126,7 +126,7 @@ export default function TreeScreen() {
         </View>
 
         {data.isEmpty ? (
-          <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
+          <View className="overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
             <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
             <View className="p-8 items-center relative z-10">
               <FontAwesome name="inbox" size={32} color="rgba(255,255,255,0.3)" />
@@ -134,7 +134,7 @@ export default function TreeScreen() {
             </View>
           </View>
         ) : (
-          <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
+          <View className="overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
             <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
             <View className="relative z-10">
               {sortedFiles.map((file, index) => (

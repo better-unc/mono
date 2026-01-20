@@ -96,7 +96,7 @@ export default function RepositoryScreen() {
     return (
       <View style={{ flex: 1 }} className="items-center justify-center px-6">
         <Stack.Screen options={{ title: "Error" }} />
-        <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
+        <View className="overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
           <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
           <View className="p-8 items-center relative z-10">
             <FontAwesome name="exclamation-circle" size={48} color="#f87171" />
@@ -128,7 +128,7 @@ export default function RepositoryScreen() {
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} tintColor="#60a5fa" />}
       >
-        <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-6">
+        <View className="overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-6">
           <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
           <View className="p-4 relative z-10">
             <View className="flex-row items-center flex-wrap">
@@ -142,7 +142,7 @@ export default function RepositoryScreen() {
             </View>
 
             <View className="flex-row mt-2">
-              <View className={`flex-row items-center px-2 py-1 rounded-xl ${repo.visibility === "private" ? "bg-yellow-500/20" : "bg-green-500/20"}`}>
+              <View className={`flex-row items-center px-2 py-1 ${repo.visibility === "private" ? "bg-yellow-500/20" : "bg-green-500/20"}`}>
                 <FontAwesome name={repo.visibility === "private" ? "lock" : "globe"} size={10} color={repo.visibility === "private" ? "#fbbf24" : "#22c55e"} />
                 <Text className={`text-[11px] font-semibold ml-1 ${repo.visibility === "private" ? "text-yellow-400" : "text-green-500"}`}>
                   {repo.visibility}
@@ -155,7 +155,7 @@ export default function RepositoryScreen() {
             <View className="flex-row mt-4">
               <Pressable onPress={handleStar} disabled={toggleStar.isPending} className="mr-2">
                 <View
-                  className={`rounded-[10px] overflow-hidden border ${
+                  className={`overflow-hidden border ${
                     repo.starred ? "bg-yellow-500/20 border-yellow-500/30" : "bg-[rgba(60,60,90,0.4)] border-white/10"
                   }`}
                 >
@@ -166,7 +166,7 @@ export default function RepositoryScreen() {
                   </View>
                 </View>
               </Pressable>
-              <View className="rounded-[10px] overflow-hidden bg-[rgba(60,60,90,0.4)] border border-white/10">
+              <View className="overflow-hidden bg-[rgba(60,60,90,0.4)] border border-white/10">
                 <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
                 <View className="flex-row items-center py-2 px-3 relative z-10">
                   <FontAwesome name="code-fork" size={16} color="#60a5fa" />
@@ -180,14 +180,14 @@ export default function RepositoryScreen() {
         <Text className="text-white text-base font-semibold mb-3">Files</Text>
 
         {isLoadingTree ? (
-          <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-6">
+          <View className="overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-6">
             <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
             <View className="p-8 items-center relative z-10">
               <ActivityIndicator size="small" color="#60a5fa" />
             </View>
           </View>
         ) : isEmpty ? (
-          <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
+          <View className="overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
             <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
             <View className="p-8 items-center relative z-10">
               <FontAwesome name="inbox" size={32} color="rgba(255,255,255,0.3)" />
@@ -196,7 +196,7 @@ export default function RepositoryScreen() {
             </View>
           </View>
         ) : (
-          <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-6">
+          <View className="overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10 mb-6">
             <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
             <View className="relative z-10">
               {sortedFiles.map((file, index) => (
@@ -217,7 +217,7 @@ export default function RepositoryScreen() {
         {isLoadingReadmeOid ? (
           <>
             <Text className="text-white text-base font-semibold mb-3">README</Text>
-            <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
+            <View className="overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
               <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
               <View className="p-4 relative z-10">
                 <View className="flex-row items-center mb-3">
@@ -233,7 +233,7 @@ export default function RepositoryScreen() {
         ) : readmeOid ? (
           <>
             <Text className="text-white text-base font-semibold mb-3">README</Text>
-            <View className="rounded-2xl overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
+            <View className="overflow-hidden bg-[rgba(30,30,50,0.5)] border border-white/10">
               <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
               <View className="p-4 relative z-10">
                 <View className="flex-row items-center mb-3">

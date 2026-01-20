@@ -4,3 +4,4 @@ pub mod users;
 pub mod settings;
 pub mod git;
 pub mod file;
+pub mod issues;

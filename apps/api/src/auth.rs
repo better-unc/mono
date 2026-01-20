@@ -32,6 +32,21 @@ pub mod naive_datetime_as_utc {
             .or_else(|_| NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S"))
             .map_err(serde::de::Error::custom)
     }
+
+    pub mod option {
+        use chrono::NaiveDateTime;
+        use serde::{self, Serializer};
+
+        pub fn serialize<S>(date: &Option<NaiveDateTime>, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            match date {
+                Some(d) => serializer.serialize_some(&format!("{}Z", d.format("%Y-%m-%dT%H:%M:%S%.3f"))),
+                None => serializer.serialize_none(),
+            }
+        }
+    }
 }
 use serde::{Deserialize, Serialize};
 use serde_json::json;
