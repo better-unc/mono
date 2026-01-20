@@ -174,7 +174,9 @@
       "name": "@gitbruv/lib",
       "version": "0.0.0",
       "dependencies": {
+        "clsx": "^2.1.1",
         "date-fns": "^4.1.0",
+        "tailwind-merge": "^3.4.0",
       },
       "devDependencies": {
         "typescript": "^5",
