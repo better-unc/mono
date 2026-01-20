@@ -2,7 +2,11 @@ FROM oven/bun:1 AS builder
 
 WORKDIR /app
 
+ARG NPM_CONFIG_HUGEICONS_KEY
+ENV NPM_CONFIG_HUGEICONS_KEY=$NPM_CONFIG_HUGEICONS_KEY
+
 COPY package.json bun.lock ./
+COPY .npmrc ./
 COPY apps/web/package.json ./apps/web/
 COPY packages/auth/package.json ./packages/auth/
 COPY packages/hooks/package.json ./packages/hooks/
