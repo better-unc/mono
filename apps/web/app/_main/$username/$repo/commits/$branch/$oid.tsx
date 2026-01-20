@@ -1,11 +1,13 @@
+import { useState } from "react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useRepositoryWithStars, useCommitDiff } from "@gitbruv/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { DiffViewer, DiffStats } from "@/components/diff-viewer";
+import { DiffViewer, DiffToolbar, type DiffViewMode } from "@/components/diff-viewer";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { LockKeyIcon, GlobeIcon, ArrowLeft02Icon, GitCommitIcon } from "@hugeicons-pro/core-stroke-standard";
 import { formatDistanceToNow } from "date-fns";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_main/$username/$repo/commits/$branch/$oid")({
   component: CommitPage,
@@ -50,6 +52,8 @@ function PageSkeleton() {
 
 function CommitPage() {
   const { username, repo: repoName, branch, oid } = Route.useParams();
+  const [viewMode, setViewMode] = useState<DiffViewMode>("unified");
+  const [fullWidth, setFullWidth] = useState(false);
 
   const { data: repo, isLoading: repoLoading, error: repoError } = useRepositoryWithStars(username, repoName);
   const { data: diffData, isLoading: diffLoading, error: diffError } = useCommitDiff(username, repoName, oid);
@@ -67,7 +71,7 @@ function CommitPage() {
   const stats = diffData?.stats;
 
   return (
-    <div className="container px-4 py-6">
+    <div className={cn("py-6 px-4", fullWidth ? "w-full" : "container")}>
       <div className="flex flex-col lg:flex-row items-start h-9 lg:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-2 flex-wrap">
           <Link to="/$username" params={{ username }} className="text-accent hover:underline">
@@ -172,12 +176,16 @@ function CommitPage() {
       </div>
 
       {stats && (
-        <div className="mb-4 px-1">
-          <DiffStats stats={stats} />
-        </div>
+        <DiffToolbar
+          stats={stats}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          fullWidth={fullWidth}
+          onFullWidthChange={setFullWidth}
+        />
       )}
 
-      {diffLoading ? <DiffSkeleton /> : <DiffViewer files={files} />}
+      {diffLoading ? <DiffSkeleton /> : <DiffViewer files={files} viewMode={viewMode} />}
     </div>
   );
 }
