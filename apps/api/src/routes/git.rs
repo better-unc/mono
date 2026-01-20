@@ -21,6 +21,7 @@ use crate::{
         pack::{handle_receive_pack, handle_upload_pack},
         refs::get_refs_advertisement,
     },
+    redis::RedisClient,
     s3::S3Client,
     AppState,
 };
@@ -152,7 +153,7 @@ async fn get_repo_and_store(
     };
 
     let repo_prefix = S3Client::get_repo_prefix(&row.user_id, &repo.name);
-    let store = S3GitStore::new(state.s3.clone(), repo_prefix);
+    let store = S3GitStore::with_redis(state.s3.clone(), repo_prefix, state.redis.clone());
 
     Ok((repo, store, row.user_id))
 }
@@ -923,6 +924,12 @@ async fn receive_pack(
         let meta_start = Instant::now();
         update_metadata_for_updates(&state, repo.id, &store, &updates).await;
         tracing::info!("receive_pack update_metadata elapsed_ms={}", meta_start.elapsed().as_millis());
+
+        if let Some(ref redis) = state.redis {
+            let cache_start = Instant::now();
+            invalidate_branch_cache(redis, &store.prefix, &updates).await;
+            tracing::info!("receive_pack cache_invalidation elapsed_ms={}", cache_start.elapsed().as_millis());
+        }
     }
     tracing::info!("receive_pack request_elapsed_ms={}", overall_start.elapsed().as_millis());
 
@@ -932,6 +939,32 @@ async fn receive_pack(
         .header(header::CACHE_CONTROL, "no-cache")
         .body(Body::from(response))
         .unwrap())
+}
+
+async fn invalidate_branch_cache(
+    redis: &RedisClient,
+    repo_prefix: &str,
+    updates: &[(String, String, String)],
+) {
+    for (_old_oid, _new_oid, ref_name) in updates {
+        let branch = if ref_name.starts_with("refs/heads/") {
+            ref_name.trim_start_matches("refs/heads/")
+        } else {
+            ref_name.as_str()
+        };
+
+        let ref_key = RedisClient::ref_key(repo_prefix, ref_name);
+        redis.delete(&ref_key).await;
+        tracing::debug!("invalidated cache key: {}", ref_key);
+
+        let tree_pattern = RedisClient::tree_key(repo_prefix, branch, "*");
+        redis.delete_pattern(&tree_pattern).await;
+        tracing::debug!("invalidated cache pattern: {}", tree_pattern);
+
+        let file_pattern = RedisClient::file_key(repo_prefix, branch, "*");
+        redis.delete_pattern(&file_pattern).await;
+        tracing::debug!("invalidated cache pattern: {}", file_pattern);
+    }
 }
 
 fn unauthorized_basic() -> Response {

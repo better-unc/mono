@@ -57,7 +57,7 @@ async fn stream_file(
     }
 
     let repo_prefix = S3Client::get_repo_prefix(&user.id, repo_name);
-    let store = S3GitStore::new(state.s3.clone(), repo_prefix);
+    let store = S3GitStore::with_redis(state.s3.clone(), repo_prefix, state.redis.clone());
 
     let (content, _oid) = get_file(&store, &branch, &file_path)
         .await
