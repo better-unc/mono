@@ -8,10 +8,11 @@ import { passkey } from "@better-auth/passkey";
 import { createClient } from "redis";
 import { normalizeUrl } from "@gitbruv/lib";
 
-  const redis = createClient({
-    url: process.env.REDIS_URL,
-  });
-  await redis.connect();
+const redis = createClient({
+  url: process.env.REDIS_URL,
+});
+
+await redis.connect();
 
 const BLOCKED_EMAIL_DOMAINS = [
   "tempmail.com",
