@@ -5,6 +5,7 @@ import { db, users, sessions, accounts, verifications, apiKeys, passkeys } from 
 import { APIError } from "better-auth/api";
 import { expo } from "@better-auth/expo";
 import { passkey } from "@better-auth/passkey";
+import { secondaryStorage } from "./secondary-storage";
 
 const normalizeUrl = (url: string) => {
   if (url.startsWith("http")) return url;
@@ -159,6 +160,10 @@ export const auth = betterAuth({
       passkey: passkeys,
     },
   }),
+  secondaryStorage: secondaryStorage(),
+  session: {
+    storeSessionInDatabase: true,
+  },
   trustedOrigins: getTrustedOrigins(),
   emailAndPassword: {
     enabled: true,
