@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowLeft02Icon, LockIcon } from "@hugeicons-pro/core-stroke-standard";
+import { LockIcon } from "@hugeicons-pro/core-stroke-standard";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useIssue,
@@ -119,7 +119,7 @@ function IssueDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="container max-w-5xl px-4 py-6">
+      <div className="container max-w-6xl px-4">
         <IssueDetailSkeleton />
       </div>
     );
@@ -127,7 +127,7 @@ function IssueDetailPage() {
 
   if (!issue) {
     return (
-      <div className="container max-w-5xl px-4 py-6">
+      <div className="container max-w-6xl px-4">
         <div className="text-center py-12">
           <h2 className="text-xl font-semibold mb-2">Issue not found</h2>
           <Link
@@ -143,7 +143,7 @@ function IssueDetailPage() {
   }
 
   return (
-    <div className="container max-w-5xl px-4 py-6">
+    <div className="container max-w-6xl px-4">
       <div className="flex items-start gap-3 mb-6">
         <div className="flex-1 min-w-0">
           <div className="flex items-start gap-3 flex-wrap">

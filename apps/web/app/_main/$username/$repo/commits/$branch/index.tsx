@@ -1,11 +1,9 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useRepositoryWithStars, useRepoCommits, useRepoBranches } from "@gitbruv/hooks";
-import { BranchSelector } from "@/components/branch-selector";
-import { Badge } from "@/components/ui/badge";
+import { useRepositoryWithStars, useRepoCommits } from "@gitbruv/hooks";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { LockKeyIcon, GlobeIcon, WorkHistoryIcon, ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons-pro/core-stroke-standard";
+import { WorkHistoryIcon, ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons-pro/core-stroke-standard";
 import { formatDistanceToNow } from "date-fns";
 
 type CommitsSearch = {
@@ -38,11 +36,7 @@ function CommitsSkeleton() {
 
 function PageSkeleton() {
   return (
-    <div className="container px-4 py-6">
-      <div className="flex items-center gap-2 mb-6">
-        <div className="h-8 w-32 bg-muted animate-pulse" />
-        <div className="h-8 w-32 bg-muted animate-pulse" />
-      </div>
+    <div className="container max-w-6xl px-4">
       <div className="border border-border overflow-hidden">
         <div className="h-12 bg-card border-b border-border" />
         <CommitsSkeleton />
@@ -94,7 +88,6 @@ function CommitsPage() {
   const { page: pageParam } = Route.useSearch();
 
   const { data: repo, isLoading: repoLoading, error: repoError } = useRepositoryWithStars(username, repoName);
-  const { data: branchesData, isLoading: branchesLoading } = useRepoBranches(username, repoName);
 
   const currentBranch = branch || repo?.defaultBranch || "main";
   const page = parseInt(pageParam || "1", 10);
@@ -103,7 +96,7 @@ function CommitsPage() {
 
   const { data: commitsData, isLoading: commitsLoading } = useRepoCommits(username, repoName, currentBranch, perPage, skip);
 
-  if (repoLoading || branchesLoading) {
+  if (repoLoading) {
     return <PageSkeleton />;
   }
 
@@ -111,46 +104,15 @@ function CommitsPage() {
     throw notFound();
   }
 
-  const branches = branchesData?.branches || [];
   const commits = commitsData?.commits || [];
   const hasMore = commitsData?.hasMore || false;
 
   return (
-    <div className="container px-4 py-6">
-      <div className="flex flex-col lg:flex-row items-start h-9 lg:items-center justify-between gap-4 mb-6">
-        <div className="flex items-center gap-2 flex-wrap">
-          <Link to="/$username" params={{ username }} className="text-accent hover:underline">
-            <span className="text-xl font-bold">{username}</span>
-          </Link>
-          <span className="text-muted-foreground">/</span>
-          <Link to="/$username/$repo" params={{ username, repo: repoName }} className="text-accent hover:underline">
-            <span className="text-xl font-bold">{repoName}</span>
-          </Link>
-          <Badge variant="secondary" className="text-xs font-normal">
-            {repo.visibility === "private" ? (
-              <>
-                <HugeiconsIcon icon={LockKeyIcon} strokeWidth={2} className="size-3 mr-1" />
-                Private
-              </>
-            ) : (
-              <>
-                <HugeiconsIcon icon={GlobeIcon} strokeWidth={2} className="size-3 mr-1" />
-                Public
-              </>
-            )}
-          </Badge>
-        </div>
-      </div>
-
+    <div className="container max-w-6xl px-4">
       <div className="border border-border overflow-hidden">
-        <div className="flex items-center justify-between gap-4 px-4 py-3 bg-card border-b border-border">
-          <div className="flex items-center gap-3">
-            <BranchSelector branches={branches} currentBranch={currentBranch} username={username} repoName={repoName} />
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <HugeiconsIcon icon={WorkHistoryIcon} strokeWidth={2} className="size-4" />
-              <span>Commits</span>
-            </div>
-          </div>
+        <div className="flex items-center gap-3 px-4 py-3 bg-card border-b border-border">
+          <HugeiconsIcon icon={WorkHistoryIcon} strokeWidth={2} className="size-4" />
+          <span className="text-sm text-muted-foreground">Commits on <span className="font-mono text-foreground">{currentBranch}</span></span>
         </div>
 
         {commitsLoading ? (

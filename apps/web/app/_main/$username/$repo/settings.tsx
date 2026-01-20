@@ -86,7 +86,7 @@ function RepoSettingsPage() {
 
   if (isLoading || isLoadingInfo) {
     return (
-      <div className="container max-w-3xl py-8">
+      <div className="container max-w-6xl px-4">
         <div className="flex items-center justify-center py-12">
           <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-8 animate-spin text-muted-foreground" />
         </div>
@@ -96,7 +96,7 @@ function RepoSettingsPage() {
 
   if (!repo || !isOwner) {
     return (
-      <div className="container max-w-3xl py-8">
+      <div className="container max-w-6xl px-4">
         <Card>
           <CardContent className="p-12 text-center">
             <HugeiconsIcon icon={Alert01Icon} strokeWidth={2} className="size-12 mx-auto mb-4 text-muted-foreground" />
@@ -112,16 +112,7 @@ function RepoSettingsPage() {
   }
 
   return (
-    <div className="container max-w-3xl py-8 space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold mb-1">Repository Settings</h1>
-        <p className="text-muted-foreground">
-          Manage settings for{" "}
-          <Link to="/$username/$repo" params={{ username, repo: repoName }} className="text-accent hover:underline">
-            {username}/{repo.name}
-          </Link>
-        </p>
-      </div>
+    <div className="container max-w-6xl px-4 space-y-8">
 
       <form onSubmit={handleSubmit}>
         <Card>

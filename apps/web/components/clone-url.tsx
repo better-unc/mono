@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { CheckmarkCircleIcon, Copy01Icon, ArrowDown01Icon } from "@hugeicons-pro/core-stroke-standard";
@@ -27,12 +27,10 @@ export function CloneUrl({ username, repoName }: { username: string; repoName: s
   return (
     <div className="flex items-center gap-2">
       <DropdownMenu>
-        <DropdownMenuTrigger>
-          <Button variant="outline" className="gap-1">
-            {/* {protocol.toUpperCase()} */}
-            HTTPS
-            <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} className="size-3" />
-          </Button>
+        <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "default" })}>
+          {/* {protocol.toUpperCase()} */}
+          HTTPS
+          <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} className="size-3" />
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           <DropdownMenuItem onClick={() => setProtocol("https")}>HTTPS</DropdownMenuItem>

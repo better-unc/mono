@@ -1,5 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { signOut, useSession } from "@/lib/auth-client";
 import { useCurrentUserSummary } from "@gitbruv/hooks";
@@ -89,10 +89,8 @@ export function Header() {
           {session?.user ? (
             <div className="flex items-center gap-2">
               <DropdownMenu>
-                <DropdownMenuTrigger>
-                  <Button variant="ghost" size="icon">
-                    <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} className="size-4" />
-                  </Button>
+                <DropdownMenuTrigger className={buttonVariants({ variant: "ghost", size: "icon" })}>
+                  <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} className="size-4" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuItem className="p-0!">
@@ -105,15 +103,13 @@ export function Header() {
               </DropdownMenu>
 
               <DropdownMenu>
-                <DropdownMenuTrigger className="h-8 w-8">
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <Avatar className="h-8 w-8 rounded-none border-none after:border-none">
-                      <AvatarImage src={user?.avatarUrl || undefined} className="rounded-none border-none" />
-                      <AvatarFallback className="bg-muted text-muted-foreground font-semibold rounded-none">
-                        {(user?.name || session.user.name || "U").charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
+                <DropdownMenuTrigger className={buttonVariants({ variant: "ghost", size: "icon" })}>
+                  <Avatar className="h-8 w-8 rounded-none border-none after:border-none">
+                    <AvatarImage src={user?.avatarUrl || undefined} className="rounded-none border-none" />
+                    <AvatarFallback className="bg-muted text-muted-foreground font-semibold rounded-none">
+                      {(user?.name || session.user.name || "U").charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuItem className="px-3 py-2 flex items-start flex-col gap-1">

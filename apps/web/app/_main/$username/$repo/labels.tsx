@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowLeft02Icon, Add01Icon, Edit02Icon, Delete02Icon } from "@hugeicons-pro/core-stroke-standard";
+import { Add01Icon, Edit02Icon, Delete02Icon } from "@hugeicons-pro/core-stroke-standard";
 import { useLabels, useCreateLabel, useUpdateLabel, useDeleteLabel, useRepositoryInfo } from "@gitbruv/hooks";
 import type { Label } from "@gitbruv/hooks";
 import { Button } from "@/components/ui/button";
@@ -41,22 +41,13 @@ function LabelsPage() {
   };
 
   return (
-    <div className="container max-w-4xl px-4 py-6">
+    <div className="container max-w-6xl px-4">
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Link
-            to="/$username/$repo"
-            params={{ username, repo }}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <HugeiconsIcon icon={ArrowLeft02Icon} strokeWidth={2} className="size-5" />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold">Labels</h1>
-            <p className="text-sm text-muted-foreground">
-              {labels.length} label{labels.length !== 1 ? "s" : ""}
-            </p>
-          </div>
+        <div>
+          <h1 className="text-xl font-bold">Labels</h1>
+          <p className="text-sm text-muted-foreground">
+            {labels.length} label{labels.length !== 1 ? "s" : ""}
+          </p>
         </div>
 
         {isOwner && !isCreating && (
