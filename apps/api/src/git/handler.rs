@@ -759,83 +759,57 @@ async fn diff_blobs(
 }
 
 fn compute_unified_diff(old_content: &str, new_content: &str) -> Vec<DiffHunk> {
-    use similar::{ChangeTag, TextDiff};
+    use similar::{ChangeTag, TextDiff, DiffOp};
     
     let diff = TextDiff::from_lines(old_content, new_content);
     let mut hunks = Vec::new();
     let context_radius = 3;
     
-    let ops = diff.ops();
-    let mut current_lines: Vec<DiffHunkLine> = Vec::new();
-    let mut hunk_old_start = 0usize;
-    let mut hunk_new_start = 0usize;
-    let mut last_change_end = 0usize;
-    let mut in_hunk = false;
-    
-    for op in ops.iter() {
-        for change in diff.iter_changes(op) {
-            let is_change = change.tag() != ChangeTag::Equal;
-            
-            if is_change && !in_hunk {
-                in_hunk = true;
-                current_lines.clear();
-                hunk_old_start = change.old_index().unwrap_or(0) + 1;
-                hunk_new_start = change.new_index().unwrap_or(0) + 1;
-            }
-            
-            if in_hunk {
+    for group in diff.grouped_ops(context_radius) {
+        let mut lines: Vec<DiffHunkLine> = Vec::new();
+        
+        let first_op = group.first();
+        let (old_start, new_start) = match first_op {
+            Some(DiffOp::Equal { old_index, new_index, .. }) => (*old_index + 1, *new_index + 1),
+            Some(DiffOp::Delete { old_index, new_index, .. }) => (*old_index + 1, *new_index + 1),
+            Some(DiffOp::Insert { old_index, new_index, .. }) => (*old_index + 1, *new_index + 1),
+            Some(DiffOp::Replace { old_index, new_index, .. }) => (*old_index + 1, *new_index + 1),
+            None => continue,
+        };
+        
+        for op in group {
+            for change in diff.iter_changes(&op) {
+                let old_idx = change.old_index();
+                let new_idx = change.new_index();
+                
                 let line_type = match change.tag() {
                     ChangeTag::Equal => "context",
                     ChangeTag::Delete => "deletion",
                     ChangeTag::Insert => "addition",
                 };
                 
-                current_lines.push(DiffHunkLine {
+                lines.push(DiffHunkLine {
                     line_type: line_type.to_string(),
                     content: change.value().trim_end_matches('\n').to_string(),
-                    old_line_number: change.old_index().map(|x| x + 1),
-                    new_line_number: change.new_index().map(|x| x + 1),
+                    old_line_number: old_idx.map(|x| x + 1),
+                    new_line_number: new_idx.map(|x| x + 1),
                 });
-                
-                if is_change {
-                    last_change_end = current_lines.len();
-                }
-                
-                let context_after_change = current_lines.len() - last_change_end;
-                if !is_change && context_after_change >= context_radius {
-                    current_lines.truncate(last_change_end + context_radius);
-                    let hunk_old_count = current_lines.iter().filter(|l| l.line_type != "addition").count();
-                    let hunk_new_count = current_lines.iter().filter(|l| l.line_type != "deletion").count();
-                    
-                    hunks.push(DiffHunk {
-                        old_start: hunk_old_start,
-                        old_lines: hunk_old_count,
-                        new_start: hunk_new_start,
-                        new_lines: hunk_new_count,
-                        lines: current_lines.clone(),
-                    });
-                    
-                    in_hunk = false;
-                    current_lines.clear();
-                }
             }
         }
-    }
-    
-    if in_hunk && !current_lines.is_empty() {
-        if last_change_end < current_lines.len() {
-            let keep = (last_change_end + context_radius).min(current_lines.len());
-            current_lines.truncate(keep);
+        
+        if lines.is_empty() {
+            continue;
         }
-        let hunk_old_count = current_lines.iter().filter(|l| l.line_type != "addition").count();
-        let hunk_new_count = current_lines.iter().filter(|l| l.line_type != "deletion").count();
+        
+        let old_lines = lines.iter().filter(|l| l.line_type != "addition").count();
+        let new_lines = lines.iter().filter(|l| l.line_type != "deletion").count();
         
         hunks.push(DiffHunk {
-            old_start: hunk_old_start,
-            old_lines: hunk_old_count,
-            new_start: hunk_new_start,
-            new_lines: hunk_new_count,
-            lines: current_lines,
+            old_start,
+            old_lines,
+            new_start,
+            new_lines,
+            lines,
         });
     }
     
