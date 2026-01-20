@@ -1,4 +1,5 @@
 use crate::git::objects::S3GitStore;
+use crate::redis::{RedisClient, CacheTtl};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -117,6 +118,16 @@ pub async fn get_tree(
     branch: &str,
     path: &str,
 ) -> Option<Vec<TreeEntry>> {
+    if let Some(ref redis) = store.redis {
+        let cache_key = RedisClient::tree_key(&store.prefix, branch, path);
+        if let Some(cached) = redis.get_string(&cache_key).await {
+            if let Ok(entries) = serde_json::from_str::<Vec<TreeEntry>>(&cached) {
+                tracing::debug!("get_tree: redis cache hit for {}:{}", branch, path);
+                return Some(entries);
+            }
+        }
+    }
+
     let ref_path = format!("refs/heads/{}", branch);
     tracing::debug!("get_tree: resolving ref {}", ref_path);
 
@@ -167,6 +178,13 @@ pub async fn get_tree(
     let entries = parse_tree(&tree_data, path);
     tracing::debug!("get_tree: parsed {} entries", entries.len());
 
+    if let Some(ref redis) = store.redis {
+        let cache_key = RedisClient::tree_key(&store.prefix, branch, path);
+        if let Ok(json) = serde_json::to_string(&entries) {
+            redis.set_ex_string(&cache_key, &json, CacheTtl::TREE_LISTING).await;
+        }
+    }
+
     Some(entries)
 }
 
@@ -175,6 +193,16 @@ pub async fn get_file(
     branch: &str,
     path: &str,
 ) -> Option<(String, String)> {
+    if let Some(ref redis) = store.redis {
+        let cache_key = RedisClient::file_key(&store.prefix, branch, path);
+        if let Some(cached) = redis.get_string(&cache_key).await {
+            if let Some((content, oid)) = cached.split_once('\x00') {
+                tracing::debug!("get_file: redis cache hit for {}:{}", branch, path);
+                return Some((content.to_string(), oid.to_string()));
+            }
+        }
+    }
+
     let ref_path = format!("refs/heads/{}", branch);
     let head_oid = store.resolve_ref(&ref_path).await?;
 
@@ -204,6 +232,12 @@ pub async fn get_file(
 
     let blob_data = store.get_object(&file_oid).await?;
     let content = parse_blob(&blob_data)?;
+
+    if let Some(ref redis) = store.redis {
+        let cache_key = RedisClient::file_key(&store.prefix, branch, path);
+        let cache_value = format!("{}\x00{}", content, file_oid);
+        redis.set_ex_string(&cache_key, &cache_value, CacheTtl::FILE_CONTENT).await;
+    }
 
     Some((content, file_oid))
 }

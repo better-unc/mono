@@ -5,6 +5,7 @@ use std::time::{Duration, Instant};
 use dashmap::DashMap;
 use sha1::{Digest, Sha1};
 use crate::s3::S3Client;
+use crate::redis::{RedisClient, CacheTtl};
 
 static GLOBAL_PACK_LIST_CACHE: OnceLock<DashMap<String, (Vec<String>, Instant)>> = OnceLock::new();
 static GLOBAL_IDX_CACHE: OnceLock<DashMap<String, (Vec<u8>, Instant)>> = OnceLock::new();
@@ -48,6 +49,7 @@ fn global_pack_cache() -> &'static DashMap<String, (Vec<u8>, Instant)> {
 pub struct S3GitStore {
     pub s3: S3Client,
     pub prefix: String,
+    pub redis: Option<RedisClient>,
     object_cache: tokio::sync::RwLock<HashMap<String, Vec<u8>>>,
     pack_list_cache: tokio::sync::RwLock<Option<Vec<String>>>,
     idx_cache: tokio::sync::RwLock<HashMap<String, Vec<u8>>>,
@@ -60,6 +62,20 @@ impl S3GitStore {
         Self {
             s3,
             prefix,
+            redis: None,
+            object_cache: tokio::sync::RwLock::new(HashMap::new()),
+            pack_list_cache: tokio::sync::RwLock::new(None),
+            idx_cache: tokio::sync::RwLock::new(HashMap::new()),
+            pack_cache: tokio::sync::RwLock::new(HashMap::new()),
+            pack_object_cache: tokio::sync::RwLock::new(HashMap::new()),
+        }
+    }
+
+    pub fn with_redis(s3: S3Client, prefix: String, redis: Option<RedisClient>) -> Self {
+        Self {
+            s3,
+            prefix,
+            redis,
             object_cache: tokio::sync::RwLock::new(HashMap::new()),
             pack_list_cache: tokio::sync::RwLock::new(None),
             idx_cache: tokio::sync::RwLock::new(HashMap::new()),
@@ -150,6 +166,18 @@ impl S3GitStore {
 
     pub async fn get_object(&self, oid: &str) -> Option<Vec<u8>> {
         let overall_start = Instant::now();
+
+        if let Some(ref redis) = self.redis {
+            let redis_key = RedisClient::object_key(&self.prefix, oid);
+            if let Some(data) = redis.get(&redis_key).await {
+                tracing::debug!("Redis cache hit for object {}", oid);
+                tracing::info!("get_object source=redis oid={} bytes={} elapsed_ms={}", oid, data.len(), overall_start.elapsed().as_millis());
+                let mut cache = self.object_cache.write().await;
+                cache.insert(oid.to_string(), data.clone());
+                return Some(data);
+            }
+        }
+
         {
             let cache = self.object_cache.read().await;
             if let Some(data) = cache.get(oid) {
@@ -165,6 +193,10 @@ impl S3GitStore {
             tracing::debug!("Found loose object {} ({} bytes)", oid, data.len());
             let mut cache = self.object_cache.write().await;
             cache.insert(oid.to_string(), data.clone());
+            if let Some(ref redis) = self.redis {
+                let redis_key = RedisClient::object_key(&self.prefix, oid);
+                redis.set_ex(&redis_key, &data, CacheTtl::GIT_OBJECT).await;
+            }
             tracing::info!("get_object source=loose oid={} bytes={} elapsed_ms={}", oid, data.len(), overall_start.elapsed().as_millis());
             return Some(data);
         }
@@ -174,6 +206,10 @@ impl S3GitStore {
             tracing::debug!("Found object {} in pack ({} bytes)", oid, obj.len());
             let mut cache = self.object_cache.write().await;
             cache.insert(oid.to_string(), obj.clone());
+            if let Some(ref redis) = self.redis {
+                let redis_key = RedisClient::object_key(&self.prefix, oid);
+                redis.set_ex(&redis_key, &obj, CacheTtl::GIT_OBJECT).await;
+            }
             tracing::info!("get_object source=pack oid={} bytes={} elapsed_ms={}", oid, obj.len(), overall_start.elapsed().as_millis());
             return Some(obj);
         }
@@ -537,7 +573,24 @@ impl S3GitStore {
     }
 
     pub async fn resolve_ref(&self, ref_name: &str) -> Option<String> {
-        self.resolve_ref_inner(ref_name, 0).await
+        if let Some(ref redis) = self.redis {
+            let cache_key = RedisClient::ref_key(&self.prefix, ref_name);
+            if let Some(cached_oid) = redis.get_string(&cache_key).await {
+                if cached_oid.len() == 40 && cached_oid.chars().all(|c| c.is_ascii_hexdigit()) {
+                    tracing::debug!("resolve_ref: redis cache hit for {}", ref_name);
+                    return Some(cached_oid);
+                }
+            }
+        }
+
+        let result = self.resolve_ref_inner(ref_name, 0).await;
+
+        if let (Some(ref redis), Some(ref oid)) = (&self.redis, &result) {
+            let cache_key = RedisClient::ref_key(&self.prefix, ref_name);
+            redis.set_ex_string(&cache_key, oid, CacheTtl::REF_RESOLUTION).await;
+        }
+
+        result
     }
 
     fn resolve_ref_inner<'a>(&'a self, ref_name: &'a str, depth: u8) -> std::pin::Pin<Box<dyn std::future::Future<Output = Option<String>> + Send + 'a>> {

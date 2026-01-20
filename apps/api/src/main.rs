@@ -4,6 +4,7 @@ mod auth;
 mod s3;
 mod git;
 mod routes;
+mod redis;
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -17,6 +18,7 @@ use crate::config::Config;
 use crate::db::Database;
 use crate::s3::S3Client;
 use crate::auth::{auth_middleware, SessionCache, BasicAuthCache};
+use crate::redis::RedisClient;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -26,10 +28,15 @@ pub struct AppState {
     pub session_cache: SessionCache,
     pub http_client: reqwest::Client,
     pub basic_auth_cache: BasicAuthCache,
+    pub redis: Option<RedisClient>,
 }
 
 #[tokio::main]
 async fn main() {
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("Failed to install rustls crypto provider");
+
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::try_from_default_env()
             .unwrap_or_else(|_| "gitbruv_api=debug,tower_http=debug".into()))
@@ -49,6 +56,22 @@ async fn main() {
         .unwrap();
     let basic_auth_cache = BasicAuthCache::new(Duration::from_secs(60));
 
+    let redis = if let Some(ref redis_url) = config.redis_url {
+        match RedisClient::new(redis_url).await {
+            Ok(client) => {
+                tracing::info!("Connected to Redis");
+                Some(client)
+            }
+            Err(e) => {
+                tracing::warn!("Failed to connect to Redis: {}. Continuing without cache.", e);
+                None
+            }
+        }
+    } else {
+        tracing::info!("REDIS_URL not set, running without Redis cache");
+        None
+    };
+
     let state = AppState { 
         db, 
         s3, 
@@ -56,6 +79,7 @@ async fn main() {
         session_cache,
         http_client,
         basic_auth_cache,
+        redis,
     };
 
     let cors = CorsLayer::new()

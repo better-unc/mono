@@ -9,6 +9,7 @@ pub struct Config {
     pub aws_s3_bucket_name: String,
     pub internal_auth_url: String,
     pub internal_auth_secret: String,
+    pub redis_url: Option<String>,
 }
 
 impl Config {
@@ -32,6 +33,7 @@ impl Config {
                 .expect("INTERNAL_AUTH_URL must be set"),
             internal_auth_secret: env::var("BETTER_AUTH_SECRET")
                 .expect("BETTER_AUTH_SECRET must be set"),
+            redis_url: env::var("REDIS_URL").ok(),
         }
     }
 }
