@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 import { createFileRoute, Outlet, Link, useParams, useLocation } from "@tanstack/react-router";
-import { useQueryState } from "nuqs";
 import { useRepositoryInfo, useRepoBranches, useRepoCommitCount, useIssueCount } from "@gitbruv/hooks";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -17,6 +16,19 @@ import { CloneUrl } from "@/components/clone-url";
 import { StarButton } from "@/components/star-button";
 import { Button } from "@/components/ui/button";
 
+function getBranchFromPath(pathname: string, defaultBranch: string): string {
+  const treeMatch = pathname.match(/\/tree\/([^/]+)/);
+  if (treeMatch) return treeMatch[1];
+  
+  const blobMatch = pathname.match(/\/blob\/([^/]+)/);
+  if (blobMatch) return blobMatch[1];
+  
+  const commitsMatch = pathname.match(/\/commits\/([^/]+)/);
+  if (commitsMatch) return commitsMatch[1];
+  
+  return defaultBranch;
+}
+
 export const Route = createFileRoute("/_main/$username/$repo")({
   component: RepoLayout,
 });
@@ -32,7 +44,6 @@ function RepoLayout() {
 function RepoLayoutContent() {
   const { username, repo: repoName } = useParams({ from: "/_main/$username/$repo" });
   const location = useLocation();
-  const [branchParam] = useQueryState("branch");
 
   const { data: repoInfo, isLoading: isLoadingInfo } = useRepositoryInfo(username, repoName);
   const { data: branchesData, isLoading: isLoadingBranches } = useRepoBranches(username, repoName);
@@ -41,7 +52,7 @@ function RepoLayoutContent() {
   const repo = repoInfo?.repo;
   const isOwner = repoInfo?.isOwner ?? false;
   const defaultBranch = repo?.defaultBranch || "main";
-  const currentBranch = branchParam || defaultBranch;
+  const currentBranch = getBranchFromPath(location.pathname, defaultBranch);
   const branches = branchesData?.branches || [];
   const openIssueCount = issueCountData?.open || 0;
 
@@ -122,6 +133,8 @@ function RepoLayoutContent() {
                 branches={branches}
                 currentBranch={currentBranch}
                 defaultBranch={defaultBranch}
+                username={username}
+                repoName={repo?.name || repoName}
               />
             )}
             <CloneUrl username={username} repoName={repo?.name || repoName} />

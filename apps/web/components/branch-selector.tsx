@@ -2,19 +2,94 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { GitBranchIcon, CheckmarkCircleIcon, ArrowDown01Icon } from "@hugeicons-pro/core-stroke-standard";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { buttonVariants } from "./ui/button";
+import { useLocation, useNavigate } from "@tanstack/react-router";
+
+type BranchSelectorProps = {
+  branches: string[];
+  currentBranch: string;
+  defaultBranch: string;
+  username: string;
+  repoName: string;
+};
+
+type RouteContext = "root" | "tree" | "blob" | "commits";
+
+function getRouteContext(pathname: string): RouteContext {
+  if (pathname.includes("/tree/")) return "tree";
+  if (pathname.includes("/blob/")) return "blob";
+  if (pathname.includes("/commits/")) return "commits";
+  return "root";
+}
+
+function getCurrentPath(pathname: string, context: RouteContext): string {
+  if (context === "root" || context === "commits") return "";
+  
+  const match = pathname.match(/\/(tree|blob)\/[^/]+\/(.+)/);
+  if (match) {
+    return match[2];
+  }
+  return "";
+}
 
 export function BranchSelector({
   branches,
   currentBranch,
   defaultBranch,
-}: {
-  branches: string[];
-  currentBranch: string;
-  defaultBranch: string;
-}) {
-  const [, setBranch] = useQueryState("branch", parseAsStringLiteral([defaultBranch]).withDefault(defaultBranch));
+  username,
+  repoName,
+}: BranchSelectorProps) {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const context = getRouteContext(location.pathname);
+  const currentPath = getCurrentPath(location.pathname, context);
+
+  const handleBranchChange = (newBranch: string) => {
+    if (newBranch === currentBranch) return;
+
+    switch (context) {
+      case "root":
+        if (newBranch === defaultBranch) {
+          navigate({
+            to: "/$username/$repo",
+            params: { username, repo: repoName },
+          });
+        } else {
+          navigate({
+            to: "/$username/$repo/tree/$",
+            params: { username, repo: repoName, _splat: newBranch },
+          });
+        }
+        break;
+      case "tree":
+        navigate({
+          to: "/$username/$repo/tree/$",
+          params: { 
+            username, 
+            repo: repoName, 
+            _splat: currentPath ? `${newBranch}/${currentPath}` : newBranch,
+          },
+        });
+        break;
+      case "blob":
+        navigate({
+          to: "/$username/$repo/blob/$",
+          params: { 
+            username, 
+            repo: repoName, 
+            _splat: currentPath ? `${newBranch}/${currentPath}` : newBranch,
+          },
+        });
+        break;
+      case "commits":
+        navigate({
+          to: "/$username/$repo/commits/$branch",
+          params: { username, repo: repoName, branch: newBranch },
+        });
+        break;
+    }
+  };
 
   if (branches.length === 0) {
     return (
@@ -38,7 +113,7 @@ export function BranchSelector({
           {branches.map((branch) => (
             <DropdownMenuItem
               key={branch}
-              onClick={() => setBranch(branch)}
+              onClick={() => handleBranchChange(branch)}
               className={cn("cursor-pointer px-3 py-2 text-sm font-mono", branch === currentBranch && "bg-primary/10")}
             >
               <HugeiconsIcon

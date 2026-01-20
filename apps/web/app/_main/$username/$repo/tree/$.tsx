@@ -89,7 +89,9 @@ function TreePage() {
         ) : treeError || !treeData ? (
           <div className="p-8 text-center text-muted-foreground">Failed to load directory</div>
         ) : (
-          <FileTree files={treeData.files} username={username} repoName={repoName} branch={branch} basePath={dirPath} />
+          <div className="bg-card overflow-hidden">
+            <FileTree files={treeData.files} username={username} repoName={repoName} branch={branch} basePath={dirPath} />
+          </div>
         )}
       </div>
     </div>

@@ -4,7 +4,6 @@ import { FileTree } from "@/components/file-tree";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useRepoCommits, useRepoReadme, useRepoReadmeOid, useRepositoryInfo, useRepoTree } from "@gitbruv/hooks";
 import { createFileRoute } from "@tanstack/react-router";
-import { useQueryState } from "nuqs";
 import { timeAgo } from "@gitbruv/lib";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { BookOpenIcon, GitBranchIcon } from "@hugeicons-pro/core-stroke-standard";
@@ -15,11 +14,10 @@ export const Route = createFileRoute("/_main/$username/$repo/")({
 
 function RepoPage() {
   const { username, repo: repoName } = Route.useParams();
-  const [branchParam] = useQueryState("branch");
 
-  const { data: repoInfo, isLoading: isLoadingInfo } = useRepositoryInfo(username, repoName);
+  const { data: repoInfo } = useRepositoryInfo(username, repoName);
   const defaultBranch = repoInfo?.repo.defaultBranch || "main";
-  const currentBranch = branchParam || defaultBranch;
+  const currentBranch = defaultBranch;
 
   const { data: treeData, isLoading: isLoadingTree } = useRepoTree(username, repoName, currentBranch);
   const { data: readmeOidData, isLoading: isLoadingReadmeOid } = useRepoReadmeOid(username, repoName, currentBranch);
