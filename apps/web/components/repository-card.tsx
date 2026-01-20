@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { Star, Clock } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { StarIcon, ClockIcon } from "@hugeicons-pro/core-stroke-standard";
 import { format } from "date-fns";
 import { type RepositoryWithStars, useStarRepository } from "@gitbruv/hooks";
 import { Button } from "./ui/button";
@@ -14,13 +15,13 @@ export default function RepositoryCard({ repository, showOwner = false }: { repo
       <span className="sr-only">View {repository.name}</span>
       <div className="flex items-start gap-3">
         <Link to="/$username" params={{ username: repository.owner.username }} onClick={(e) => e.stopPropagation()} className="z-10 shrink-0">
-          <Avatar className="h-12 w-12">
+          <Avatar className="h-12 w-12 rounded-none border-none after:border-none">
             <AvatarImage
               src={repository.owner.avatarUrl || undefined}
               alt={repository.name ?? "Repository Logo"}
-              className="transition-opacity hover:opacity-80"
+              className="transition-opacity hover:opacity-80 rounded-none border-none"
             />
-            <AvatarFallback className="bg-muted text-muted-foreground">
+            <AvatarFallback className="bg-muted text-muted-foreground font-semibold rounded-none">
               {repository.owner.name?.charAt(0).toUpperCase() || repository.owner.username.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
@@ -59,7 +60,7 @@ export default function RepositoryCard({ repository, showOwner = false }: { repo
                   toggleStar();
                 }}
               >
-                <Star className={`h-3 w-3 ${isStarred ? "fill-primary text-primary" : "text-muted-foreground"}`} />
+                <HugeiconsIcon icon={StarIcon} strokeWidth={2} className={`size-3 ${isStarred ? "text-primary" : "text-muted-foreground"}`} />
                 {isStarred ? "Starred" : "Star"}
               </Button>
             </div>
@@ -67,11 +68,11 @@ export default function RepositoryCard({ repository, showOwner = false }: { repo
           <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">{repository.description || "No description"}</p>
           <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
-              <Star className="h-3 w-3" />
+              <HugeiconsIcon icon={StarIcon} strokeWidth={2} className="size-3" />
               <span>{starCount ?? 0}</span>
             </div>
             <div className="flex items-center gap-1">
-              <Clock className="h-3 w-3" />
+              <HugeiconsIcon icon={ClockIcon} strokeWidth={2} className="size-3" />
               <span>{format(new Date(repository.createdAt), "MMM d, yyyy")}</span>
             </div>
           </div>

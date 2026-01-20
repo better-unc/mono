@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Star } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { StarIcon } from "@hugeicons-pro/core-stroke-standard";
 import { Button } from "@/components/ui/button";
 import { useToggleStar } from "@gitbruv/hooks";
 import { cn } from "@/lib/utils";
@@ -40,7 +41,7 @@ export function StarButton({
       disabled={isPending}
       className={cn("gap-2 border border-border transition-all", starred && "bg-primary/10 border-primary/30 hover:bg-primary/20 pr-0.75", className)}
     >
-      <Star className={cn("h-4 w-4", starred ? "fill-primary text-primary" : "text-muted-foreground")} />
+      <HugeiconsIcon icon={StarIcon} strokeWidth={2} className={cn("size-4", starred ? "text-primary" : "text-muted-foreground")} />
       <span>{starred ? "Starred" : "Star"}</span>
       <span className="font-mono text-xs px-1.5 py-0.5 bg-foreground/5">{count}</span>
     </Button>

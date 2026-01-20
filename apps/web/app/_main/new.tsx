@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, Lock, Globe } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { LockKeyIcon, GlobeIcon, Loading02Icon } from "@hugeicons-pro/core-stroke-standard";
 
 export const Route = createFileRoute("/_main/new")({
   component: NewRepoPage,
@@ -36,7 +37,7 @@ function NewRepoPage() {
   if (isPending) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -130,7 +131,7 @@ function NewRepoPage() {
               />
               <div className="flex-1">
                 <div className="flex items-center gap-2 font-semibold text-sm">
-                  <Globe className="h-4 w-4 text-muted-foreground" />
+                  <HugeiconsIcon icon={GlobeIcon} strokeWidth={2} className="size-4 text-muted-foreground" />
                   Public
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">Anyone on the internet can see this repository. You choose who can commit.</p>
@@ -148,7 +149,7 @@ function NewRepoPage() {
               />
               <div className="flex-1">
                 <div className="flex items-center gap-2 font-semibold text-sm">
-                  <Lock className="h-4 w-4 text-muted-foreground" />
+                  <HugeiconsIcon icon={LockKeyIcon} strokeWidth={2} className="size-4 text-muted-foreground" />
                   Private
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">You choose who can see and commit to this repository.</p>
@@ -161,7 +162,7 @@ function NewRepoPage() {
           <Button type="submit" disabled={isCreating || !formData.name} className="h-9 px-6 text-sm font-semibold">
             {isCreating ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />
                 Creating...
               </>
             ) : (

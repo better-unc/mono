@@ -3,9 +3,11 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { updateAvatar } from "@/lib/api/client";
+import { deleteAvatar, updateAvatar } from "@/lib/api/client";
 import { useQueryClient } from "@tanstack/react-query";
-import { Camera, Loader2 } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { CameraIcon, DeleteIcon, Loading02Icon } from "@hugeicons-pro/core-stroke-standard";
+import { toast } from "sonner";
 
 interface AvatarUploadProps {
   currentAvatar?: string | null;
@@ -15,8 +17,8 @@ interface AvatarUploadProps {
 export function AvatarUpload({ currentAvatar, name }: AvatarUploadProps) {
   const queryClient = useQueryClient();
   const [preview, setPreview] = useState<string | null>(currentAvatar || null);
-  const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -24,12 +26,12 @@ export function AvatarUpload({ currentAvatar, name }: AvatarUploadProps) {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      setError("Please select an image file");
+      toast.error("Please select an image file");
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setError("Image must be less than 5MB");
+      toast.error("Image must be less than 5MB");
       return;
     }
 
@@ -39,7 +41,6 @@ export function AvatarUpload({ currentAvatar, name }: AvatarUploadProps) {
     };
     reader.readAsDataURL(file);
 
-    setError(null);
     setIsUploading(true);
 
     try {
@@ -50,35 +51,64 @@ export function AvatarUpload({ currentAvatar, name }: AvatarUploadProps) {
         queryClient.invalidateQueries({ queryKey: ["user"] });
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to upload avatar");
+      toast.error(err instanceof Error ? err.message : "Failed to upload avatar");
       setPreview(currentAvatar || null);
     } finally {
       setIsUploading(false);
     }
   }
 
+  async function handleDeleteAvatar() {
+    setIsDeleting(true);
+    try {
+      await deleteAvatar();
+      setPreview(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+      toast.success("Avatar removed");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete avatar");
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   return (
     <div className="flex items-start gap-6">
       <div className="relative">
-        <Avatar className="w-24 h-24 rounded-none">
-          <AvatarImage src={preview || undefined} alt={name} className="rounded-none" />
-          <AvatarFallback className="text-2xl bg-accent rounded-none">{name.charAt(0).toUpperCase()}</AvatarFallback>
+        <Avatar className="w-24 h-24 rounded-none border-none after:border-none">
+          <AvatarImage src={preview || undefined} alt={name} className="rounded-none border-none" />
+          <AvatarFallback className="bg-muted text-muted-foreground font-semibold rounded-none">{name.charAt(0).toUpperCase()}</AvatarFallback>
         </Avatar>
         {isUploading && (
           <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
-            <Loader2 className="w-6 h-6 animate-spin" />
+            <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-6 animate-spin" />
           </div>
         )}
       </div>
 
       <div className="space-y-2">
         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-        <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
-          <Camera className="w-4 h-4 mr-2" />
-          Change Avatar
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isUploading || isDeleting}>
+            <HugeiconsIcon icon={CameraIcon} strokeWidth={2} className="size-4 mr-2" />
+            Change Avatar
+          </Button>
+          {preview && (
+            <Button type="button" variant="destructive" size="sm" onClick={handleDeleteAvatar} disabled={isUploading || isDeleting}>
+              {isDeleting ? (
+                <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />
+              ) : (
+                <HugeiconsIcon icon={DeleteIcon} strokeWidth={2} className="size-4 mr-2" />
+              )}
+              Delete Avatar
+            </Button>
+          )}
+        </div>
         <p className="text-xs text-muted-foreground">JPG, PNG or GIF. Max 5MB.</p>
-        {error && <p className="text-xs text-red-500">{error}</p>}
       </div>
     </div>
   );

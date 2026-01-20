@@ -4,7 +4,18 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { signOut, useSession } from "@/lib/auth-client";
 import { useCurrentUserSummary } from "@gitbruv/hooks";
 import { Link, useNavigate, useLocation, useParams } from "@tanstack/react-router";
-import { Bell, Inbox, LogOut, Moon, Plus, Settings, Sun, User } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  Notification01Icon,
+  BookOpenIcon,
+  InboxIcon,
+  LogoutIcon,
+  Moon02Icon,
+  PlusSignIcon,
+  SettingsIcon,
+  SunIcon,
+  UserIcon,
+} from "@hugeicons-pro/core-stroke-standard";
 import { useTheme } from "tanstack-theme-kit";
 
 export function Header() {
@@ -57,15 +68,19 @@ export function Header() {
         <div className="flex items-center gap-1">
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              {theme === "dark" ? (
+                <HugeiconsIcon icon={SunIcon} strokeWidth={2} className="size-4" />
+              ) : (
+                <HugeiconsIcon icon={Moon02Icon} strokeWidth={2} className="size-4" />
+              )}
             </Button>
             {session?.user ? (
               <>
                 <Button variant="ghost" size="icon">
-                  <Bell className="h-4 w-4" />
+                  <HugeiconsIcon icon={Notification01Icon} strokeWidth={2} className="size-4" />
                 </Button>
                 <Button variant="ghost" size="icon">
-                  <Inbox className="h-4 w-4" />
+                  <HugeiconsIcon icon={InboxIcon} strokeWidth={2} className="size-4" />
                 </Button>
               </>
             ) : null}
@@ -76,13 +91,13 @@ export function Header() {
               <DropdownMenu>
                 <DropdownMenuTrigger>
                   <Button variant="ghost" size="icon">
-                    <Plus className="h-4 w-4" />
+                    <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} className="size-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuItem className="p-0!">
                     <Link to="/new" className="gap-2 flex items-center grow p-2">
-                      <BookIcon className="h-4 w-4" />
+                      <HugeiconsIcon icon={BookOpenIcon} strokeWidth={2} className="size-4" />
                       New repository
                     </Link>
                   </DropdownMenuItem>
@@ -92,9 +107,9 @@ export function Header() {
               <DropdownMenu>
                 <DropdownMenuTrigger className="h-8 w-8">
                   <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <Avatar className="h-8 w-8 border border-border rounded-none">
-                      <AvatarImage src={user?.avatarUrl || undefined} className="rounded-none" />
-                      <AvatarFallback className="bg-accent/10 text-accent text-xs font-semibold rounded-none">
+                    <Avatar className="h-8 w-8 rounded-none border-none after:border-none">
+                      <AvatarImage src={user?.avatarUrl || undefined} className="rounded-none border-none" />
+                      <AvatarFallback className="bg-muted text-muted-foreground font-semibold rounded-none">
                         {(user?.name || session.user.name || "U").charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
@@ -114,13 +129,13 @@ export function Header() {
                       }}
                       className="gap-2 flex items-center grow p-2"
                     >
-                      <User className="h-4 w-4" />
+                      <HugeiconsIcon icon={UserIcon} strokeWidth={2} className="size-4" />
                       Your profile
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem className="p-0!">
                     <Link to="/settings" className="gap-2 flex items-center grow p-2">
-                      <Settings className="h-4 w-4" />
+                      <HugeiconsIcon icon={SettingsIcon} strokeWidth={2} className="size-4" />
                       Settings
                     </Link>
                   </DropdownMenuItem>
@@ -132,7 +147,7 @@ export function Header() {
                       className="cursor-pointer gap-2 text-destructive flex items-center justify-start grow focus:text-destructive focus:bg-destructive/10 p-2"
                       onClick={handleSignOut}
                     >
-                      <LogOut className="h-4 w-4" />
+                      <HugeiconsIcon icon={LogoutIcon} strokeWidth={2} className="size-4" />
                       Sign out
                     </Button>
                   </DropdownMenuItem>

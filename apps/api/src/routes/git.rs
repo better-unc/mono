@@ -10,13 +10,14 @@ use chrono::NaiveDateTime;
 use serde::Deserialize;
 use sqlx::FromRow;
 use std::collections::HashMap;
+use std::time::Instant;
 use uuid::Uuid;
 
 use crate::{
     auth::{require_auth, AuthUser},
     git::{
         handler::{get_blob_by_oid, get_commits, get_commit_by_oid, get_file, get_tree, list_branches, count_commits_until, CommitAuthor, CommitInfo, TreeEntry},
-        objects::R2GitStore,
+        objects::S3GitStore,
         pack::{handle_receive_pack, handle_upload_pack},
         refs::get_refs_advertisement,
     },
@@ -109,7 +110,7 @@ async fn get_repo_and_store(
     state: &AppState,
     owner: &str,
     name: &str,
-) -> Result<(Repository, R2GitStore, String), (StatusCode, String)> {
+) -> Result<(Repository, S3GitStore, String), (StatusCode, String)> {
     #[derive(FromRow)]
     struct RepoUserRow {
         id: Uuid,
@@ -151,7 +152,7 @@ async fn get_repo_and_store(
     };
 
     let repo_prefix = S3Client::get_repo_prefix(&row.user_id, &repo.name);
-    let store = R2GitStore::new(state.s3.clone(), repo_prefix);
+    let store = S3GitStore::new(state.s3.clone(), repo_prefix);
 
     Ok((repo, store, row.user_id))
 }
@@ -366,7 +367,7 @@ async fn delete_repo_branch_metadata(
 }
 
 async fn build_branch_metadata(
-    store: &R2GitStore,
+    store: &S3GitStore,
     branch: &str,
     old_oid: &str,
     new_oid: &str,
@@ -469,7 +470,7 @@ async fn build_branch_metadata(
 async fn update_metadata_for_updates(
     state: &AppState,
     repo_id: Uuid,
-    store: &R2GitStore,
+    store: &S3GitStore,
     updates: &[(String, String, String)],
 ) {
     let zero_oid = "0".repeat(40);
@@ -829,6 +830,7 @@ async fn info_refs(
     Path((owner, name)): Path<(String, String)>,
     Query(query): Query<ServiceQuery>,
 ) -> Result<Response, (StatusCode, String)> {
+    let overall_start = Instant::now();
     let service = query.service.ok_or((StatusCode::NOT_FOUND, "Service not specified".to_string()))?;
 
     if service != "git-upload-pack" && service != "git-receive-pack" {
@@ -863,6 +865,7 @@ async fn info_refs(
     response.extend(b"0000");
     response.extend(&refs);
 
+    tracing::info!("info_refs service={} elapsed_ms={}", service, overall_start.elapsed().as_millis());
     Ok(Response::builder()
         .status(StatusCode::OK)
         .header(header::CONTENT_TYPE, format!("application/x-{}-advertisement", service))
@@ -902,6 +905,7 @@ async fn receive_pack(
     Path((owner, name)): Path<(String, String)>,
     body: axum::body::Bytes,
 ) -> Result<Response, (StatusCode, String)> {
+    let overall_start = Instant::now();
     let (repo, store, _) = get_repo_and_store(&state, &owner, &name).await?;
 
     let user = match require_auth(&auth) {
@@ -912,10 +916,15 @@ async fn receive_pack(
         return Ok(unauthorized_basic());
     }
 
+    let receive_start = Instant::now();
     let (response, updates) = handle_receive_pack(&store, &body).await;
+    tracing::info!("receive_pack handle_receive_pack elapsed_ms={}", receive_start.elapsed().as_millis());
     if !updates.is_empty() {
+        let meta_start = Instant::now();
         update_metadata_for_updates(&state, repo.id, &store, &updates).await;
+        tracing::info!("receive_pack update_metadata elapsed_ms={}", meta_start.elapsed().as_millis());
     }
+    tracing::info!("receive_pack request_elapsed_ms={}", overall_start.elapsed().as_millis());
 
     Ok(Response::builder()
         .status(StatusCode::OK)

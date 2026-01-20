@@ -1,9 +1,51 @@
 use std::collections::HashMap;
 use std::io::Read;
+use std::sync::OnceLock;
+use std::time::{Duration, Instant};
+use dashmap::DashMap;
 use sha1::{Digest, Sha1};
 use crate::s3::S3Client;
 
-pub struct R2GitStore {
+static GLOBAL_PACK_LIST_CACHE: OnceLock<DashMap<String, (Vec<String>, Instant)>> = OnceLock::new();
+static GLOBAL_IDX_CACHE: OnceLock<DashMap<String, (Vec<u8>, Instant)>> = OnceLock::new();
+static GLOBAL_PACK_CACHE: OnceLock<DashMap<String, (Vec<u8>, Instant)>> = OnceLock::new();
+
+fn pack_list_cache_ttl() -> Duration {
+    let ttl_ms = std::env::var("GITBRUV_PACK_LIST_CACHE_TTL_MS")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .unwrap_or(5000);
+    Duration::from_millis(ttl_ms)
+}
+
+fn pack_cache_ttl() -> Duration {
+    let ttl_ms = std::env::var("GITBRUV_PACK_CACHE_TTL_MS")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .unwrap_or(60000);
+    Duration::from_millis(ttl_ms)
+}
+
+fn pack_cache_max_items() -> usize {
+    std::env::var("GITBRUV_PACK_CACHE_MAX_ITEMS")
+        .ok()
+        .and_then(|v| v.parse::<usize>().ok())
+        .unwrap_or(512)
+}
+
+fn global_pack_list_cache() -> &'static DashMap<String, (Vec<String>, Instant)> {
+    GLOBAL_PACK_LIST_CACHE.get_or_init(DashMap::new)
+}
+
+fn global_idx_cache() -> &'static DashMap<String, (Vec<u8>, Instant)> {
+    GLOBAL_IDX_CACHE.get_or_init(DashMap::new)
+}
+
+fn global_pack_cache() -> &'static DashMap<String, (Vec<u8>, Instant)> {
+    GLOBAL_PACK_CACHE.get_or_init(DashMap::new)
+}
+
+pub struct S3GitStore {
     pub s3: S3Client,
     pub prefix: String,
     object_cache: tokio::sync::RwLock<HashMap<String, Vec<u8>>>,
@@ -13,7 +55,7 @@ pub struct R2GitStore {
     pack_object_cache: tokio::sync::RwLock<HashMap<String, HashMap<String, Vec<u8>>>>,
 }
 
-impl R2GitStore {
+impl S3GitStore {
     pub fn new(s3: S3Client, prefix: String) -> Self {
         Self {
             s3,
@@ -34,9 +76,33 @@ impl R2GitStore {
             }
         }
 
+        let now = Instant::now();
+        let ttl = pack_cache_ttl();
+        let global_cache = global_idx_cache();
+
+        let cached = global_cache.get(idx_path).and_then(|entry| {
+            if now.duration_since(entry.value().1) < ttl {
+                Some(entry.value().0.clone())
+            } else {
+                None
+            }
+        });
+
+        if let Some(data) = cached {
+            let mut cache = self.idx_cache.write().await;
+            cache.insert(idx_path.to_string(), data.clone());
+            return Some(data);
+        }
+
+        global_cache.remove(idx_path);
+
         let data = self.s3.get_object(idx_path).await?;
         let mut cache = self.idx_cache.write().await;
         cache.insert(idx_path.to_string(), data.clone());
+        global_cache.insert(idx_path.to_string(), (data.clone(), now));
+        if global_cache.len() > pack_cache_max_items() {
+            global_cache.clear();
+        }
         Some(data)
     }
 
@@ -48,9 +114,33 @@ impl R2GitStore {
             }
         }
 
+        let now = Instant::now();
+        let ttl = pack_cache_ttl();
+        let global_cache = global_pack_cache();
+
+        let cached = global_cache.get(pack_path).and_then(|entry| {
+            if now.duration_since(entry.value().1) < ttl {
+                Some(entry.value().0.clone())
+            } else {
+                None
+            }
+        });
+
+        if let Some(data) = cached {
+            let mut cache = self.pack_cache.write().await;
+            cache.insert(pack_path.to_string(), data.clone());
+            return Some(data);
+        }
+
+        global_cache.remove(pack_path);
+
         let data = self.s3.get_object(pack_path).await?;
         let mut cache = self.pack_cache.write().await;
         cache.insert(pack_path.to_string(), data.clone());
+        global_cache.insert(pack_path.to_string(), (data.clone(), now));
+        if global_cache.len() > pack_cache_max_items() {
+            global_cache.clear();
+        }
         Some(data)
     }
 
@@ -59,10 +149,12 @@ impl R2GitStore {
     }
 
     pub async fn get_object(&self, oid: &str) -> Option<Vec<u8>> {
+        let overall_start = Instant::now();
         {
             let cache = self.object_cache.read().await;
             if let Some(data) = cache.get(oid) {
                 tracing::debug!("Cache hit for object {}", oid);
+                tracing::info!("get_object cache_hit oid={} elapsed_ms={}", oid, overall_start.elapsed().as_millis());
                 return Some(data.clone());
             }
         }
@@ -73,6 +165,7 @@ impl R2GitStore {
             tracing::debug!("Found loose object {} ({} bytes)", oid, data.len());
             let mut cache = self.object_cache.write().await;
             cache.insert(oid.to_string(), data.clone());
+            tracing::info!("get_object source=loose oid={} bytes={} elapsed_ms={}", oid, data.len(), overall_start.elapsed().as_millis());
             return Some(data);
         }
 
@@ -81,10 +174,12 @@ impl R2GitStore {
             tracing::debug!("Found object {} in pack ({} bytes)", oid, obj.len());
             let mut cache = self.object_cache.write().await;
             cache.insert(oid.to_string(), obj.clone());
+            tracing::info!("get_object source=pack oid={} bytes={} elapsed_ms={}", oid, obj.len(), overall_start.elapsed().as_millis());
             return Some(obj);
         }
 
         tracing::warn!("Object {} not found", oid);
+        tracing::info!("get_object miss oid={} elapsed_ms={}", oid, overall_start.elapsed().as_millis());
         None
     }
 
@@ -106,6 +201,26 @@ impl R2GitStore {
             }
         }
 
+        let now = Instant::now();
+        let ttl = pack_list_cache_ttl();
+        let global_cache = global_pack_list_cache();
+
+        let cached = global_cache.get(&self.prefix).and_then(|entry| {
+            if now.duration_since(entry.value().1) < ttl {
+                Some(entry.value().0.clone())
+            } else {
+                None
+            }
+        });
+
+        if let Some(list) = cached {
+            let mut cache = self.pack_list_cache.write().await;
+            *cache = Some(list.clone());
+            return list;
+        }
+
+        global_cache.remove(&self.prefix);
+
         let pack_dir = format!("{}/objects/pack", self.prefix);
         let pack_files = self.s3.list_objects(&pack_dir).await;
 
@@ -118,11 +233,16 @@ impl R2GitStore {
 
         let mut cache = self.pack_list_cache.write().await;
         *cache = Some(idx_files.clone());
+        global_cache.insert(self.prefix.clone(), (idx_files.clone(), now));
+        if global_cache.len() > pack_cache_max_items() {
+            global_cache.clear();
+        }
 
         idx_files
     }
 
     async fn get_from_pack(&self, oid: &str) -> Option<Vec<u8>> {
+        let overall_start = Instant::now();
         let target_bytes = hex::decode(oid).ok()?;
         let idx_files = self.get_pack_idx_files().await;
 
@@ -148,6 +268,7 @@ impl R2GitStore {
                         tracing::debug!("Object {} is REF_DELTA, resolving cross-pack", oid);
                         if let Some(obj) = self.resolve_ref_delta(&pack_data, header_end).await {
                             tracing::debug!("Extracted REF_DELTA object {} ({} bytes)", oid, obj.len());
+                            tracing::info!("get_from_pack oid={} elapsed_ms={}", oid, overall_start.elapsed().as_millis());
                             return Some(obj);
                         }
                     }
@@ -155,6 +276,7 @@ impl R2GitStore {
                         match extract_object_with_deltas(&pack_data, &idx_data, offset) {
                             Some(obj) => {
                                 tracing::debug!("Extracted object {} ({} bytes)", oid, obj.len());
+                                tracing::info!("get_from_pack oid={} elapsed_ms={}", oid, overall_start.elapsed().as_millis());
                                 return Some(obj);
                             }
                             None => {
@@ -349,6 +471,7 @@ impl R2GitStore {
     pub async fn list_refs(&self, prefix: &str) -> Vec<(String, String)> {
         tracing::debug!("Listing refs with prefix: {} (repo prefix: {})", prefix, self.prefix);
         let mut refs = Vec::new();
+        let mut packed_present = false;
 
         if let Some(packed) = self.read_packed_refs().await {
             tracing::debug!("Found {} packed refs", packed.len());
@@ -357,12 +480,23 @@ impl R2GitStore {
                     refs.push((ref_name, oid));
                 }
             }
+            packed_present = true;
         }
 
         let path = format!("{}/{}", self.prefix, prefix);
         tracing::debug!("Looking for loose refs at: {}", path);
         let keys = self.s3.list_objects(&path).await;
         tracing::debug!("Found {} loose ref files", keys.len());
+
+        let max_loose_refs = std::env::var("GITBRUV_MAX_LOOSE_REFS")
+            .ok()
+            .and_then(|v| v.parse::<usize>().ok())
+            .unwrap_or(200);
+        if packed_present && keys.len() > max_loose_refs {
+            tracing::info!("Skipping loose refs read count={} max={}", keys.len(), max_loose_refs);
+            tracing::debug!("Total refs found: {}", refs.len());
+            return refs;
+        }
 
         for key in keys {
             let ref_name = key.strip_prefix(&format!("{}/", self.prefix)).unwrap_or(&key);

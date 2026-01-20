@@ -4,7 +4,8 @@ import { ChunkedCodeViewer } from "@/components/chunked-code-viewer";
 import { CodeViewer } from "@/components/code-viewer";
 import { BranchSelector } from "@/components/branch-selector";
 import { Badge } from "@/components/ui/badge";
-import { Lock, Globe, ChevronRight, Home, FileCode, Loader2 } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { LockKeyIcon, GlobeIcon, ArrowRight01Icon, HomeIcon, CodeIcon, Loading02Icon } from "@hugeicons-pro/core-stroke-standard";
 import { useSession } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/_main/$username/$repo/blob/$")({
@@ -123,12 +124,12 @@ function BlobPage() {
         </div>
         <nav className="flex items-center gap-1 px-4 py-2 bg-muted/30 border-b border-border text-sm">
           <Link to="/$username/$repo" params={{ username, repo: repoName }} className="text-primary hover:underline flex items-center gap-1">
-            <Home className="h-4 w-4" />
+            <HugeiconsIcon icon={HomeIcon} strokeWidth={2} className="size-4" />
             {repoName}
           </Link>
           {pathParts.map((part, i) => (
             <span key={i} className="flex items-center gap-1">
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} className="size-4 text-muted-foreground" />
               {i === pathParts.length - 1 ? (
                 <span className="font-medium">{part}</span>
               ) : (
@@ -150,7 +151,7 @@ function BlobPage() {
 
         <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <FileCode className="h-4 w-4" />
+            <HugeiconsIcon icon={CodeIcon} strokeWidth={2} className="size-4" />
             <span>{fileName}</span>
           </div>
         </div>

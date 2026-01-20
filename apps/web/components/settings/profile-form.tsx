@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useUpdateProfile } from "@gitbruv/hooks";
-import { Loader2 } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Loading02Icon } from "@hugeicons-pro/core-stroke-standard";
 
 interface ProfileFormProps {
   user: {
@@ -107,7 +108,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
       {success && <div className="text-sm text-green-500 bg-green-500/10 border border-green-500/20 px-3 py-2">Profile updated successfully!</div>}
 
       <Button type="submit" disabled={isPending}>
-        {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+        {isPending && <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />}
         Save Changes
       </Button>
     </form>

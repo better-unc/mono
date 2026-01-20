@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, Link, useParams, useLocation } from "@tanstack/react-router";
 import { useRepoPageData } from "@gitbruv/hooks";
-import { Code, Settings } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { CodeIcon, SettingsIcon } from "@hugeicons-pro/core-stroke-standard";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_main/$username/$repo")({
@@ -30,7 +31,7 @@ function RepoLayout() {
               isSettings && "bg-primary/10 border-primary/50"
             )}
           >
-            <Settings className="h-4 w-4" />
+            <HugeiconsIcon icon={SettingsIcon} strokeWidth={2} className="size-4" />
           </Link>
         </div>
       )}

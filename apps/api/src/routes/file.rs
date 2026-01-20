@@ -10,7 +10,7 @@ use sqlx::FromRow;
 
 use crate::{
     auth::{require_auth, AuthUser},
-    git::{handler::get_file, objects::R2GitStore},
+    git::{handler::get_file, objects::S3GitStore},
     s3::S3Client,
     AppState,
 };
@@ -57,7 +57,7 @@ async fn stream_file(
     }
 
     let repo_prefix = S3Client::get_repo_prefix(&user.id, repo_name);
-    let store = R2GitStore::new(state.s3.clone(), repo_prefix);
+    let store = S3GitStore::new(state.s3.clone(), repo_prefix);
 
     let (content, _oid) = get_file(&store, &branch, &file_path)
         .await

@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { CodeViewer } from "./code-viewer";
-import { Loader2 } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Loading02Icon } from "@hugeicons-pro/core-stroke-standard";
 
 const CHUNK_SIZE = 64 * 1024;
 const LARGE_FILE_THRESHOLD = 100 * 1024;
@@ -92,7 +93,7 @@ export function ChunkedCodeViewer({ username, repoName, branch, filePath, langua
             <div className="h-full bg-accent transition-all duration-300" style={{ width: `${progress}%` }} />
           </div>
           <div className="absolute top-2 right-2 flex items-center gap-2 text-xs text-muted-foreground bg-card/90 px-2 py-1 rounded">
-            <Loader2 className="h-3 w-3 animate-spin" />
+            <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-3 animate-spin" />
             <span>{progress}%</span>
           </div>
         </div>
@@ -101,7 +102,7 @@ export function ChunkedCodeViewer({ username, repoName, branch, filePath, langua
         <CodeViewer content={content} language={language} showLineNumbers wordWrap={wordWrap} />
       ) : (
         <div className="p-8 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-8 animate-spin text-muted-foreground" />
         </div>
       )}
     </div>

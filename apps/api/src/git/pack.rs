@@ -1,8 +1,9 @@
 use sha1::{Sha1, Digest};
 use std::collections::HashSet;
-use crate::git::objects::R2GitStore;
+use std::time::Instant;
+use crate::git::objects::S3GitStore;
 
-pub async fn handle_upload_pack(store: &R2GitStore, body: &[u8]) -> Vec<u8> {
+pub async fn handle_upload_pack(store: &S3GitStore, body: &[u8]) -> Vec<u8> {
     let lines = parse_pkt_lines(body);
     let mut wants: Vec<String> = Vec::new();
     let mut haves: Vec<String> = Vec::new();
@@ -28,7 +29,7 @@ pub async fn handle_upload_pack(store: &R2GitStore, body: &[u8]) -> Vec<u8> {
     }
 
     let mut response = b"0008NAK\n".to_vec();
-    
+
     if let Some(packfile) = create_packfile(store, &needed_oids).await {
         response.extend(packfile);
     }
@@ -36,7 +37,8 @@ pub async fn handle_upload_pack(store: &R2GitStore, body: &[u8]) -> Vec<u8> {
     response
 }
 
-pub async fn handle_receive_pack(store: &R2GitStore, body: &[u8]) -> (Vec<u8>, Vec<(String, String, String)>) {
+pub async fn handle_receive_pack(store: &S3GitStore, body: &[u8]) -> (Vec<u8>, Vec<(String, String, String)>) {
+    let overall_start = Instant::now();
     let pack_signature = [0x50, 0x41, 0x43, 0x4b]; // "PACK"
     let mut pack_start = None;
 
@@ -52,9 +54,12 @@ pub async fn handle_receive_pack(store: &R2GitStore, body: &[u8]) -> (Vec<u8>, V
         None => return (b"000eunpack ok\n0000".to_vec(), Vec::new()),
     };
 
+    tracing::info!("receive_pack locate_pack elapsed_ms={}", overall_start.elapsed().as_millis());
+
     let command_section = &body[..pack_start];
     let pack_data = &body[pack_start..];
 
+    let parse_start = Instant::now();
     let lines = parse_pkt_lines(command_section);
     let mut updates: Vec<(String, String, String)> = Vec::new();
 
@@ -66,23 +71,45 @@ pub async fn handle_receive_pack(store: &R2GitStore, body: &[u8]) -> (Vec<u8>, V
         }
     }
 
+    tracing::info!("receive_pack parse_commands updates={} elapsed_ms={}", updates.len(), parse_start.elapsed().as_millis());
+
+    let hash_start = Instant::now();
     let pack_hash = {
         let mut hasher = Sha1::new();
         hasher.update(pack_data);
         hex::encode(hasher.finalize())
     };
+    tracing::info!("receive_pack pack_hash elapsed_ms={}", hash_start.elapsed().as_millis());
 
     let pack_path = format!("{}/objects/pack/pack-{}.pack", store.prefix, pack_hash);
-    if let Err(e) = store.s3.put_object(&pack_path, pack_data.to_vec()).await {
+    let upload_start = Instant::now();
+    let multipart_threshold = std::env::var("GITBRUV_S3_MULTIPART_THRESHOLD_BYTES")
+        .ok()
+        .and_then(|v| v.parse::<usize>().ok())
+        .unwrap_or(32 * 1024 * 1024);
+    let part_size = std::env::var("GITBRUV_S3_MULTIPART_PART_SIZE_BYTES")
+        .ok()
+        .and_then(|v| v.parse::<usize>().ok())
+        .unwrap_or(8 * 1024 * 1024);
+    let upload_result = if pack_data.len() >= multipart_threshold {
+        store.s3.put_object_multipart(&pack_path, pack_data.to_vec(), part_size).await
+    } else {
+        store.s3.put_object(&pack_path, pack_data.to_vec()).await
+    };
+    if let Err(e) = upload_result {
         tracing::error!("Failed to write pack file: {:?}", e);
         return (format!("0019ng unpack error {}\n0000", e).into_bytes(), updates);
     }
+    tracing::info!("receive_pack upload_pack bytes={} elapsed_ms={}", pack_data.len(), upload_start.elapsed().as_millis());
 
+    let idx_start = Instant::now();
     if let Some(idx_data) = create_pack_index(pack_data) {
         let idx_path = format!("{}/objects/pack/pack-{}.idx", store.prefix, pack_hash);
         let _ = store.s3.put_object(&idx_path, idx_data).await;
     }
+    tracing::info!("receive_pack write_index elapsed_ms={}", idx_start.elapsed().as_millis());
 
+    let refs_start = Instant::now();
     for (old_oid, new_oid, ref_name) in &updates {
         let ref_path = if ref_name.starts_with("refs/") {
             ref_name.clone()
@@ -98,6 +125,7 @@ pub async fn handle_receive_pack(store: &R2GitStore, body: &[u8]) -> (Vec<u8>, V
 
         tracing::debug!("Updated ref {} from {} to {}", ref_path, old_oid, new_oid);
     }
+    tracing::info!("receive_pack update_refs elapsed_ms={}", refs_start.elapsed().as_millis());
 
     let mut response = String::new();
     response.push_str(&format!("{:04x}unpack ok\n", "unpack ok\n".len() + 4));
@@ -107,10 +135,11 @@ pub async fn handle_receive_pack(store: &R2GitStore, body: &[u8]) -> (Vec<u8>, V
     }
     response.push_str("0000");
 
+    tracing::info!("receive_pack total_elapsed_ms={}", overall_start.elapsed().as_millis());
     (response.into_bytes(), updates)
 }
 
-async fn collect_reachable_objects(store: &R2GitStore, oids: &[String]) -> Vec<String> {
+async fn collect_reachable_objects(store: &S3GitStore, oids: &[String]) -> Vec<String> {
     let mut visited = HashSet::new();
     let mut to_visit: Vec<String> = oids.to_vec();
 
@@ -151,7 +180,7 @@ async fn collect_reachable_objects(store: &R2GitStore, oids: &[String]) -> Vec<S
     visited.into_iter().collect()
 }
 
-async fn create_packfile(store: &R2GitStore, oids: &[String]) -> Option<Vec<u8>> {
+async fn create_packfile(store: &S3GitStore, oids: &[String]) -> Option<Vec<u8>> {
     let mut objects: Vec<(u8, Vec<u8>)> = Vec::new();
 
     for oid in oids {
@@ -174,7 +203,7 @@ async fn create_packfile(store: &R2GitStore, oids: &[String]) -> Option<Vec<u8>>
     }
 
     let mut pack = Vec::new();
-    
+
     pack.extend(b"PACK");
     pack.extend(&2u32.to_be_bytes());
     pack.extend(&(objects.len() as u32).to_be_bytes());
@@ -182,15 +211,15 @@ async fn create_packfile(store: &R2GitStore, oids: &[String]) -> Option<Vec<u8>>
     for (obj_type, data) in objects {
         let size = data.len();
         let mut header: Vec<u8> = Vec::new();
-        
+
         let mut c = ((obj_type << 4) | ((size & 0x0f) as u8)) as u8;
         let mut s = size >> 4;
-        
+
         if s > 0 {
             c |= 0x80;
         }
         header.push(c);
-        
+
         while s > 0 {
             let mut c = (s & 0x7f) as u8;
             s >>= 7;
@@ -199,9 +228,9 @@ async fn create_packfile(store: &R2GitStore, oids: &[String]) -> Option<Vec<u8>>
             }
             header.push(c);
         }
-        
+
         pack.extend(header);
-        
+
         let compressed = compress_zlib(&data);
         pack.extend(compressed);
     }
@@ -251,18 +280,18 @@ fn parse_pkt_lines(data: &[u8]) -> Vec<String> {
 
 fn parse_git_object(data: &[u8]) -> Option<(String, Vec<u8>)> {
     let decompressed = decompress_zlib(data)?;
-    
+
     let null_pos = decompressed.iter().position(|&b| b == 0)?;
     let header = std::str::from_utf8(&decompressed[..null_pos]).ok()?;
-    
+
     let parts: Vec<&str> = header.split(' ').collect();
     if parts.len() != 2 {
         return None;
     }
-    
+
     let obj_type = parts[0].to_string();
     let content = decompressed[null_pos + 1..].to_vec();
-    
+
     Some((obj_type, content))
 }
 
@@ -301,7 +330,7 @@ fn parse_tree_entries(content: &[u8]) -> Vec<(String, String, String)> {
 
         let header = std::str::from_utf8(&content[pos..null_pos]).unwrap_or("");
         let parts: Vec<&str> = header.splitn(2, ' ').collect();
-        
+
         if parts.len() != 2 {
             break;
         }
@@ -342,7 +371,7 @@ fn create_pack_index(pack_data: &[u8]) -> Option<Vec<u8>> {
     }
 
     let mut idx = Vec::new();
-    
+
     idx.extend(&[0xff, 0x74, 0x4f, 0x63]);
     idx.extend(&2u32.to_be_bytes());
 
@@ -351,7 +380,7 @@ fn create_pack_index(pack_data: &[u8]) -> Option<Vec<u8>> {
     let mut hasher = Sha1::new();
     hasher.update(pack_data);
     let pack_checksum = hasher.finalize();
-    
+
     let mut idx_hasher = Sha1::new();
     idx_hasher.update(&idx);
     idx.extend(&pack_checksum[..]);

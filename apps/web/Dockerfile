@@ -2,9 +2,23 @@ FROM oven/bun:1 AS builder
 
 WORKDIR /app
 
+ARG NPM_CONFIG_HUGEICONS_KEY
+ARG API_URL
+ARG INTERNAL_AUTH_URL
+ARG BETTER_AUTH_SECRET
+ARG AUTH_URL
+
+ENV NPM_CONFIG_HUGEICONS_KEY=$NPM_CONFIG_HUGEICONS_KEY
+ENV API_URL=$API_URL
+ENV INTERNAL_AUTH_URL=$INTERNAL_AUTH_URL
+ENV BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
+ENV AUTH_URL=$AUTH_URL
+
 COPY package.json bun.lock ./
+COPY .npmrc ./
 COPY apps/web/package.json ./apps/web/
 COPY packages/auth/package.json ./packages/auth/
+COPY packages/hooks/package.json ./packages/hooks/
 COPY packages/db/package.json ./packages/db/
 
 RUN bun install

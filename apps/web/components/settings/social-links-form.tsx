@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUpdateSocialLinks } from "@gitbruv/hooks";
-import { Loader2, Link } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Loading02Icon, LinkIcon } from "@hugeicons-pro/core-stroke-standard";
 import { GithubIcon, LinkedInIcon, XIcon } from "../icons";
 
 interface SocialLinksFormProps {
@@ -77,7 +78,7 @@ export function SocialLinksForm({ socialLinks }: SocialLinksFormProps) {
 
       <div className="space-y-3">
         <Label className="flex items-center gap-2">
-          <Link className="w-4 h-4" />
+          <HugeiconsIcon icon={LinkIcon} strokeWidth={2} className="size-4" />
           Custom Links
         </Label>
         {[0, 1, 2].map((i) => (
@@ -101,7 +102,7 @@ export function SocialLinksForm({ socialLinks }: SocialLinksFormProps) {
       {success && <div className="text-sm text-green-500 bg-green-500/10 border border-green-500/20 px-3 py-2">Social links updated!</div>}
 
       <Button type="submit" disabled={isPending}>
-        {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+        {isPending && <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />}
         Save Social Links
       </Button>
     </form>

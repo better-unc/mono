@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
-import { Lock, Globe, Star } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { LockKeyIcon, GlobeIcon, StarIcon } from "@hugeicons-pro/core-stroke-standard";
 import { Button } from "./ui/button";
 import { useStarRepository } from "@gitbruv/hooks";
 
@@ -53,7 +54,7 @@ const RepoCard = ({ repo }: { repo: Repository }) => {
 
           <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
-              <Star className="h-3 w-3" />
+              <HugeiconsIcon icon={StarIcon} strokeWidth={2} className="size-3" />
               <span>{starCount}</span>
             </div>
             <p>
@@ -66,7 +67,7 @@ const RepoCard = ({ repo }: { repo: Repository }) => {
         </div>
         <div className="shrink-0 pt-1">
           <Button variant={isStarred ? "secondary" : "outline"} size="sm" className="gap-2" disabled={isMutating || isLoading} onClick={() => toggleStar()}>
-            <Star className={`h-3.5 w-3.5 ${isStarred ? "fill-primary text-primary" : "text-muted-foreground"}`} />
+            <HugeiconsIcon icon={StarIcon} strokeWidth={2} className={`size-3.5 ${isStarred ? "text-primary" : "text-muted-foreground"}`} />
             {isStarred ? "Starred" : "Star"}
           </Button>
         </div>

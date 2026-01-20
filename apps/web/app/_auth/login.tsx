@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, Fingerprint } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { FingerPrintIcon, Loading02Icon } from "@hugeicons-pro/core-stroke-standard";
 
 export const Route = createFileRoute("/_auth/login")({
   component: LoginPage,
@@ -19,11 +20,7 @@ function LoginPage() {
   const [password, setPassword] = useState("");
 
   useEffect(() => {
-    if (
-      typeof window !== "undefined" &&
-      PublicKeyCredential.isConditionalMediationAvailable &&
-      PublicKeyCredential.isConditionalMediationAvailable()
-    ) {
+    if (typeof window !== "undefined" && PublicKeyCredential.isConditionalMediationAvailable && PublicKeyCredential.isConditionalMediationAvailable()) {
       void authClient.signIn.passkey({ autoFill: true });
     }
   }, []);
@@ -76,7 +73,7 @@ function LoginPage() {
 
   return (
     <div className="w-full">
-      <div className="border border-border bg-card/80 backdrop-blur-sm p-8">
+      <div className="border border-border bg-card/80 p-8">
         <div className="text-center mb-8">
           <h1 className="text-xl font-semibold">Sign in to gitbruv</h1>
         </div>
@@ -110,7 +107,7 @@ function LoginPage() {
           <Button type="submit" disabled={loading || passkeyLoading} className="w-full h-11">
             {loading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />
                 Signing in...
               </>
             ) : (
@@ -126,21 +123,15 @@ function LoginPage() {
             <span className="bg-card px-2 text-muted-foreground">Or</span>
           </div>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handlePasskeySignIn}
-          disabled={loading || passkeyLoading}
-          className="w-full h-11"
-        >
+        <Button type="button" variant="outline" onClick={handlePasskeySignIn} disabled={loading || passkeyLoading} className="w-full h-11">
           {passkeyLoading ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />
               Signing in...
             </>
           ) : (
             <>
-              <Fingerprint className="mr-2 h-4 w-4" />
+              <HugeiconsIcon icon={FingerPrintIcon} strokeWidth={2} className="size-4 mr-2" />
               Sign in with Passkey
             </>
           )}

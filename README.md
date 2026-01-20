@@ -1,6 +1,6 @@
 # gitbruv
 
-A GitHub clone built with Next.js, featuring real Git repository support with Cloudflare R2 storage.
+A GitHub clone built with Next.js, featuring real Git repository support with Cloudflare S3 storage.
 
 ## Tech Stack
 
@@ -20,13 +20,13 @@ A GitHub clone built with Next.js, featuring real Git repository support with Cl
 - Node.js 18+ or Bun
 - PostgreSQL database
 - Git installed on your system
-- Cloudflare account with R2 enabled
+- Cloudflare account with S3 enabled
 
-### Cloudflare R2 Setup
+### Cloudflare S3 Setup
 
-1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com) → R2
+1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com) → S3
 2. Create a bucket named `gitbruv-repos`
-3. Go to R2 → Manage R2 API Tokens → Create API Token
+3. Go to S3 → Manage S3 API Tokens → Create API Token
 4. Select "Object Read & Write" permissions
 5. Copy the Account ID, Access Key ID, and Secret Access Key
 
@@ -48,11 +48,11 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 INTERNAL_AUTH_URL=http://localhost:3000/api/auth/verify-credentials
 BETTER_AUTH_SECRET=your-internal-auth-secret
 
-# Cloudflare R2 Configuration
-AWS_ACCOUNT_ID=your-cloudflare-account-id
-AWS_ACCESS_KEY_ID=your-r2-access-key-id
-AWS_SECRET_ACCESS_KEY=your-r2-secret-access-key
-AWS_S3_BUCKET_NAME=gitbruv-repos
+# Cloudflare S3 Configuration
+S3_ACCOUNT_ID=your-cloudflare-account-id
+S3_ACCESS_KEY_ID=your-S3-access-key-id
+S3_SECRET_ACCESS_KEY=your-S3-secret-access-key
+S3_S3_BUCKET_NAME=gitbruv-repos
 ```
 
 3. Push the database schema:
@@ -78,7 +78,7 @@ bun run dev
 - Clone repositories via HTTP
 - Push to repositories via HTTP (with authentication)
 - Markdown README rendering
-- Cloud storage with Cloudflare R2 (zero egress fees)
+- Cloud storage with Cloudflare S3 (zero egress fees)
 
 ## Project Structure
 
@@ -94,7 +94,7 @@ app/
 actions/             # Server actions
 components/          # React components
 db/                  # Database schema & connection
-lib/                 # Utilities, auth config, R2 integration
+lib/                 # Utilities, auth config, S3 integration
 ```
 
 ## Git Operations
@@ -114,11 +114,11 @@ git push origin main
 
 ## Architecture
 
-Git repositories are stored in Cloudflare R2 as bare repos. When git operations occur:
+Git repositories are stored in Cloudflare S3 as bare repos. When git operations occur:
 
-1. Repository files are synced from R2 to a temp directory
+1. Repository files are synced from S3 to a temp directory
 2. Git commands execute against the temp directory
-3. For push operations, changes are synced back to R2
+3. For push operations, changes are synced back to S3
 4. Temp directory is cleaned up
 
 This allows serverless deployment while maintaining full Git compatibility.

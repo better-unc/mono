@@ -1,26 +1,38 @@
-import { Suspense } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQueryState, parseAsStringLiteral, parseAsInteger } from "nuqs";
-import { usePublicRepositories, usePublicUsers } from "@gitbruv/hooks";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { GitBranch, ChevronLeft, ChevronRight, Compass, Clock, Flame, Sparkles, Users, BookOpen, Loader2 } from "lucide-react";
 import RepositoryCard from "@/components/repository-card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { usePublicRepositories, usePublicUsers } from "@gitbruv/hooks";
+import {
+  BookOpenIcon,
+  ChevronLeft,
+  ChevronRight,
+  ClockIcon,
+  CompassIcon,
+  GitBranchIcon,
+  Loading02Icon,
+  SparklesIcon,
+  StarAward01Icon,
+  UserSearch01Icon,
+} from "@hugeicons-pro/core-stroke-standard";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { parseAsInteger, parseAsStringLiteral, useQueryState } from "nuqs";
+import { Suspense } from "react";
 
 export const Route = createFileRoute("/_main/explore")({
   component: ExplorePage,
 });
 
 const REPO_SORT_OPTIONS = [
-  { value: "stars", label: "Most stars", icon: Flame },
-  { value: "updated", label: "Recently updated", icon: Clock },
-  { value: "created", label: "Newest", icon: Sparkles },
+  { value: "stars", label: "Most stars", icon: () => <HugeiconsIcon icon={StarAward01Icon} strokeWidth={2} className="size-4" /> },
+  { value: "updated", label: "Recently updated", icon: () => <HugeiconsIcon icon={ClockIcon} strokeWidth={2} className="size-4" /> },
+  { value: "created", label: "Newest", icon: () => <HugeiconsIcon icon={SparklesIcon} strokeWidth={2} className="size-4" /> },
 ] as const;
 
 const USER_SORT_OPTIONS = [
-  { value: "newest", label: "Newest", icon: Sparkles },
-  { value: "oldest", label: "Oldest", icon: Clock },
+  { value: "newest", label: "Newest", icon: () => <HugeiconsIcon icon={SparklesIcon} strokeWidth={2} className="size-4" /> },
+  { value: "oldest", label: "Oldest", icon: () => <HugeiconsIcon icon={ClockIcon} strokeWidth={2} className="size-4" /> },
 ] as const;
 
 function RepoGrid({
@@ -47,7 +59,7 @@ function RepoGrid({
   if (repos.length === 0) {
     return (
       <div className="border border-dashed border-border p-12 text-center bg-card/30">
-        <GitBranch className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
+        <HugeiconsIcon icon={GitBranchIcon} strokeWidth={2} className="size-10 mx-auto mb-4 text-muted-foreground" />
         <h3 className="text-base font-semibold mb-2">No repositories yet</h3>
         <p className="text-sm text-muted-foreground">Be the first to create a public repository!</p>
       </div>
@@ -65,13 +77,13 @@ function RepoGrid({
       {(page > 1 || hasMore) && (
         <div className="flex items-center justify-between mt-8">
           <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1 <= 1 ? null : page - 1)}>
-            <ChevronLeft className="h-4 w-4 mr-1" />
+            <HugeiconsIcon icon={ChevronLeft} strokeWidth={2} className="size-4 mr-1" />
             Previous
           </Button>
           <span className="text-sm text-muted-foreground">Page {page}</span>
           <Button variant="outline" size="sm" disabled={!hasMore} onClick={() => setPage(page + 1)}>
             Next
-            <ChevronRight className="h-4 w-4 ml-1" />
+            <HugeiconsIcon icon={ChevronRight} strokeWidth={2} className="size-4 ml-1" />
           </Button>
         </div>
       )}
@@ -93,7 +105,7 @@ function UserGrid({ sortBy, page, perPage, setPage }: { sortBy: "newest" | "olde
   if (users.length === 0) {
     return (
       <div className="border border-dashed border-border p-12 text-center bg-card/30">
-        <Users className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
+        <HugeiconsIcon icon={UserSearch01Icon} strokeWidth={2} className="size-10 mx-auto mb-4 text-muted-foreground" />
         <h3 className="text-base font-semibold mb-2">No users yet</h3>
         <p className="text-sm text-muted-foreground">Be the first to join!</p>
       </div>
@@ -111,9 +123,11 @@ function UserGrid({ sortBy, page, perPage, setPage }: { sortBy: "newest" | "olde
             className="border border-border p-4 bg-card hover:border-primary/30 transition-colors block"
           >
             <div className="flex items-start gap-3">
-              <Avatar className="h-10 w-10 shrink-0">
-                <AvatarImage src={user.avatarUrl || undefined} />
-                <AvatarFallback className="bg-muted text-sm">{user.name?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
+              <Avatar className="h-10 w-10 shrink-0 rounded-none border-none after:border-none">
+                <AvatarImage src={user.avatarUrl || undefined} className="rounded-none border-none" />
+                <AvatarFallback className="bg-muted text-muted-foreground font-semibold rounded-none">
+                  {user.name?.charAt(0).toUpperCase() || "U"}
+                </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
                 <p className="font-medium truncate">{user.name}</p>
@@ -121,7 +135,7 @@ function UserGrid({ sortBy, page, perPage, setPage }: { sortBy: "newest" | "olde
                 {user.bio && <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{user.bio}</p>}
                 <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                   <div className="flex items-center gap-1">
-                    <BookOpen className="h-3.5 w-3.5" />
+                    <HugeiconsIcon icon={BookOpenIcon} strokeWidth={2} className="size-3.5" />
                     <span>{user.repoCount} repos</span>
                   </div>
                 </div>
@@ -134,13 +148,13 @@ function UserGrid({ sortBy, page, perPage, setPage }: { sortBy: "newest" | "olde
       {(page > 1 || hasMore) && (
         <div className="flex items-center justify-between mt-8">
           <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1 <= 1 ? null : page - 1)}>
-            <ChevronLeft className="h-4 w-4 mr-1" />
+            <HugeiconsIcon icon={ChevronLeft} strokeWidth={2} className="size-4 mr-1" />
             Previous
           </Button>
           <span className="text-sm text-muted-foreground">Page {page}</span>
           <Button variant="outline" size="sm" disabled={!hasMore} onClick={() => setPage(page + 1)}>
             Next
-            <ChevronRight className="h-4 w-4 ml-1" />
+            <HugeiconsIcon icon={ChevronRight} strokeWidth={2} className="size-4 ml-1" />
           </Button>
         </div>
       )}
@@ -226,7 +240,7 @@ function ExploreContent() {
     <div className="container py-8">
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <Compass className="h-7 w-7 text-primary" />
+          <HugeiconsIcon icon={CompassIcon} strokeWidth={2} className="size-7 text-primary" />
           <h1 className="text-2xl font-bold">Explore</h1>
         </div>
         <p className="text-muted-foreground text-sm">Discover repositories and users from the community</p>
@@ -235,11 +249,11 @@ function ExploreContent() {
       <Tabs value={tab} onValueChange={(value: "repositories" | "users") => setTab(value)} className="space-y-6">
         <TabsList className="w-full justify-start h-auto mb-6 gap-2">
           <TabsTrigger value="repositories" className="gap-2 text-sm">
-            <BookOpen className="h-4 w-4 text-muted-foreground/80" />
+            <HugeiconsIcon icon={BookOpenIcon} strokeWidth={2} className="size-4" />
             <span>Repositories</span>
           </TabsTrigger>
           <TabsTrigger value="users" className="gap-2 text-sm">
-            <Users className="h-4 w-4 text-muted-foreground/80" />
+            <HugeiconsIcon icon={UserSearch01Icon} strokeWidth={2} className="size-4" />
             <span>Users</span>
           </TabsTrigger>
         </TabsList>
@@ -257,7 +271,7 @@ function ExploreContent() {
                   setPage(null);
                 }}
               >
-                <Icon className="h-4 w-4" />
+                <Icon />
                 {label}
               </Button>
             ))}
@@ -279,7 +293,7 @@ function ExploreContent() {
                   setUserPage(null);
                 }}
               >
-                <Icon className="h-4 w-4" />
+                <Icon />
                 {label}
               </Button>
             ))}
@@ -298,7 +312,7 @@ function ExplorePage() {
       fallback={
         <div className="container py-8">
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-8 animate-spin text-muted-foreground" />
           </div>
         </div>
       }

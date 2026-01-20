@@ -4,7 +4,8 @@ import { BranchSelector } from "@/components/branch-selector";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Lock, Globe, GitCommit, ChevronLeft, ChevronRight } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { LockKeyIcon, GlobeIcon, WorkHistoryIcon, ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons-pro/core-stroke-standard";
 import { formatDistanceToNow } from "date-fns";
 
 type CommitsSearch = {
@@ -53,9 +54,9 @@ function PageSkeleton() {
 function CommitRow({ commit }: { commit: { oid: string; message: string; author: { name: string; avatarUrl?: string }; timestamp: number } }) {
   return (
     <div className="flex items-start gap-4 px-4 py-3 hover:bg-muted/30 transition-colors">
-      <Avatar className="h-8 w-8 mt-0.5">
-        <AvatarImage src={commit.author.avatarUrl || undefined} />
-        <AvatarFallback className="text-xs bg-accent/20">{commit.author.name.charAt(0).toUpperCase()}</AvatarFallback>
+      <Avatar className="h-8 w-8 mt-0.5 rounded-none border-none after:border-none">
+        <AvatarImage src={commit.author.avatarUrl || undefined} className="rounded-none border-none" />
+        <AvatarFallback className="bg-muted text-muted-foreground font-semibold rounded-none">{commit.author.name.charAt(0).toUpperCase()}</AvatarFallback>
       </Avatar>
       <div className="flex-1 min-w-0">
         <p className="font-medium truncate">{commit.message.split("\n")[0]}</p>
@@ -114,12 +115,12 @@ function CommitsPage() {
           <Badge variant="secondary" className="text-xs font-normal">
             {repo.visibility === "private" ? (
               <>
-                <Lock className="h-3 w-3 mr-1" />
+                <HugeiconsIcon icon={LockKeyIcon} strokeWidth={2} className="size-3 mr-1" />
                 Private
               </>
             ) : (
               <>
-                <Globe className="h-3 w-3 mr-1" />
+                <HugeiconsIcon icon={GlobeIcon} strokeWidth={2} className="size-3 mr-1" />
                 Public
               </>
             )}
@@ -132,7 +133,7 @@ function CommitsPage() {
           <div className="flex items-center gap-3">
             <BranchSelector branches={branches} currentBranch={currentBranch} username={username} repoName={repoName} />
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <GitCommit className="h-4 w-4" />
+              <HugeiconsIcon icon={WorkHistoryIcon} strokeWidth={2} className="size-4" />
               <span>Commits</span>
             </div>
           </div>
@@ -142,7 +143,7 @@ function CommitsPage() {
           <CommitsSkeleton />
         ) : commits.length === 0 ? (
           <div className="p-12 text-center">
-            <GitCommit className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <HugeiconsIcon icon={WorkHistoryIcon} strokeWidth={2} className="size-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-medium mb-2">No commits yet</h3>
             <p className="text-muted-foreground">This branch doesn't have any commits.</p>
           </div>
@@ -163,7 +164,7 @@ function CommitsPage() {
                   className={page <= 1 ? "pointer-events-none opacity-50" : ""}
                 >
                   <Button variant="outline" size="sm" disabled={page <= 1}>
-                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} className="size-4 mr-1" />
                     Newer
                   </Button>
                 </Link>
@@ -176,7 +177,7 @@ function CommitsPage() {
                 >
                   <Button variant="outline" size="sm" disabled={!hasMore}>
                     Older
-                    <ChevronRight className="h-4 w-4 ml-1" />
+                    <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} className="size-4 ml-1" />
                   </Button>
                 </Link>
               </div>

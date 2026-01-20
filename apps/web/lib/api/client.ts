@@ -189,3 +189,17 @@ export async function updateAvatar(file: File): Promise<{ success: boolean; avat
   }
   return res.json();
 }
+
+export async function deleteAvatar(): Promise<{ success: boolean; avatarUrl: string | null }> {
+  const authHeaders = await getAuthHeaders();
+  const res = await fetch("/api/settings/avatar", {
+    method: "DELETE",
+    credentials: "include",
+    headers: authHeaders,
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Failed to delete avatar");
+  }
+  return res.json();
+}

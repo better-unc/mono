@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { FingerPrintIcon, Loading02Icon } from "@hugeicons-pro/core-stroke-standard";
 
 export const Route = createFileRoute("/_auth/register")({
   component: RegisterPage,
@@ -61,7 +62,7 @@ function RegisterPage() {
 
   return (
     <div className="w-full">
-      <div className="border border-border bg-card/80 backdrop-blur-sm p-8">
+      <div className="border border-border bg-card/80 p-8">
         <div className="text-center mb-8">
           <h1 className="text-xl font-semibold">Create your account</h1>
         </div>
@@ -120,7 +121,7 @@ function RegisterPage() {
           <Button type="submit" variant="default" disabled={loading} className="w-full h-11">
             {loading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />
                 Creating account...
               </>
             ) : (

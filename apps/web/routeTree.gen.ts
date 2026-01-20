@@ -148,6 +148,7 @@ const MainUsernameRepoBlobSplatRoute =
 
 export interface FileRoutesByFullPath {
   '/$': typeof SplatRoute
+  '/': typeof MainIndexRoute
   '/login': typeof AuthLoginRoute
   '/register': typeof AuthRegisterRoute
   '/$username': typeof MainUsernameRouteWithChildren
@@ -155,7 +156,6 @@ export interface FileRoutesByFullPath {
   '/new': typeof MainNewRoute
   '/settings': typeof MainSettingsRoute
   '/api/$': typeof ApiSplatRoute
-  '/': typeof MainIndexRoute
   '/$username/$repo': typeof MainUsernameRepoRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/auth/verify-credentials': typeof ApiAuthVerifyCredentialsRoute
@@ -170,13 +170,13 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/$': typeof SplatRoute
+  '/': typeof MainIndexRoute
   '/login': typeof AuthLoginRoute
   '/register': typeof AuthRegisterRoute
   '/explore': typeof MainExploreRoute
   '/new': typeof MainNewRoute
   '/settings': typeof MainSettingsRoute
   '/api/$': typeof ApiSplatRoute
-  '/': typeof MainIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/auth/verify-credentials': typeof ApiAuthVerifyCredentialsRoute
   '/api/avatar/$': typeof ApiAvatarSplatRoute
@@ -217,6 +217,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/$'
+    | '/'
     | '/login'
     | '/register'
     | '/$username'
@@ -224,7 +225,6 @@ export interface FileRouteTypes {
     | '/new'
     | '/settings'
     | '/api/$'
-    | '/'
     | '/$username/$repo'
     | '/api/auth/$'
     | '/api/auth/verify-credentials'
@@ -239,13 +239,13 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/$'
+    | '/'
     | '/login'
     | '/register'
     | '/explore'
     | '/new'
     | '/settings'
     | '/api/$'
-    | '/'
     | '/api/auth/$'
     | '/api/auth/verify-credentials'
     | '/api/avatar/$'
@@ -297,14 +297,14 @@ declare module '@tanstack/react-router' {
     '/_main': {
       id: '/_main'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof MainRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_auth': {
       id: '/_auth'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }

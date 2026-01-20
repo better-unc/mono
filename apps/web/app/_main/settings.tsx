@@ -17,7 +17,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Loader2, User, Shield, Key, Plus, Trash2, Copy, Check, AlertTriangle, Lock, Globe, Settings as SettingsIcon, Fingerprint } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  UserIcon,
+  ShieldIcon,
+  KeyIcon,
+  PlusSignIcon,
+  DeleteIcon,
+  CopyIcon,
+  CheckmarkCircleIcon,
+  Alert01Icon,
+  LockIcon,
+  GlobeIcon,
+  SettingsIcon,
+  FingerPrintIcon,
+  Loading02Icon,
+} from "@hugeicons-pro/core-stroke-standard";
 import { useEffect, useState } from "react";
 import { getGitUrl } from "@/lib/utils";
 import { toast } from "sonner";
@@ -50,7 +65,7 @@ function ProfileTab() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -112,7 +127,7 @@ function AccountTab() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -209,19 +224,13 @@ function GitSettingsForm({ user }: { user: NonNullable<ReturnType<typeof useCurr
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
         <Label htmlFor="gitEmail">Git Email</Label>
-        <Input
-          id="gitEmail"
-          type="email"
-          value={gitEmail}
-          onChange={(e) => setGitEmail(e.target.value)}
-          placeholder="Email for git commits"
-        />
+        <Input id="gitEmail" type="email" value={gitEmail} onChange={(e) => setGitEmail(e.target.value)} placeholder="Email for git commits" />
         <p className="text-xs text-muted-foreground">Email address used for git commits. Defaults to your account email if not set.</p>
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="defaultVisibility">Default Repository Visibility</Label>
-        <Select value={defaultVisibility} onValueChange={(v: "public" | "private") => setDefaultVisibility(v)}>
+        <Select value={defaultVisibility} onValueChange={(v: "public" | "private" | null) => setDefaultVisibility(v as "public" | "private")}>
           <SelectTrigger id="defaultVisibility" className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -237,7 +246,7 @@ function GitSettingsForm({ user }: { user: NonNullable<ReturnType<typeof useCurr
       {success && <div className="text-sm text-green-500 bg-green-500/10 border border-green-500/20 px-3 py-2 rounded">Settings updated successfully!</div>}
 
       <Button type="submit" disabled={isPending}>
-        {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+        {isPending && <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />}
         Save Changes
       </Button>
     </form>
@@ -305,7 +314,7 @@ function PreferencesForm({ user }: { user: NonNullable<ReturnType<typeof useCurr
 
       <div className="space-y-2">
         <Label htmlFor="theme">Theme</Label>
-        <Select value={theme} onValueChange={(v: "light" | "dark" | "system") => setTheme(v)}>
+        <Select value={theme} onValueChange={(v: "light" | "dark" | "system" | null) => setTheme(v as "light" | "dark" | "system")}>
           <SelectTrigger id="theme" className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -319,12 +328,7 @@ function PreferencesForm({ user }: { user: NonNullable<ReturnType<typeof useCurr
 
       <div className="space-y-2">
         <Label htmlFor="language">Language</Label>
-        <Input
-          id="language"
-          value={language}
-          onChange={(e) => setLanguage(e.target.value)}
-          placeholder="e.g., en, es, fr"
-        />
+        <Input id="language" value={language} onChange={(e) => setLanguage(e.target.value)} placeholder="e.g., en, es, fr" />
       </div>
 
       <div className="space-y-2">
@@ -349,13 +353,7 @@ function PreferencesForm({ user }: { user: NonNullable<ReturnType<typeof useCurr
             <Label htmlFor="wordWrap">Word Wrap</Label>
             <p className="text-xs text-muted-foreground">Wrap long lines when viewing files</p>
           </div>
-          <input
-            id="wordWrap"
-            type="checkbox"
-            checked={wordWrap}
-            onChange={(e) => setWordWrap(e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300"
-          />
+          <input id="wordWrap" type="checkbox" checked={wordWrap} onChange={(e) => setWordWrap(e.target.checked)} className="h-4 w-4 rounded border-gray-300" />
         </div>
       </div>
 
@@ -363,7 +361,7 @@ function PreferencesForm({ user }: { user: NonNullable<ReturnType<typeof useCurr
       {success && <div className="text-sm text-green-500 bg-green-500/10 border border-green-500/20 px-3 py-2 rounded">Preferences updated successfully!</div>}
 
       <Button type="submit" disabled={isUpdatingPreferences || isUpdatingWordWrap}>
-        {(isUpdatingPreferences || isUpdatingWordWrap) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+        {(isUpdatingPreferences || isUpdatingWordWrap) && <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />}
         Save Changes
       </Button>
     </form>
@@ -384,7 +382,7 @@ function SecurityTab() {
   if (userLoading || passkeysLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -438,15 +436,14 @@ function SecurityTab() {
       <Card>
         <CardHeader>
           <CardTitle>Passkeys</CardTitle>
-          <CardDescription>
-            Use passkeys for secure, passwordless authentication. Sign in with biometrics, PINs, or security keys.
-          </CardDescription>
+          <CardDescription>Use passkeys for secure, passwordless authentication. Sign in with biometrics, PINs, or security keys.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="bg-muted/50 p-4 space-y-2">
             <p className="text-sm font-medium">What are passkeys?</p>
             <p className="text-sm text-muted-foreground">
-              Passkeys are a secure alternative to passwords. They use cryptographic keys stored on your device, allowing you to sign in with biometrics, PINs, or security keys without entering a password.
+              Passkeys are a secure alternative to passwords. They use cryptographic keys stored on your device, allowing you to sign in with biometrics, PINs,
+              or security keys without entering a password.
             </p>
           </div>
 
@@ -455,7 +452,7 @@ function SecurityTab() {
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
               <DialogTrigger>
                 <Button size="sm">
-                  <Plus className="w-4 h-4 mr-2" />
+                  <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} className="size-4 mr-2" />
                   Add Passkey
                 </Button>
               </DialogTrigger>
@@ -467,12 +464,7 @@ function SecurityTab() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="passkey-name">Passkey Name (Optional)</Label>
-                    <Input
-                      id="passkey-name"
-                      value={newPasskeyName}
-                      onChange={(e) => setNewPasskeyName(e.target.value)}
-                      placeholder="e.g., My Laptop, iPhone"
-                    />
+                    <Input id="passkey-name" value={newPasskeyName} onChange={(e) => setNewPasskeyName(e.target.value)} placeholder="e.g., My Laptop, iPhone" />
                     <p className="text-xs text-muted-foreground">Give your passkey a name to remember what device it's for.</p>
                   </div>
                 </div>
@@ -481,7 +473,7 @@ function SecurityTab() {
                     Cancel
                   </Button>
                   <Button onClick={handleAddPasskey} disabled={isAdding}>
-                    {isAdding && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    {isAdding && <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />}
                     Register Passkey
                   </Button>
                 </DialogFooter>
@@ -494,7 +486,7 @@ function SecurityTab() {
               {passkeys.map((passkey: Passkey) => (
                 <div key={passkey.id} className="flex items-center justify-between p-4">
                   <div className="flex items-center gap-3">
-                    <Fingerprint className="w-4 h-4 text-muted-foreground" />
+                    <HugeiconsIcon icon={FingerPrintIcon} strokeWidth={2} className="size-4 text-muted-foreground" />
                     <div>
                       <p className="font-medium text-sm">{passkey.name || "Unnamed Passkey"}</p>
                       <p className="text-xs text-muted-foreground">
@@ -506,22 +498,20 @@ function SecurityTab() {
                   <Dialog open={deletePasskeyId === passkey.id} onOpenChange={(open) => setDeletePasskeyId(open ? passkey.id : null)}>
                     <DialogTrigger>
                       <Button variant="ghost" size="icon">
-                        <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
+                        <HugeiconsIcon icon={DeleteIcon} strokeWidth={2} className="size-4 text-muted-foreground hover:text-destructive" />
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
                         <DialogTitle>Delete Passkey</DialogTitle>
-                        <DialogDescription>
-                          Are you sure you want to delete this passkey? You'll no longer be able to sign in with it.
-                        </DialogDescription>
+                        <DialogDescription>Are you sure you want to delete this passkey? You'll no longer be able to sign in with it.</DialogDescription>
                       </DialogHeader>
                       <DialogFooter>
                         <Button variant="outline" onClick={() => setDeletePasskeyId(null)} disabled={isDeleting}>
                           Cancel
                         </Button>
                         <Button variant="destructive" onClick={() => handleDelete(passkey.id)} disabled={isDeleting}>
-                          {isDeleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                          {isDeleting && <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />}
                           Delete Passkey
                         </Button>
                       </DialogFooter>
@@ -532,7 +522,7 @@ function SecurityTab() {
             </div>
           ) : (
             <div className="text-center py-8 border border-dashed bg-muted/30">
-              <Fingerprint className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+              <HugeiconsIcon icon={FingerPrintIcon} strokeWidth={2} className="size-8 mx-auto text-muted-foreground mb-2" />
               <p className="text-sm text-muted-foreground">No passkeys yet. Add one to get started.</p>
             </div>
           )}
@@ -558,7 +548,7 @@ function TokensTab() {
   if (userLoading || keysLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -643,7 +633,7 @@ Password: <your-token>`}
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
               <DialogTrigger>
                 <Button size="sm">
-                  <Plus className="w-4 h-4 mr-2" />
+                  <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} className="size-4 mr-2" />
                   Generate Token
                 </Button>
               </DialogTrigger>
@@ -656,13 +646,17 @@ Password: <your-token>`}
                     </DialogHeader>
                     <div className="space-y-4">
                       <div className="flex items-start gap-3 p-4 bg-amber-500/10 border border-amber-500/20">
-                        <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                        <HugeiconsIcon icon={Alert01Icon} strokeWidth={2} className="size-5 text-amber-500 shrink-0 mt-0.5" />
                         <p className="text-sm text-muted-foreground">Make sure to copy your token now. For security reasons, we won't show it again.</p>
                       </div>
                       <div className="flex gap-2">
                         <Input value={createdKey} readOnly className="font-mono text-sm" />
                         <Button variant="outline" size="icon" onClick={handleCopy}>
-                          {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                          {copied ? (
+                            <HugeiconsIcon icon={CheckmarkCircleIcon} strokeWidth={2} className="size-4 text-green-500" />
+                          ) : (
+                            <HugeiconsIcon icon={CopyIcon} strokeWidth={2} className="size-4" />
+                          )}
                         </Button>
                       </div>
                     </div>
@@ -688,7 +682,7 @@ Password: <your-token>`}
                         Cancel
                       </Button>
                       <Button onClick={handleCreate} disabled={isCreating}>
-                        {isCreating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                        {isCreating && <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />}
                         Generate
                       </Button>
                     </DialogFooter>
@@ -703,7 +697,7 @@ Password: <your-token>`}
               {apiKeys.map((key: ApiKey) => (
                 <div key={key.id} className="flex items-center justify-between p-4">
                   <div className="flex items-center gap-3">
-                    <Key className="w-4 h-4 text-muted-foreground" />
+                    <HugeiconsIcon icon={KeyIcon} strokeWidth={2} className="size-4 text-muted-foreground" />
                     <div>
                       <p className="font-medium text-sm">{key.name || "Personal Access Token"}</p>
                       <p className="text-xs text-muted-foreground">
@@ -715,7 +709,7 @@ Password: <your-token>`}
                   <Dialog open={deleteKeyId === key.id} onOpenChange={(open) => setDeleteKeyId(open ? key.id : null)}>
                     <DialogTrigger>
                       <Button variant="ghost" size="icon">
-                        <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
+                        <HugeiconsIcon icon={DeleteIcon} strokeWidth={2} className="size-4 text-muted-foreground hover:text-destructive" />
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
@@ -730,7 +724,7 @@ Password: <your-token>`}
                           Cancel
                         </Button>
                         <Button variant="destructive" onClick={() => handleDelete(key.id)} disabled={isDeleting}>
-                          {isDeleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                          {isDeleting && <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />}
                           Delete Token
                         </Button>
                       </DialogFooter>
@@ -741,7 +735,7 @@ Password: <your-token>`}
             </div>
           ) : (
             <div className="text-center py-8 border border-dashed bg-muted/30">
-              <Key className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+              <HugeiconsIcon icon={KeyIcon} strokeWidth={2} className="size-8 mx-auto text-muted-foreground mb-2" />
               <p className="text-sm text-muted-foreground">No tokens yet. Generate one to get started.</p>
             </div>
           )}
@@ -765,7 +759,7 @@ function SettingsPage() {
   if (isPending) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -780,19 +774,19 @@ function SettingsPage() {
       <Tabs value={tab} onValueChange={(value) => setTab(value === "profile" ? null : (value as "account" | "security" | "tokens"))}>
         <TabsList variant="default" className="w-full mb-6 h-12">
           <TabsTrigger value="profile">
-            <User className="h-4 w-4" />
+            <HugeiconsIcon icon={UserIcon} strokeWidth={2} className="size-4" />
             Profile
           </TabsTrigger>
           <TabsTrigger value="account">
-            <Shield className="h-4 w-4" />
+            <HugeiconsIcon icon={ShieldIcon} strokeWidth={2} className="size-4" />
             Account
           </TabsTrigger>
           <TabsTrigger value="security">
-            <Fingerprint className="h-4 w-4" />
+            <HugeiconsIcon icon={FingerPrintIcon} strokeWidth={2} className="size-4" />
             Security
           </TabsTrigger>
           <TabsTrigger value="tokens">
-            <Key className="h-4 w-4" />
+            <HugeiconsIcon icon={KeyIcon} strokeWidth={2} className="size-4" />
             Access Tokens
           </TabsTrigger>
         </TabsList>

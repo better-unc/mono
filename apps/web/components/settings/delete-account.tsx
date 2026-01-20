@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useDeleteAccount } from "@gitbruv/hooks";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Loading02Icon, Alert01Icon } from "@hugeicons-pro/core-stroke-standard";
 
 interface DeleteAccountProps {
   username: string;
@@ -51,7 +52,7 @@ export function DeleteAccount({ username }: DeleteAccountProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-md">
-        <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+        <HugeiconsIcon icon={Alert01Icon} strokeWidth={2} className="size-5 text-red-500 shrink-0 mt-0.5" />
         <div className="space-y-2">
           <p className="text-sm font-medium text-red-500">This action cannot be undone</p>
           <p className="text-sm text-muted-foreground">
@@ -82,7 +83,7 @@ export function DeleteAccount({ username }: DeleteAccountProps) {
           Cancel
         </Button>
         <Button variant="destructive" onClick={handleDelete} disabled={isPending || confirmation !== username}>
-          {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+          {isPending && <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />}
           Delete My Account
         </Button>
       </div>
