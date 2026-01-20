@@ -7,6 +7,7 @@ import type {
   RepoPageData,
   TreeResponse,
   FileEntry,
+  FileLastCommit,
   Commit,
   CommitDiff,
   UserProfile,
@@ -93,6 +94,9 @@ export const api: ApiClient = {
 
     getTree: (owner: string, name: string, branch: string, path = "") =>
       apiFetch<TreeResponse>(`/api/repositories/${owner}/${name}/tree?branch=${branch}&path=${encodeURIComponent(path)}`),
+
+    getTreeCommits: (owner: string, name: string, branch: string, path = "") =>
+      apiFetch<{ files: FileLastCommit[] }>(`/api/repositories/${owner}/${name}/tree-commits?branch=${branch}&path=${encodeURIComponent(path)}`),
 
     getFile: (owner: string, name: string, branch: string, path: string) =>
       apiFetch<{ content: string; oid: string; path: string }>(`/api/repositories/${owner}/${name}/file?branch=${branch}&path=${encodeURIComponent(path)}`),

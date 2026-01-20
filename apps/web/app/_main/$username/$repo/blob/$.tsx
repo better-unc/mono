@@ -128,6 +128,7 @@ function BlobPage() {
             }}
             options={{
               disableFileHeader: true,
+              overflow: wordWrap ? "wrap" : "scroll",
             }}
           />
         )}

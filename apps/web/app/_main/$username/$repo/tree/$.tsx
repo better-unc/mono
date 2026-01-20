@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useRepositoryWithStars, useRepoTree } from "@gitbruv/hooks";
+import { useRepositoryWithStars, useRepoTree, useTreeCommits } from "@gitbruv/hooks";
 import { FileTree } from "@/components/file-tree";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowRight01Icon, HomeIcon } from "@hugeicons-pro/core-stroke-standard";
@@ -43,6 +43,7 @@ function TreePage() {
 
   const { data: repo, isLoading: repoLoading, error: repoError } = useRepositoryWithStars(username, repoName);
   const { data: treeData, isLoading: treeLoading, error: treeError } = useRepoTree(username, repoName, branch, dirPath);
+  const { data: treeCommitsData, isLoading: isLoadingTreeCommits } = useTreeCommits(username, repoName, branch, dirPath);
 
   if (repoLoading) {
     return <PageSkeleton />;
@@ -53,6 +54,7 @@ function TreePage() {
   }
 
   const pathParts = dirPath.split("/").filter(Boolean);
+  const treeCommits = treeCommitsData?.files;
 
   return (
     <div className="container max-w-6xl px-4">
@@ -90,7 +92,15 @@ function TreePage() {
           <div className="p-8 text-center text-muted-foreground">Failed to load directory</div>
         ) : (
           <div className="bg-card overflow-hidden">
-            <FileTree files={treeData.files} username={username} repoName={repoName} branch={branch} basePath={dirPath} />
+            <FileTree 
+              files={treeData.files} 
+              username={username} 
+              repoName={repoName} 
+              branch={branch} 
+              basePath={dirPath}
+              commits={treeCommits}
+              isLoadingCommits={isLoadingTreeCommits}
+            />
           </div>
         )}
       </div>

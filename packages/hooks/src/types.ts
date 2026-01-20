@@ -34,6 +34,14 @@ export type FileEntry = {
   path: string;
 };
 
+export type FileLastCommit = {
+  path: string;
+  commitOid: string;
+  message: string;
+  authorName: string;
+  timestamp: number;
+};
+
 export type RepoInfo = {
   repo: RepositoryWithOwner;
   isOwner: boolean;
@@ -222,6 +230,7 @@ export type ApiClient = {
     isStarred: (id: string) => Promise<{ starred: boolean }>;
     getBranches: (owner: string, name: string) => Promise<{ branches: string[] }>;
     getTree: (owner: string, name: string, branch: string, path?: string) => Promise<TreeResponse>;
+    getTreeCommits: (owner: string, name: string, branch: string, path?: string) => Promise<{ files: FileLastCommit[] }>;
     getFile: (owner: string, name: string, branch: string, path: string) => Promise<{ content: string; oid: string; path: string }>;
     getCommits: (owner: string, name: string, branch: string, limit?: number, skip?: number) => Promise<{ commits: Commit[]; hasMore: boolean }>;
     getCommitCount: (owner: string, name: string, branch: string) => Promise<{ count: number }>;

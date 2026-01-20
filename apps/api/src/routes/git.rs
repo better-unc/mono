@@ -16,12 +16,12 @@ use uuid::Uuid;
 use crate::{
     auth::{require_auth, AuthUser},
     git::{
-        handler::{get_blob_by_oid, get_commits, get_commit_by_oid, get_commit_diff, get_file, get_tree, list_branches, count_commits_until, CommitAuthor, CommitInfo, TreeEntry},
+        handler::{get_blob_by_oid, get_commits, get_commit_by_oid, get_commit_diff, get_file, get_tree, list_branches, count_commits_until, get_file_last_commits, CommitAuthor, CommitInfo, TreeEntry, FileLastCommit},
         objects::S3GitStore,
         pack::{handle_receive_pack, handle_upload_pack},
         refs::get_refs_advertisement,
     },
-    redis::RedisClient,
+    redis::{RedisClient, CacheTtl},
     s3::S3Client,
     AppState,
 };
@@ -642,6 +642,53 @@ async fn get_tree_route(
     }
 }
 
+async fn get_tree_commits_route(
+    State(state): State<AppState>,
+    Extension(auth): Extension<AuthUser>,
+    Path((owner, name)): Path<(String, String)>,
+    Query(query): Query<TreeQuery>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let (repo, store, _) = get_repo_and_store(&state, &owner, &name).await?;
+
+    if repo.visibility == "private" {
+        if auth.0.as_ref().map(|u| u.id != repo.owner_id).unwrap_or(true) {
+            return Err((StatusCode::NOT_FOUND, "Repository not found".to_string()));
+        }
+    }
+
+    let branch = query.branch.as_deref().unwrap_or("main");
+    let path = query.path.as_deref().unwrap_or("");
+
+    let cache_key = format!("tree_commits:{}:{}:{}", store.prefix, branch, path);
+    if let Some(ref redis) = state.redis {
+        if let Some(cached) = redis.get_string(&cache_key).await {
+            if let Ok(commits) = serde_json::from_str::<Vec<FileLastCommit>>(&cached) {
+                return Ok(Json(serde_json::json!({ "files": commits })));
+            }
+        }
+    }
+
+    let tree_files = get_tree(&store, branch, path).await;
+    let file_paths: Vec<String> = tree_files
+        .as_ref()
+        .map(|entries| entries.iter().map(|e| e.path.clone()).collect())
+        .unwrap_or_default();
+
+    if file_paths.is_empty() {
+        return Ok(Json(serde_json::json!({ "files": [] })));
+    }
+
+    let commits = get_file_last_commits(&store, branch, path, file_paths).await;
+
+    if let Some(ref redis) = state.redis {
+        if let Ok(json) = serde_json::to_string(&commits) {
+            redis.set_ex_string(&cache_key, &json, CacheTtl::TREE_LISTING).await;
+        }
+    }
+
+    Ok(Json(serde_json::json!({ "files": commits })))
+}
+
 async fn get_readme_oid(
     State(state): State<AppState>,
     Extension(auth): Extension<AuthUser>,
@@ -964,6 +1011,10 @@ async fn invalidate_branch_cache(
         let file_pattern = RedisClient::file_key(repo_prefix, branch, "*");
         redis.delete_pattern(&file_pattern).await;
         tracing::debug!("invalidated cache pattern: {}", file_pattern);
+
+        let tree_commits_pattern = format!("tree_commits:{}:{}:*", repo_prefix, branch);
+        redis.delete_pattern(&tree_commits_pattern).await;
+        tracing::debug!("invalidated cache pattern: {}", tree_commits_pattern);
     }
 }
 
@@ -1027,6 +1078,7 @@ pub fn router() -> Router<AppState> {
         .route("/api/repositories/{owner}/{name}/commits/count", get(get_commit_count))
         .route("/api/repositories/{owner}/{name}/commits/{oid}/diff", get(get_commit_diff_route))
         .route("/api/repositories/{owner}/{name}/tree", get(get_tree_route))
+        .route("/api/repositories/{owner}/{name}/tree-commits", get(get_tree_commits_route))
         .route("/api/repositories/{owner}/{name}/file", get(get_file_route))
         .route("/api/repositories/{owner}/{name}/readme-oid", get(get_readme_oid))
         .route("/api/repositories/{owner}/{name}/readme", get(get_readme))

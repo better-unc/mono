@@ -65,6 +65,15 @@ export function useRepoTree(owner: string, name: string, branch: string, path = 
   });
 }
 
+export function useTreeCommits(owner: string, name: string, branch: string, path = "") {
+  const api = useApi();
+  return useQuery({
+    queryKey: ["repository", owner, name, "tree-commits", branch, path],
+    queryFn: () => api.repositories.getTreeCommits(owner, name, branch, path),
+    enabled: !!owner && !!name && !!branch,
+  });
+}
+
 export function useRepoFile(owner: string, name: string, branch: string, path: string) {
   const api = useApi();
   return useQuery({

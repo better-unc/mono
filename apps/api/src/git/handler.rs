@@ -1,6 +1,7 @@
 use crate::git::objects::S3GitStore;
 use crate::redis::{RedisClient, CacheTtl};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TreeEntry {
@@ -839,4 +840,136 @@ fn compute_unified_diff(old_content: &str, new_content: &str) -> Vec<DiffHunk> {
     }
     
     hunks
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct FileLastCommit {
+    pub path: String,
+    pub commit_oid: String,
+    pub message: String,
+    pub author_name: String,
+    pub timestamp: i64,
+}
+
+pub async fn get_file_last_commits(
+    store: &S3GitStore,
+    branch: &str,
+    dir_path: &str,
+    file_paths: Vec<String>,
+) -> Vec<FileLastCommit> {
+    use std::collections::HashSet;
+    
+    const MAX_COMMITS_TO_WALK: usize = 5000;
+    
+    let ref_path = format!("refs/heads/{}", branch);
+    let head_oid = match store.resolve_ref(&ref_path).await {
+        Some(oid) => oid,
+        None => return Vec::new(),
+    };
+    
+    let mut results: HashMap<String, FileLastCommit> = HashMap::new();
+    let mut remaining: HashSet<String> = file_paths.into_iter().collect();
+    let mut current_oid = Some(head_oid);
+    let mut commits_walked = 0;
+    
+    while !remaining.is_empty() && current_oid.is_some() && commits_walked < MAX_COMMITS_TO_WALK {
+        let oid = current_oid.take().unwrap();
+        commits_walked += 1;
+        
+        let commit_data = match store.get_object(&oid).await {
+            Some(data) => data,
+            None => break,
+        };
+        
+        let (commit_info, parent_oid) = match parse_commit(&commit_data, &oid) {
+            Some(c) => c,
+            None => break,
+        };
+        
+        let commit_tree_oid = match extract_tree_oid(&commit_data) {
+            Some(t) => t,
+            None => break,
+        };
+        
+        let parent_tree_oid = if let Some(ref parent) = parent_oid {
+            if let Some(parent_data) = store.get_object(parent).await {
+                extract_tree_oid(&parent_data)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        
+        let current_dir_tree = get_dir_tree_oid(store, &commit_tree_oid, dir_path).await;
+        let parent_dir_tree = if let Some(ref pt) = parent_tree_oid {
+            get_dir_tree_oid(store, pt, dir_path).await
+        } else {
+            None
+        };
+        
+        let current_entries = if let Some(ref tree_oid) = current_dir_tree {
+            get_tree_entries_map(store, tree_oid).await
+        } else {
+            HashMap::new()
+        };
+        
+        let parent_entries = if let Some(ref tree_oid) = parent_dir_tree {
+            get_tree_entries_map(store, tree_oid).await
+        } else {
+            HashMap::new()
+        };
+        
+        for path in remaining.clone() {
+            let file_name = path.split('/').last().unwrap_or(&path);
+            let current_file_oid = current_entries.get(file_name);
+            let parent_file_oid = parent_entries.get(file_name);
+            
+            let changed = match (current_file_oid, parent_file_oid) {
+                (Some(curr), Some(par)) => curr != par,
+                (Some(_), None) => true,
+                (None, Some(_)) => true,
+                (None, None) => false,
+            };
+            
+            if changed {
+                results.insert(path.clone(), FileLastCommit {
+                    path: path.clone(),
+                    commit_oid: commit_info.oid.clone(),
+                    message: get_commit_title(&commit_info.message),
+                    author_name: commit_info.author.name.clone(),
+                    timestamp: commit_info.timestamp,
+                });
+                remaining.remove(&path);
+            }
+        }
+        
+        current_oid = parent_oid;
+    }
+    
+    results.into_values().collect()
+}
+
+async fn get_dir_tree_oid(store: &S3GitStore, root_tree_oid: &str, dir_path: &str) -> Option<String> {
+    if dir_path.is_empty() {
+        return Some(root_tree_oid.to_string());
+    }
+    navigate_to_path(store, root_tree_oid, dir_path).await
+}
+
+async fn get_tree_entries_map(store: &S3GitStore, tree_oid: &str) -> HashMap<String, String> {
+    let data = match store.get_object(tree_oid).await {
+        Some(d) => d,
+        None => return HashMap::new(),
+    };
+    
+    parse_tree_entries(&data)
+        .into_iter()
+        .map(|(name, (oid, _entry_type))| (name, oid))
+        .collect()
+}
+
+fn get_commit_title(message: &str) -> String {
+    message.lines().next().unwrap_or("").to_string()
 }

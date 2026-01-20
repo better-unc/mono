@@ -2,7 +2,7 @@ import { CloneUrl } from "@/components/clone-url";
 import { CodeViewer } from "@/components/code-viewer";
 import { FileTree } from "@/components/file-tree";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useRepoCommits, useRepoReadme, useRepoReadmeOid, useRepositoryInfo, useRepoTree } from "@gitbruv/hooks";
+import { useRepoCommits, useRepoReadme, useRepoReadmeOid, useRepositoryInfo, useRepoTree, useTreeCommits } from "@gitbruv/hooks";
 import { createFileRoute } from "@tanstack/react-router";
 import { timeAgo } from "@gitbruv/lib";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -20,12 +20,14 @@ function RepoPage() {
   const currentBranch = defaultBranch;
 
   const { data: treeData, isLoading: isLoadingTree } = useRepoTree(username, repoName, currentBranch);
+  const { data: treeCommitsData, isLoading: isLoadingTreeCommits } = useTreeCommits(username, repoName, currentBranch);
   const { data: readmeOidData, isLoading: isLoadingReadmeOid } = useRepoReadmeOid(username, repoName, currentBranch);
   const { data: commitData, isLoading: isLoadingLastCommit } = useRepoCommits(username, repoName, currentBranch, 1);
 
   const repo = repoInfo?.repo;
   const files = treeData?.files || [];
   const isEmpty = treeData?.isEmpty ?? true;
+  const treeCommits = treeCommitsData?.files;
   const readmeOid = readmeOidData?.readmeOid;
   const lastCommit = commitData?.commits?.[0];
 
@@ -39,7 +41,14 @@ function RepoPage() {
         <EmptyRepoState username={username} repoName={repo?.name || repoName} />
       ) : (
         <div className="border border-border bg-card overflow-hidden">
-          <FileTree files={files} username={username} repoName={repo?.name || repoName} branch={currentBranch} />
+          <FileTree 
+            files={files} 
+            username={username} 
+            repoName={repo?.name || repoName} 
+            branch={currentBranch}
+            commits={treeCommits}
+            isLoadingCommits={isLoadingTreeCommits}
+          />
         </div>
       )}
 
