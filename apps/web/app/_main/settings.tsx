@@ -1,40 +1,37 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useQueryState, parseAsStringLiteral } from "nuqs";
-import { useSession } from "@/lib/auth-client";
-import { useCurrentUser, useUpdateProfile, useUpdatePreferences, useUpdateWordWrapPreference, useWordWrapPreference } from "@gitbruv/hooks";
-import { useApiKeys, useCreateApiKey, useDeleteApiKey } from "@/lib/hooks/use-api-keys";
-import { usePasskeys, useAddPasskey, useDeletePasskey } from "@/lib/hooks/use-passkeys";
-import { ProfileForm } from "@/components/settings/profile-form";
 import { AvatarUpload } from "@/components/settings/avatar-upload";
-import { SocialLinksForm } from "@/components/settings/social-links-form";
+import { DeleteAccount } from "@/components/settings/delete-account";
 import { EmailForm } from "@/components/settings/email-form";
 import { PasswordForm } from "@/components/settings/password-form";
-import { DeleteAccount } from "@/components/settings/delete-account";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ProfileForm } from "@/components/settings/profile-form";
+import { SocialLinksForm } from "@/components/settings/social-links-form";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSession } from "@/lib/auth-client";
+import { useApiKeys, useCreateApiKey, useDeleteApiKey } from "@/lib/hooks/use-api-keys";
+import { useAddPasskey, useDeletePasskey, usePasskeys } from "@/lib/hooks/use-passkeys";
+import { getApiUrl } from "@/lib/utils";
+import { useCurrentUser, useUpdatePreferences, useUpdateProfile, useUpdateWordWrapPreference, useWordWrapPreference } from "@gitbruv/hooks";
 import {
-  UserIcon,
-  ShieldIcon,
-  KeyIcon,
-  PlusSignIcon,
-  DeleteIcon,
-  CopyIcon,
-  CheckmarkCircleIcon,
   Alert01Icon,
-  LockIcon,
-  GlobeIcon,
-  SettingsIcon,
+  CheckmarkCircleIcon,
+  CopyIcon,
+  DeleteIcon,
   FingerPrintIcon,
+  KeyIcon,
   Loading02Icon,
+  PlusSignIcon,
+  ShieldIcon,
+  UserIcon
 } from "@hugeicons-pro/core-stroke-standard";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
-import { getGitUrl } from "@/lib/utils";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_main/settings")({
@@ -604,7 +601,7 @@ function TokensTab() {
     setNewKeyName("");
   }
 
-  const gitUrl = getGitUrl();
+  const gitUrl = getApiUrl();
 
   return (
     <div className="space-y-8">

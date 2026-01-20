@@ -11,4 +11,4 @@ export {
 } from "./validation";
 export { DEFAULT_QUERY_OPTIONS } from "./query";
 export { timeAgo, formatDate } from "./date";
-export { stripProtocol, getCommitTitle, truncate, pluralize } from "./string";
+export { stripProtocol, getCommitTitle, truncate, pluralize, normalizeUrl, cn } from "./string";

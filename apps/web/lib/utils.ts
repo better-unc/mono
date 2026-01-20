@@ -1,17 +1,5 @@
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-
-const normalizeUrl = (url: string) => {
-  if (url.startsWith("http")) return url;
-  if (url.includes("localhost") || url.startsWith("127.0.0.1") || url.startsWith("::1")) {
-    return `http://${url}`;
-  }
-  return `https://${url}`;
-};
+import { normalizeUrl } from "@gitbruv/lib";
+export { cn } from "@gitbruv/lib";
 
 export const getPublicServerUrl = () => {
   const isServer = typeof window === "undefined";
@@ -56,13 +44,4 @@ export const getApiUrl = () => {
   }
 
   return undefined;
-};
-
-export const getGitUrl = () => {
-  const workerUrl = getApiUrl();
-  if (workerUrl) {
-    return workerUrl;
-  }
-  const baseUrl = getPublicServerUrl();
-  return `${baseUrl}/api/git`;
 };
