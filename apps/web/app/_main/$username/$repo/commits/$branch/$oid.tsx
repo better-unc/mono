@@ -1,13 +1,12 @@
-import { useState } from "react";
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useRepositoryWithStars, useCommitDiff } from "@gitbruv/hooks";
-import { Badge } from "@/components/ui/badge";
+import { DiffToolbar, DiffViewer, FilePickerSidebar, useFileNavigation, type DiffViewMode } from "@/components/diff-viewer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { DiffViewer, DiffToolbar, type DiffViewMode } from "@/components/diff-viewer";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { LockKeyIcon, GlobeIcon, ArrowLeft02Icon, GitCommitIcon } from "@hugeicons-pro/core-stroke-standard";
-import { timeAgo } from "@gitbruv/lib";
 import { cn } from "@/lib/utils";
+import { useCommitDiff, useRepositoryWithStars } from "@gitbruv/hooks";
+import { timeAgo } from "@gitbruv/lib";
+import { GitCommitIcon } from "@hugeicons-pro/core-stroke-standard";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { useState } from "react";
 
 export const Route = createFileRoute("/_main/$username/$repo/commits/$branch/$oid")({
   component: CommitPage,
@@ -54,6 +53,8 @@ function CommitPage() {
   const { username, repo: repoName, branch, oid } = Route.useParams();
   const [viewMode, setViewMode] = useState<DiffViewMode>("unified");
   const [fullWidth, setFullWidth] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(true);
+  const { fileRefs, selectedFile, scrollToFile } = useFileNavigation();
 
   const { data: repo, isLoading: repoLoading, error: repoError } = useRepositoryWithStars(username, repoName);
   const { data: diffData, isLoading: diffLoading, error: diffError } = useCommitDiff(username, repoName, oid);
@@ -124,7 +125,7 @@ function CommitPage() {
                       <Link
                         to="/$username/$repo/commits/$branch/$oid"
                         params={{ username, repo: repoName, branch, oid: diffData.parent }}
-                        className="font-mono text-xs text-accent hover:underline"
+                        className="font-mono text-xs text-primary hover:underline"
                       >
                         {diffData.parent.slice(0, 7)}
                       </Link>
@@ -144,10 +145,25 @@ function CommitPage() {
           onViewModeChange={setViewMode}
           fullWidth={fullWidth}
           onFullWidthChange={setFullWidth}
+          showSidebar={showSidebar}
+          onShowSidebarChange={setShowSidebar}
         />
       )}
 
-      {diffLoading ? <DiffSkeleton /> : <DiffViewer files={files} viewMode={viewMode} />}
+      <div className="flex gap-4">
+        {showSidebar && files.length > 0 && (
+          <div className="w-72 shrink-0 sticky top-18 self-start max-h-[calc(100vh-8rem)]">
+            <FilePickerSidebar
+              files={files}
+              selectedFile={selectedFile}
+              onFileSelect={scrollToFile}
+            />
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          {diffLoading ? <DiffSkeleton /> : <DiffViewer files={files} viewMode={viewMode} fileRefs={fileRefs} />}
+        </div>
+      </div>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
   File
 } from '@pierre/diffs/react';
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { useTheme } from "tanstack-theme-kit";
 
 export const Route = createFileRoute("/_main/$username/$repo/blob/$")({
   component: BlobPage,
@@ -60,6 +61,8 @@ function BlobPage() {
   const fileName = pathParts[pathParts.length - 1];
   const language = getLanguage(fileName);
   const wordWrap = wordWrapData?.wordWrap ?? false;
+
+  const { theme } = useTheme();
 
   return (
     <div className="container max-w-6xl px-4">
@@ -129,6 +132,7 @@ function BlobPage() {
             options={{
               disableFileHeader: true,
               overflow: wordWrap ? "wrap" : "scroll",
+              themeType: theme
             }}
           />
         )}
