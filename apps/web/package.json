@@ -56,7 +56,7 @@
     "zod": "^4.3.5"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4",
+    "@tailwindcss/vite": "^4.1.18",
     "@types/bcryptjs": "^3.0.0",
     "@types/node": "^25",
     "@types/react": "19.1.10",
