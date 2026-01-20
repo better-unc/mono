@@ -49,7 +49,7 @@ export function CommentItem({ comment, currentUserId, onToggleReaction, onUpdate
   };
 
   return (
-    <div className="border border-border bg-card overflow-hidden">
+    <div className="border border-border bg-card">
       <div className="flex items-center justify-between px-4 py-2 bg-secondary/30 border-b border-border">
         <div className="flex items-center gap-2">
           <Avatar className="h-5 w-5">

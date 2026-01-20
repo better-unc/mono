@@ -123,7 +123,7 @@ export function IssueDetail({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
       <div className="lg:col-span-3 space-y-4">
-        <div className="border border-border bg-card overflow-hidden">
+        <div className="border border-border bg-card">
           <div className="flex items-start justify-between px-4 py-3 bg-secondary/30 border-b border-border">
             <div className="flex items-center gap-2">
               <Avatar className="h-6 w-6">
