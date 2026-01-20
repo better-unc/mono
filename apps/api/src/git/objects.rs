@@ -79,15 +79,22 @@ impl S3GitStore {
         let now = Instant::now();
         let ttl = pack_cache_ttl();
         let global_cache = global_idx_cache();
-        if let Some(entry) = global_cache.get(idx_path) {
+
+        let cached = global_cache.get(idx_path).and_then(|entry| {
             if now.duration_since(entry.value().1) < ttl {
-                let data = entry.value().0.clone();
-                let mut cache = self.idx_cache.write().await;
-                cache.insert(idx_path.to_string(), data.clone());
-                return Some(data);
+                Some(entry.value().0.clone())
+            } else {
+                None
             }
-            global_cache.remove(idx_path);
+        });
+
+        if let Some(data) = cached {
+            let mut cache = self.idx_cache.write().await;
+            cache.insert(idx_path.to_string(), data.clone());
+            return Some(data);
         }
+
+        global_cache.remove(idx_path);
 
         let data = self.s3.get_object(idx_path).await?;
         let mut cache = self.idx_cache.write().await;
@@ -110,15 +117,22 @@ impl S3GitStore {
         let now = Instant::now();
         let ttl = pack_cache_ttl();
         let global_cache = global_pack_cache();
-        if let Some(entry) = global_cache.get(pack_path) {
+
+        let cached = global_cache.get(pack_path).and_then(|entry| {
             if now.duration_since(entry.value().1) < ttl {
-                let data = entry.value().0.clone();
-                let mut cache = self.pack_cache.write().await;
-                cache.insert(pack_path.to_string(), data.clone());
-                return Some(data);
+                Some(entry.value().0.clone())
+            } else {
+                None
             }
-            global_cache.remove(pack_path);
+        });
+
+        if let Some(data) = cached {
+            let mut cache = self.pack_cache.write().await;
+            cache.insert(pack_path.to_string(), data.clone());
+            return Some(data);
         }
+
+        global_cache.remove(pack_path);
 
         let data = self.s3.get_object(pack_path).await?;
         let mut cache = self.pack_cache.write().await;
@@ -190,15 +204,22 @@ impl S3GitStore {
         let now = Instant::now();
         let ttl = pack_list_cache_ttl();
         let global_cache = global_pack_list_cache();
-        if let Some(entry) = global_cache.get(&self.prefix) {
+
+        let cached = global_cache.get(&self.prefix).and_then(|entry| {
             if now.duration_since(entry.value().1) < ttl {
-                let list = entry.value().0.clone();
-                let mut cache = self.pack_list_cache.write().await;
-                *cache = Some(list.clone());
-                return list;
+                Some(entry.value().0.clone())
+            } else {
+                None
             }
-            global_cache.remove(&self.prefix);
+        });
+
+        if let Some(list) = cached {
+            let mut cache = self.pack_list_cache.write().await;
+            *cache = Some(list.clone());
+            return list;
         }
+
+        global_cache.remove(&self.prefix);
 
         let pack_dir = format!("{}/objects/pack", self.prefix);
         let pack_files = self.s3.list_objects(&pack_dir).await;
