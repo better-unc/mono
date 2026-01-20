@@ -797,125 +797,119 @@ fn extract_object_with_deltas(pack_data: &[u8], idx_data: &[u8], offset: u64) ->
 }
 
 fn read_pack_object(pack_data: &[u8], idx_data: &[u8], offset: u64) -> Option<(u8, Vec<u8>)> {
-    let offset = offset as usize;
-    if offset >= pack_data.len() {
-        tracing::warn!("Offset {} >= pack_data.len() {}", offset, pack_data.len());
-        return None;
-    }
+    let mut delta_chain: Vec<Vec<u8>> = Vec::new();
+    let mut current_offset = offset;
 
-    let mut pos = offset;
-    let first_byte = pack_data[pos];
-    pos += 1;
+    loop {
+        if delta_chain.len() > 1000 {
+            tracing::warn!("Delta chain too deep (>1000) at offset {}", offset);
+            return None;
+        }
 
-    let obj_type = (first_byte >> 4) & 0x07;
-    let mut size = (first_byte & 0x0f) as usize;
-    let mut shift = 4;
+        let offset_usize = current_offset as usize;
+        if offset_usize >= pack_data.len() {
+            tracing::warn!("Offset {} >= pack_data.len() {}", offset_usize, pack_data.len());
+            return None;
+        }
 
-    let mut continuation_byte = first_byte;
-    while continuation_byte & 0x80 != 0 && pos < pack_data.len() {
-        continuation_byte = pack_data[pos];
+        let mut pos = offset_usize;
+        let first_byte = pack_data[pos];
         pos += 1;
-        size |= ((continuation_byte & 0x7f) as usize) << shift;
-        shift += 7;
-    }
 
-    tracing::info!("read_pack_object: offset={}, first_byte=0x{:02x}, obj_type={}, size={}, data_pos={}", offset, first_byte, obj_type, size, pos);
+        let obj_type = (first_byte >> 4) & 0x07;
+        let mut size = (first_byte & 0x0f) as usize;
+        let mut shift = 4;
 
-    match obj_type {
-        1 | 2 | 3 | 4 => {
-            let compressed = &pack_data[pos..];
-            let content = decompress_zlib(compressed);
-            if content.is_none() {
-                tracing::warn!("Failed to decompress object type {} at offset {}", obj_type, offset);
-                return None;
-            }
-            Some((obj_type, content.unwrap()))
+        let mut continuation_byte = first_byte;
+        while continuation_byte & 0x80 != 0 && pos < pack_data.len() {
+            continuation_byte = pack_data[pos];
+            pos += 1;
+            size |= ((continuation_byte & 0x7f) as usize) << shift;
+            shift += 7;
         }
-        6 => {
-            tracing::info!("OFS_DELTA at offset {}", offset);
-            let delta_result = read_ofs_delta_offset(&pack_data[pos..]);
-            if delta_result.is_none() {
-                tracing::warn!("Failed to read OFS_DELTA offset at pos {}", pos);
-                return None;
-            }
-            let (base_offset, bytes_read) = delta_result.unwrap();
-            pos += bytes_read;
 
-            let base_abs_offset = offset as u64 - base_offset;
-            tracing::info!("OFS_DELTA: base_offset={}, base_abs_offset={}", base_offset, base_abs_offset);
-            let base_result = read_pack_object(pack_data, idx_data, base_abs_offset);
-            if base_result.is_none() {
-                tracing::warn!("Failed to read base object at offset {}", base_abs_offset);
-                return None;
-            }
-            let (base_type, base_content) = base_result.unwrap();
-            tracing::info!("OFS_DELTA: got base type={}, base_content_len={}", base_type, base_content.len());
+        tracing::debug!("read_pack_object: offset={}, obj_type={}, size={}", current_offset, obj_type, size);
 
-            let compressed = &pack_data[pos..];
-            let delta = decompress_zlib(compressed);
-            if delta.is_none() {
-                tracing::warn!("Failed to decompress delta at pos {}", pos);
-                return None;
-            }
-            let delta_data = delta.unwrap();
-            tracing::info!("OFS_DELTA: delta decompressed to {} bytes", delta_data.len());
+        match obj_type {
+            1 | 2 | 3 | 4 => {
+                let compressed = &pack_data[pos..];
+                let mut content = match decompress_zlib(compressed) {
+                    Some(c) => c,
+                    None => {
+                        tracing::warn!("Failed to decompress object type {} at offset {}", obj_type, current_offset);
+                        return None;
+                    }
+                };
 
-            let result = apply_delta(&base_content, &delta_data);
-            if result.is_none() {
-                tracing::warn!("Failed to apply delta");
-                return None;
-            }
-            Some((base_type, result.unwrap()))
-        }
-        7 => {
-            tracing::info!("REF_DELTA at offset {}", offset);
-            if pos + 20 > pack_data.len() {
-                tracing::warn!("REF_DELTA: not enough data for base OID at pos {}", pos);
-                return None;
-            }
-            let base_oid = &pack_data[pos..pos + 20];
-            let base_oid_hex = hex::encode(base_oid);
-            pos += 20;
-            tracing::info!("REF_DELTA: base_oid={}", base_oid_hex);
+                for delta in delta_chain.iter().rev() {
+                    content = match apply_delta(&content, delta) {
+                        Some(c) => c,
+                        None => {
+                            tracing::warn!("Failed to apply delta in chain");
+                            return None;
+                        }
+                    };
+                }
 
-            let base_offset = match find_object_in_index(idx_data, base_oid) {
-                Some(o) => o,
-                None => {
-                    tracing::warn!("REF_DELTA: base object {} not found in index", base_oid_hex);
+                return Some((obj_type, content));
+            }
+            6 => {
+                let (base_delta, bytes_read) = match read_ofs_delta_offset(&pack_data[pos..]) {
+                    Some(r) => r,
+                    None => {
+                        tracing::warn!("Failed to read OFS_DELTA offset at pos {}", pos);
+                        return None;
+                    }
+                };
+                pos += bytes_read;
+
+                let base_abs_offset = current_offset.saturating_sub(base_delta);
+                tracing::debug!("OFS_DELTA: base_abs_offset={}", base_abs_offset);
+
+                let delta = match decompress_zlib(&pack_data[pos..]) {
+                    Some(d) => d,
+                    None => {
+                        tracing::warn!("Failed to decompress OFS_DELTA at pos {}", pos);
+                        return None;
+                    }
+                };
+
+                delta_chain.push(delta);
+                current_offset = base_abs_offset;
+            }
+            7 => {
+                if pos + 20 > pack_data.len() {
+                    tracing::warn!("REF_DELTA: not enough data for base OID at pos {}", pos);
                     return None;
                 }
-            };
-            let (base_type, base_content) = match read_pack_object(pack_data, idx_data, base_offset) {
-                Some(r) => r,
-                None => {
-                    tracing::warn!("REF_DELTA: failed to read base object at offset {}", base_offset);
-                    return None;
-                }
-            };
-            tracing::info!("REF_DELTA: got base type={}, base_content_len={}", base_type, base_content.len());
+                let base_oid = &pack_data[pos..pos + 20];
+                let base_oid_hex = hex::encode(base_oid);
+                pos += 20;
+                tracing::debug!("REF_DELTA: base_oid={}", base_oid_hex);
 
-            let compressed = &pack_data[pos..];
-            let delta = match decompress_zlib(compressed) {
-                Some(d) => d,
-                None => {
-                    tracing::warn!("REF_DELTA: failed to decompress delta");
-                    return None;
-                }
-            };
-            tracing::info!("REF_DELTA: delta decompressed to {} bytes", delta.len());
+                let base_offset = match find_object_in_index(idx_data, base_oid) {
+                    Some(o) => o,
+                    None => {
+                        tracing::warn!("REF_DELTA: base object {} not found in index", base_oid_hex);
+                        return None;
+                    }
+                };
 
-            let result = match apply_delta(&base_content, &delta) {
-                Some(r) => r,
-                None => {
-                    tracing::warn!("REF_DELTA: failed to apply delta");
-                    return None;
-                }
-            };
-            Some((base_type, result))
-        }
-        _ => {
-            tracing::warn!("Unknown/unsupported object type {} at offset {}", obj_type, offset);
-            None
+                let delta = match decompress_zlib(&pack_data[pos..]) {
+                    Some(d) => d,
+                    None => {
+                        tracing::warn!("REF_DELTA: failed to decompress delta");
+                        return None;
+                    }
+                };
+
+                delta_chain.push(delta);
+                current_offset = base_offset;
+            }
+            _ => {
+                tracing::warn!("Unknown/unsupported object type {} at offset {}", obj_type, current_offset);
+                return None;
+            }
         }
     }
 }

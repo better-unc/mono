@@ -542,7 +542,6 @@ pub async fn get_commit_diff(store: &S3GitStore, oid: &str) -> Option<CommitDiff
     })
 }
 
-#[async_recursion::async_recursion]
 async fn compare_trees(
     store: &S3GitStore,
     old_tree_oid: Option<&str>,
@@ -550,112 +549,115 @@ async fn compare_trees(
     base_path: &str,
 ) -> Vec<FileDiff> {
     let mut diffs = Vec::new();
-    
-    let new_entries = if let Some(data) = store.get_object(new_tree_oid).await {
-        parse_tree_entries(&data)
-    } else {
-        return diffs;
-    };
-    
-    let old_entries = if let Some(old_oid) = old_tree_oid {
-        if let Some(data) = store.get_object(old_oid).await {
+    let mut stack: Vec<(Option<String>, String, String)> = vec![
+        (old_tree_oid.map(|s| s.to_string()), new_tree_oid.to_string(), base_path.to_string())
+    ];
+
+    while let Some((old_oid_opt, new_oid, current_path)) = stack.pop() {
+        let new_entries = if let Some(data) = store.get_object(&new_oid).await {
             parse_tree_entries(&data)
         } else {
-            std::collections::HashMap::new()
-        }
-    } else {
-        std::collections::HashMap::new()
-    };
-    
-    for (name, (new_oid, new_type)) in &new_entries {
-        let path = if base_path.is_empty() {
-            name.clone()
-        } else {
-            format!("{}/{}", base_path, name)
+            continue;
         };
-        
-        if let Some((old_oid, old_type)) = old_entries.get(name) {
-            if new_oid != old_oid {
-                if new_type == "tree" && old_type == "tree" {
-                    let subtree_diffs = compare_trees(store, Some(old_oid), new_oid, &path).await;
-                    diffs.extend(subtree_diffs);
-                } else if new_type == "blob" && old_type == "blob" {
-                    if let Some(file_diff) = diff_blobs(store, Some(old_oid), new_oid, &path, "modified").await {
-                        diffs.push(file_diff);
-                    }
-                } else if new_type == "blob" && old_type == "tree" {
-                    if let Some(file_diff) = diff_blobs(store, None, new_oid, &path, "added").await {
-                        diffs.push(file_diff);
-                    }
-                } else if new_type == "tree" && old_type == "blob" {
-                    let subtree_diffs = compare_trees(store, None, new_oid, &path).await;
-                    diffs.extend(subtree_diffs);
-                }
+
+        let old_entries = if let Some(ref old_oid) = old_oid_opt {
+            if let Some(data) = store.get_object(old_oid).await {
+                parse_tree_entries(&data)
+            } else {
+                std::collections::HashMap::new()
             }
         } else {
-            if new_type == "tree" {
-                let subtree_diffs = compare_trees(store, None, new_oid, &path).await;
-                diffs.extend(subtree_diffs);
-            } else {
-                if let Some(file_diff) = diff_blobs(store, None, new_oid, &path, "added").await {
-                    diffs.push(file_diff);
-                }
-            }
-        }
-    }
-    
-    for (name, (old_oid, old_type)) in &old_entries {
-        if !new_entries.contains_key(name) {
-            let path = if base_path.is_empty() {
+            std::collections::HashMap::new()
+        };
+
+        for (name, (new_entry_oid, new_type)) in &new_entries {
+            let path = if current_path.is_empty() {
                 name.clone()
             } else {
-                format!("{}/{}", base_path, name)
+                format!("{}/{}", current_path, name)
             };
-            
-            if old_type == "tree" {
-                let deleted_files = collect_all_blobs_in_tree(store, old_oid, &path).await;
-                for (blob_path, blob_oid) in deleted_files {
-                    if let Some(file_diff) = diff_blobs(store, Some(&blob_oid), "", &blob_path, "deleted").await {
-                        diffs.push(file_diff);
+
+            if let Some((old_entry_oid, old_type)) = old_entries.get(name) {
+                if new_entry_oid != old_entry_oid {
+                    if new_type == "tree" && old_type == "tree" {
+                        stack.push((Some(old_entry_oid.clone()), new_entry_oid.clone(), path));
+                    } else if new_type == "blob" && old_type == "blob" {
+                        if let Some(file_diff) = diff_blobs(store, Some(old_entry_oid), new_entry_oid, &path, "modified").await {
+                            diffs.push(file_diff);
+                        }
+                    } else if new_type == "blob" && old_type == "tree" {
+                        if let Some(file_diff) = diff_blobs(store, None, new_entry_oid, &path, "added").await {
+                            diffs.push(file_diff);
+                        }
+                    } else if new_type == "tree" && old_type == "blob" {
+                        stack.push((None, new_entry_oid.clone(), path));
                     }
                 }
             } else {
-                if let Some(file_diff) = diff_blobs(store, Some(old_oid), "", &path, "deleted").await {
-                    diffs.push(file_diff);
+                if new_type == "tree" {
+                    stack.push((None, new_entry_oid.clone(), path));
+                } else {
+                    if let Some(file_diff) = diff_blobs(store, None, new_entry_oid, &path, "added").await {
+                        diffs.push(file_diff);
+                    }
+                }
+            }
+        }
+
+        for (name, (old_entry_oid, old_type)) in &old_entries {
+            if !new_entries.contains_key(name) {
+                let path = if current_path.is_empty() {
+                    name.clone()
+                } else {
+                    format!("{}/{}", current_path, name)
+                };
+
+                if old_type == "tree" {
+                    let deleted_files = collect_all_blobs_in_tree(store, old_entry_oid, &path).await;
+                    for (blob_path, blob_oid) in deleted_files {
+                        if let Some(file_diff) = diff_blobs(store, Some(&blob_oid), "", &blob_path, "deleted").await {
+                            diffs.push(file_diff);
+                        }
+                    }
+                } else {
+                    if let Some(file_diff) = diff_blobs(store, Some(old_entry_oid), "", &path, "deleted").await {
+                        diffs.push(file_diff);
+                    }
                 }
             }
         }
     }
-    
+
     diffs.sort_by(|a, b| a.path.cmp(&b.path));
     diffs
 }
 
-#[async_recursion::async_recursion]
 async fn collect_all_blobs_in_tree(store: &S3GitStore, tree_oid: &str, base_path: &str) -> Vec<(String, String)> {
     let mut blobs = Vec::new();
-    
-    let entries = if let Some(data) = store.get_object(tree_oid).await {
-        parse_tree_entries(&data)
-    } else {
-        return blobs;
-    };
-    
-    for (name, (oid, entry_type)) in entries {
-        let path = if base_path.is_empty() {
-            name
+    let mut stack: Vec<(String, String)> = vec![(tree_oid.to_string(), base_path.to_string())];
+
+    while let Some((current_oid, current_path)) = stack.pop() {
+        let entries = if let Some(data) = store.get_object(&current_oid).await {
+            parse_tree_entries(&data)
         } else {
-            format!("{}/{}", base_path, name)
+            continue;
         };
-        
-        if entry_type == "tree" {
-            let subtree_blobs = collect_all_blobs_in_tree(store, &oid, &path).await;
-            blobs.extend(subtree_blobs);
-        } else {
-            blobs.push((path, oid));
+
+        for (name, (oid, entry_type)) in entries {
+            let path = if current_path.is_empty() {
+                name
+            } else {
+                format!("{}/{}", current_path, name)
+            };
+
+            if entry_type == "tree" {
+                stack.push((oid, path));
+            } else {
+                blobs.push((path, oid));
+            }
         }
     }
-    
+
     blobs
 }
 
