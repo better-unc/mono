@@ -3,6 +3,7 @@ import { GitBranchIcon, CheckmarkCircleIcon, ArrowDown01Icon } from "@hugeicons-
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
+import { buttonVariants } from "./ui/button";
 
 export function BranchSelector({
   branches,
@@ -26,7 +27,7 @@ export function BranchSelector({
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="flex items-center gap-2 px-3 py-1.5 bg-secondary/50 border border-border hover:border-primary/50 transition-colors text-sm">
+      <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "default" })}>
         <HugeiconsIcon icon={GitBranchIcon} strokeWidth={2} className="size-4 text-primary" />
         <span className="font-mono max-w-[120px] truncate">{currentBranch}</span>
         <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} className="size-3 text-muted-foreground" />
