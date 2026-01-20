@@ -456,3 +456,385 @@ fn decompress_zlib(data: &[u8]) -> Option<Vec<u8>> {
     decoder.read_to_end(&mut result).ok()?;
     Some(result)
 }
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct DiffHunkLine {
+    #[serde(rename = "type")]
+    pub line_type: String,
+    pub content: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub old_line_number: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub new_line_number: Option<usize>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct DiffHunk {
+    pub old_start: usize,
+    pub old_lines: usize,
+    pub new_start: usize,
+    pub new_lines: usize,
+    pub lines: Vec<DiffHunkLine>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct FileDiff {
+    pub path: String,
+    pub status: String,
+    pub additions: usize,
+    pub deletions: usize,
+    pub hunks: Vec<DiffHunk>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub old_path: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiffStats {
+    pub additions: usize,
+    pub deletions: usize,
+    pub files_changed: usize,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CommitDiffResponse {
+    pub commit: CommitInfo,
+    pub parent: Option<String>,
+    pub files: Vec<FileDiff>,
+    pub stats: DiffStats,
+}
+
+pub async fn get_commit_diff(store: &S3GitStore, oid: &str) -> Option<CommitDiffResponse> {
+    let (commit, parent_oid) = get_commit_by_oid(store, oid).await?;
+    
+    let commit_data = store.get_object(oid).await?;
+    let commit_tree_oid = extract_tree_oid(&commit_data)?;
+    
+    let parent_tree_oid = if let Some(ref parent) = parent_oid {
+        let parent_data = store.get_object(parent).await?;
+        extract_tree_oid(&parent_data)
+    } else {
+        None
+    };
+    
+    let files = compare_trees(store, parent_tree_oid.as_deref(), &commit_tree_oid, "").await;
+    
+    let mut total_additions = 0;
+    let mut total_deletions = 0;
+    for file in &files {
+        total_additions += file.additions;
+        total_deletions += file.deletions;
+    }
+    
+    Some(CommitDiffResponse {
+        commit,
+        parent: parent_oid,
+        files: files.clone(),
+        stats: DiffStats {
+            additions: total_additions,
+            deletions: total_deletions,
+            files_changed: files.len(),
+        },
+    })
+}
+
+#[async_recursion::async_recursion]
+async fn compare_trees(
+    store: &S3GitStore,
+    old_tree_oid: Option<&str>,
+    new_tree_oid: &str,
+    base_path: &str,
+) -> Vec<FileDiff> {
+    let mut diffs = Vec::new();
+    
+    let new_entries = if let Some(data) = store.get_object(new_tree_oid).await {
+        parse_tree_entries(&data)
+    } else {
+        return diffs;
+    };
+    
+    let old_entries = if let Some(old_oid) = old_tree_oid {
+        if let Some(data) = store.get_object(old_oid).await {
+            parse_tree_entries(&data)
+        } else {
+            std::collections::HashMap::new()
+        }
+    } else {
+        std::collections::HashMap::new()
+    };
+    
+    for (name, (new_oid, new_type)) in &new_entries {
+        let path = if base_path.is_empty() {
+            name.clone()
+        } else {
+            format!("{}/{}", base_path, name)
+        };
+        
+        if let Some((old_oid, old_type)) = old_entries.get(name) {
+            if new_oid != old_oid {
+                if new_type == "tree" && old_type == "tree" {
+                    let subtree_diffs = compare_trees(store, Some(old_oid), new_oid, &path).await;
+                    diffs.extend(subtree_diffs);
+                } else if new_type == "blob" && old_type == "blob" {
+                    if let Some(file_diff) = diff_blobs(store, Some(old_oid), new_oid, &path, "modified").await {
+                        diffs.push(file_diff);
+                    }
+                } else if new_type == "blob" && old_type == "tree" {
+                    if let Some(file_diff) = diff_blobs(store, None, new_oid, &path, "added").await {
+                        diffs.push(file_diff);
+                    }
+                } else if new_type == "tree" && old_type == "blob" {
+                    let subtree_diffs = compare_trees(store, None, new_oid, &path).await;
+                    diffs.extend(subtree_diffs);
+                }
+            }
+        } else {
+            if new_type == "tree" {
+                let subtree_diffs = compare_trees(store, None, new_oid, &path).await;
+                diffs.extend(subtree_diffs);
+            } else {
+                if let Some(file_diff) = diff_blobs(store, None, new_oid, &path, "added").await {
+                    diffs.push(file_diff);
+                }
+            }
+        }
+    }
+    
+    for (name, (old_oid, old_type)) in &old_entries {
+        if !new_entries.contains_key(name) {
+            let path = if base_path.is_empty() {
+                name.clone()
+            } else {
+                format!("{}/{}", base_path, name)
+            };
+            
+            if old_type == "tree" {
+                let deleted_files = collect_all_blobs_in_tree(store, old_oid, &path).await;
+                for (blob_path, blob_oid) in deleted_files {
+                    if let Some(file_diff) = diff_blobs(store, Some(&blob_oid), "", &blob_path, "deleted").await {
+                        diffs.push(file_diff);
+                    }
+                }
+            } else {
+                if let Some(file_diff) = diff_blobs(store, Some(old_oid), "", &path, "deleted").await {
+                    diffs.push(file_diff);
+                }
+            }
+        }
+    }
+    
+    diffs.sort_by(|a, b| a.path.cmp(&b.path));
+    diffs
+}
+
+#[async_recursion::async_recursion]
+async fn collect_all_blobs_in_tree(store: &S3GitStore, tree_oid: &str, base_path: &str) -> Vec<(String, String)> {
+    let mut blobs = Vec::new();
+    
+    let entries = if let Some(data) = store.get_object(tree_oid).await {
+        parse_tree_entries(&data)
+    } else {
+        return blobs;
+    };
+    
+    for (name, (oid, entry_type)) in entries {
+        let path = if base_path.is_empty() {
+            name
+        } else {
+            format!("{}/{}", base_path, name)
+        };
+        
+        if entry_type == "tree" {
+            let subtree_blobs = collect_all_blobs_in_tree(store, &oid, &path).await;
+            blobs.extend(subtree_blobs);
+        } else {
+            blobs.push((path, oid));
+        }
+    }
+    
+    blobs
+}
+
+fn parse_tree_entries(data: &[u8]) -> std::collections::HashMap<String, (String, String)> {
+    let mut entries = std::collections::HashMap::new();
+    
+    let decompressed = match decompress_zlib(data) {
+        Some(d) => d,
+        None => return entries,
+    };
+    
+    let null_pos = match decompressed.iter().position(|&b| b == 0) {
+        Some(p) => p,
+        None => return entries,
+    };
+    
+    let content = &decompressed[null_pos + 1..];
+    let mut pos = 0;
+    
+    while pos < content.len() {
+        let entry_null = match content[pos..].iter().position(|&b| b == 0) {
+            Some(p) => pos + p,
+            None => break,
+        };
+        
+        let header = match std::str::from_utf8(&content[pos..entry_null]) {
+            Ok(h) => h,
+            Err(_) => break,
+        };
+        
+        let parts: Vec<&str> = header.splitn(2, ' ').collect();
+        if parts.len() != 2 {
+            break;
+        }
+        
+        let mode = parts[0];
+        let name = parts[1].to_string();
+        
+        if entry_null + 21 > content.len() {
+            break;
+        }
+        
+        let oid = hex::encode(&content[entry_null + 1..entry_null + 21]);
+        let entry_type = if mode == "40000" || mode == "040000" { "tree" } else { "blob" };
+        
+        entries.insert(name, (oid, entry_type.to_string()));
+        pos = entry_null + 21;
+    }
+    
+    entries
+}
+
+async fn diff_blobs(
+    store: &S3GitStore,
+    old_oid: Option<&str>,
+    new_oid: &str,
+    path: &str,
+    status: &str,
+) -> Option<FileDiff> {
+    let old_content = if let Some(oid) = old_oid {
+        if oid.is_empty() {
+            String::new()
+        } else {
+            get_blob_by_oid(store, oid).await.unwrap_or_default()
+        }
+    } else {
+        String::new()
+    };
+    
+    let new_content = if new_oid.is_empty() {
+        String::new()
+    } else {
+        get_blob_by_oid(store, new_oid).await.unwrap_or_default()
+    };
+    
+    let hunks = compute_unified_diff(&old_content, &new_content);
+    
+    let mut additions = 0;
+    let mut deletions = 0;
+    for hunk in &hunks {
+        for line in &hunk.lines {
+            match line.line_type.as_str() {
+                "addition" => additions += 1,
+                "deletion" => deletions += 1,
+                _ => {}
+            }
+        }
+    }
+    
+    Some(FileDiff {
+        path: path.to_string(),
+        status: status.to_string(),
+        additions,
+        deletions,
+        hunks,
+        old_path: None,
+    })
+}
+
+fn compute_unified_diff(old_content: &str, new_content: &str) -> Vec<DiffHunk> {
+    use similar::{ChangeTag, TextDiff};
+    
+    let diff = TextDiff::from_lines(old_content, new_content);
+    let mut hunks = Vec::new();
+    let context_radius = 3;
+    
+    let ops = diff.ops();
+    let mut current_lines: Vec<DiffHunkLine> = Vec::new();
+    let mut hunk_old_start = 0usize;
+    let mut hunk_new_start = 0usize;
+    let mut last_change_end = 0usize;
+    let mut in_hunk = false;
+    
+    for op in ops.iter() {
+        for change in diff.iter_changes(op) {
+            let is_change = change.tag() != ChangeTag::Equal;
+            
+            if is_change && !in_hunk {
+                in_hunk = true;
+                current_lines.clear();
+                hunk_old_start = change.old_index().unwrap_or(0) + 1;
+                hunk_new_start = change.new_index().unwrap_or(0) + 1;
+            }
+            
+            if in_hunk {
+                let line_type = match change.tag() {
+                    ChangeTag::Equal => "context",
+                    ChangeTag::Delete => "deletion",
+                    ChangeTag::Insert => "addition",
+                };
+                
+                current_lines.push(DiffHunkLine {
+                    line_type: line_type.to_string(),
+                    content: change.value().trim_end_matches('\n').to_string(),
+                    old_line_number: change.old_index().map(|x| x + 1),
+                    new_line_number: change.new_index().map(|x| x + 1),
+                });
+                
+                if is_change {
+                    last_change_end = current_lines.len();
+                }
+                
+                let context_after_change = current_lines.len() - last_change_end;
+                if !is_change && context_after_change >= context_radius {
+                    current_lines.truncate(last_change_end + context_radius);
+                    let hunk_old_count = current_lines.iter().filter(|l| l.line_type != "addition").count();
+                    let hunk_new_count = current_lines.iter().filter(|l| l.line_type != "deletion").count();
+                    
+                    hunks.push(DiffHunk {
+                        old_start: hunk_old_start,
+                        old_lines: hunk_old_count,
+                        new_start: hunk_new_start,
+                        new_lines: hunk_new_count,
+                        lines: current_lines.clone(),
+                    });
+                    
+                    in_hunk = false;
+                    current_lines.clear();
+                }
+            }
+        }
+    }
+    
+    if in_hunk && !current_lines.is_empty() {
+        if last_change_end < current_lines.len() {
+            let keep = (last_change_end + context_radius).min(current_lines.len());
+            current_lines.truncate(keep);
+        }
+        let hunk_old_count = current_lines.iter().filter(|l| l.line_type != "addition").count();
+        let hunk_new_count = current_lines.iter().filter(|l| l.line_type != "deletion").count();
+        
+        hunks.push(DiffHunk {
+            old_start: hunk_old_start,
+            old_lines: hunk_old_count,
+            new_start: hunk_new_start,
+            new_lines: hunk_new_count,
+            lines: current_lines,
+        });
+    }
+    
+    hunks
+}

@@ -101,6 +101,15 @@ export function useRepoCommitCount(owner: string, name: string, branch: string) 
   });
 }
 
+export function useCommitDiff(owner: string, name: string, oid: string) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ["repository", owner, name, "commit", oid, "diff"],
+    queryFn: () => api.repositories.getCommitDiff(owner, name, oid),
+    enabled: !!owner && !!name && !!oid,
+  });
+}
+
 export function useRepoReadmeOid(owner: string, name: string, branch: string) {
   const api = useApi();
   return useQuery({

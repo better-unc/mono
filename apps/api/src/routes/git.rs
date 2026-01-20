@@ -16,7 +16,7 @@ use uuid::Uuid;
 use crate::{
     auth::{require_auth, AuthUser},
     git::{
-        handler::{get_blob_by_oid, get_commits, get_commit_by_oid, get_file, get_tree, list_branches, count_commits_until, CommitAuthor, CommitInfo, TreeEntry},
+        handler::{get_blob_by_oid, get_commits, get_commit_by_oid, get_commit_diff, get_file, get_tree, list_branches, count_commits_until, CommitAuthor, CommitInfo, TreeEntry},
         objects::S3GitStore,
         pack::{handle_receive_pack, handle_upload_pack},
         refs::get_refs_advertisement,
@@ -967,6 +967,51 @@ async fn invalidate_branch_cache(
     }
 }
 
+async fn get_commit_diff_route(
+    State(state): State<AppState>,
+    Extension(auth): Extension<AuthUser>,
+    Path((owner, name, oid)): Path<(String, String, String)>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let (repo, store, _) = get_repo_and_store(&state, &owner, &name).await?;
+
+    if repo.visibility == "private" {
+        if auth.0.as_ref().map(|u| u.id != repo.owner_id).unwrap_or(true) {
+            return Err((StatusCode::NOT_FOUND, "Repository not found".to_string()));
+        }
+    }
+
+    let diff = get_commit_diff(&store, &oid).await
+        .ok_or((StatusCode::NOT_FOUND, "Commit not found".to_string()))?;
+
+    let emails = vec![diff.commit.author.email.clone()];
+    let user_map = get_users_by_emails(&state.db, &emails).await.unwrap_or_default();
+
+    let author_data = if let Some(user) = user_map.get(&diff.commit.author.email) {
+        serde_json::json!({
+            "name": diff.commit.author.name,
+            "username": user.username,
+            "userId": user.id,
+            "avatarUrl": user.avatar_url,
+        })
+    } else {
+        serde_json::json!({
+            "name": diff.commit.author.name,
+        })
+    };
+
+    Ok(Json(serde_json::json!({
+        "commit": {
+            "oid": diff.commit.oid,
+            "message": diff.commit.message,
+            "author": author_data,
+            "timestamp": diff.commit.timestamp,
+        },
+        "parent": diff.parent,
+        "files": diff.files,
+        "stats": diff.stats,
+    })))
+}
+
 fn unauthorized_basic() -> Response {
     Response::builder()
         .status(StatusCode::UNAUTHORIZED)
@@ -980,6 +1025,7 @@ pub fn router() -> Router<AppState> {
         .route("/api/repositories/{owner}/{name}/branches", get(get_branches))
         .route("/api/repositories/{owner}/{name}/commits", get(get_commits_route))
         .route("/api/repositories/{owner}/{name}/commits/count", get(get_commit_count))
+        .route("/api/repositories/{owner}/{name}/commits/{oid}/diff", get(get_commit_diff_route))
         .route("/api/repositories/{owner}/{name}/tree", get(get_tree_route))
         .route("/api/repositories/{owner}/{name}/file", get(get_file_route))
         .route("/api/repositories/{owner}/{name}/readme-oid", get(get_readme_oid))
