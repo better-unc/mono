@@ -31,6 +31,7 @@ impl Config {
             auth_service_url: env::var("AUTH_SERVICE_URL")
                 .expect("AUTH_SERVICE_URL must be set"),
             redis_url: env::var("REDIS_URL")
+                .map(|url| url.to_string())
                 .expect("REDIS_URL must be set"),
         }
     }
