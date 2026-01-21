@@ -45,7 +45,7 @@ WORKDIR /app
 
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/auth-service/node_modules ./apps/auth-service/node_modules
-COPY --from=builder /app/apps/auth-service/dist ./apps/auth-service/dist
+COPY --from=builder /app/apps/auth-service/src ./apps/auth-service/src
 COPY --from=builder /app/apps/auth-service/package.json ./apps/auth-service/package.json
 COPY --from=builder /app/packages ./packages
 
