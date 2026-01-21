@@ -30,9 +30,9 @@ impl Config {
                 .expect("AWS_S3_BUCKET_NAME must be set"),
             auth_service_url: env::var("AUTH_SERVICE_URL")
                 .expect("AUTH_SERVICE_URL must be set"),
-            redis_url: env::var("REDIS_URL")
+            redis_url: Some(env::var("REDIS_URL")
                 .map(|url| url.to_string())
-                .expect("REDIS_URL must be set"),
+                .expect("REDIS_URL must be set")),
         }
     }
 }
