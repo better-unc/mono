@@ -307,7 +307,6 @@ async fn verify_basic_credentials(state: &AppState, email: &str, password: &str)
     let response = match state
         .http_client
         .post(&verify_url)
-        .header("x-internal-auth", &state.config.internal_auth_secret)
         .json(&json!({
             "email": email,
             "password": password,

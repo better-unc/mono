@@ -7,8 +7,6 @@ pub struct Config {
     pub aws_access_key_id: String,
     pub aws_secret_access_key: String,
     pub aws_s3_bucket_name: String,
-    pub internal_auth_url: String,
-    pub internal_auth_secret: String,
     pub auth_service_url: String,
     pub redis_url: Option<String>,
 }
@@ -30,13 +28,10 @@ impl Config {
                 .expect("AWS_SECRET_ACCESS_KEY must be set"),
             aws_s3_bucket_name: env::var("AWS_S3_BUCKET_NAME")
                 .expect("AWS_S3_BUCKET_NAME must be set"),
-            internal_auth_url: env::var("INTERNAL_AUTH_URL")
-                .expect("INTERNAL_AUTH_URL must be set"),
-            internal_auth_secret: env::var("BETTER_AUTH_SECRET")
-                .expect("BETTER_AUTH_SECRET must be set"),
             auth_service_url: env::var("AUTH_SERVICE_URL")
-                .unwrap_or_else(|_| "http://localhost:3002".to_string()),
-            redis_url: env::var("REDIS_URL").ok(),
+                .expect("AUTH_SERVICE_URL must be set"),
+            redis_url: env::var("REDIS_URL")
+                .expect("REDIS_URL must be set"),
         }
     }
 }
