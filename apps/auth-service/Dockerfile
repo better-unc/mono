@@ -30,7 +30,7 @@ COPY apps/auth-service/package.json ./apps/auth-service/
 COPY packages/lib/package.json ./packages/lib/
 COPY packages/db/package.json ./packages/db/
 
-RUN bun install --frozen-lockfile
+RUN bun install
 
 COPY packages ./packages
 COPY apps/auth-service ./apps/auth-service
