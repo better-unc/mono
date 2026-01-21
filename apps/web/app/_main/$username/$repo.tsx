@@ -1,31 +1,31 @@
-import { Suspense } from "react";
-import { createFileRoute, Outlet, Link, useParams, useLocation } from "@tanstack/react-router";
-import { useRepositoryInfo, useRepoBranches, useRepoCommitCount, useIssueCount } from "@gitbruv/hooks";
-import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  CodeIcon,
-  RecordIcon,
-  WorkHistoryIcon,
-  SettingsIcon,
-  GitForkIcon,
-  Loading02Icon,
-} from "@hugeicons-pro/core-stroke-standard";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BranchSelector } from "@/components/branch-selector";
 import { CloneUrl } from "@/components/clone-url";
 import { StarButton } from "@/components/star-button";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useIssueCount, useRepoBranches, useRepoCommitCount, useRepositoryInfo } from "@gitbruv/hooks";
+import {
+  CodeIcon,
+  GitForkIcon,
+  Loading02Icon,
+  RecordIcon,
+  SettingsIcon,
+  WorkHistoryIcon,
+} from "@hugeicons-pro/core-stroke-standard";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { createFileRoute, Link, Outlet, useLocation, useParams } from "@tanstack/react-router";
+import { Suspense } from "react";
 
 function getBranchFromPath(pathname: string, defaultBranch: string): string {
   const treeMatch = pathname.match(/\/tree\/([^/]+)/);
   if (treeMatch) return treeMatch[1];
-  
+
   const blobMatch = pathname.match(/\/blob\/([^/]+)/);
   if (blobMatch) return blobMatch[1];
-  
+
   const commitsMatch = pathname.match(/\/commits\/([^/]+)/);
   if (commitsMatch) return commitsMatch[1];
-  
+
   return defaultBranch;
 }
 
@@ -94,7 +94,7 @@ function RepoLayoutContent() {
                   <HugeiconsIcon icon={RecordIcon} strokeWidth={2} className="size-4" />
                   <span>Issues</span>
                   {openIssueCount > 0 && (
-                    <span className="ml-0.5 px-1.5 py-0.5 text-[10px] font-medium bg-muted rounded-full">
+                    <span className="ml-0.5 px-1.5 py-0.5 text-[10px] font-medium bg-muted ">
                       {openIssueCount}
                     </span>
                   )}
@@ -108,7 +108,7 @@ function RepoLayoutContent() {
                   <HugeiconsIcon icon={WorkHistoryIcon} strokeWidth={2} className="size-4" />
                   <span>Commits</span>
                   {commitCount > 0 && (
-                    <span className="ml-0.5 px-1.5 py-0.5 text-[10px] font-medium bg-muted rounded-full">
+                    <span className="ml-0.5 px-1.5 py-0.5 text-[10px] font-medium bg-muted ">
                       {commitCount}
                     </span>
                   )}
@@ -127,7 +127,7 @@ function RepoLayoutContent() {
 
           <div className="flex items-center gap-2">
             {isLoadingBranches || isLoadingInfo ? (
-              <div className="h-8 w-24 bg-secondary/50 animate-pulse rounded" />
+              <div className="h-8 w-24 bg-secondary/50 animate-pulse " />
             ) : (
               <BranchSelector
                 branches={branches}
@@ -177,15 +177,15 @@ function RepoHeaderSkeleton() {
     <div className="space-y-3 animate-pulse">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="h-6 w-32 bg-secondary/50 rounded" />
-          <div className="h-5 w-14 bg-secondary/50 rounded" />
+          <div className="h-6 w-32 bg-secondary/50 " />
+          <div className="h-5 w-14 bg-secondary/50 " />
         </div>
         <div className="flex items-center gap-2">
-          <div className="h-8 w-20 bg-secondary/50 rounded" />
-          <div className="h-8 w-16 bg-secondary/50 rounded" />
+          <div className="h-8 w-20 bg-secondary/50 " />
+          <div className="h-8 w-16 bg-secondary/50 " />
         </div>
       </div>
-      <div className="h-4 w-48 bg-secondary/50 rounded" />
+      <div className="h-4 w-48 bg-secondary/50 " />
     </div>
   );
 }
@@ -196,13 +196,13 @@ function RepoLayoutSkeleton() {
       <RepoHeaderSkeleton />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-border/40 animate-pulse">
         <div className="flex items-center gap-1">
-          <div className="h-8 w-16 bg-secondary/50 rounded" />
-          <div className="h-8 w-16 bg-secondary/50 rounded" />
-          <div className="h-8 w-20 bg-secondary/50 rounded" />
+          <div className="h-8 w-16 bg-secondary/50 " />
+          <div className="h-8 w-16 bg-secondary/50 " />
+          <div className="h-8 w-20 bg-secondary/50 " />
         </div>
         <div className="flex items-center gap-2">
-          <div className="h-8 w-24 bg-secondary/50 rounded" />
-          <div className="h-8 w-32 bg-secondary/50 rounded" />
+          <div className="h-8 w-24 bg-secondary/50 " />
+          <div className="h-8 w-32 bg-secondary/50 " />
         </div>
       </div>
       <div className="flex items-center justify-center py-12">

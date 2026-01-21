@@ -1,12 +1,12 @@
+import { ArrowDown01Icon, CheckmarkCircleIcon, GitBranchIcon } from "@hugeicons-pro/core-stroke-standard";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { GitBranchIcon, CheckmarkCircleIcon, ArrowDown01Icon } from "@hugeicons-pro/core-stroke-standard";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
-import { buttonVariants } from "./ui/button";
 import { useLocation, useNavigate } from "@tanstack/react-router";
+import { buttonVariants } from "./ui/button";
+import { cn } from "@/lib/utils";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 type BranchSelectorProps = {
-  branches: string[];
+  branches: Array<string>;
   currentBranch: string;
   defaultBranch: string;
   username: string;
@@ -24,7 +24,7 @@ function getRouteContext(pathname: string): RouteContext {
 
 function getCurrentPath(pathname: string, context: RouteContext): string {
   if (context === "root" || context === "commits") return "";
-  
+
   const match = pathname.match(/\/(tree|blob)\/[^/]+\/(.+)/);
   if (match) {
     return match[2];
@@ -65,9 +65,9 @@ export function BranchSelector({
       case "tree":
         navigate({
           to: "/$username/$repo/tree/$",
-          params: { 
-            username, 
-            repo: repoName, 
+          params: {
+            username,
+            repo: repoName,
             _splat: currentPath ? `${newBranch}/${currentPath}` : newBranch,
           },
         });
@@ -75,9 +75,9 @@ export function BranchSelector({
       case "blob":
         navigate({
           to: "/$username/$repo/blob/$",
-          params: { 
-            username, 
-            repo: repoName, 
+          params: {
+            username,
+            repo: repoName,
             _splat: currentPath ? `${newBranch}/${currentPath}` : newBranch,
           },
         });
@@ -110,7 +110,7 @@ export function BranchSelector({
       <DropdownMenuContent align="start" className="w-[240px]">
         <div className="px-3 py-2 text-xs font-medium text-muted-foreground border-b border-border">Switch branch</div>
         <div className="max-h-[280px] overflow-y-auto py-1">
-          {branches.map((branch) => (
+          {branches.map((branch: string) => (
             <DropdownMenuItem
               key={branch}
               onClick={() => handleBranchChange(branch)}

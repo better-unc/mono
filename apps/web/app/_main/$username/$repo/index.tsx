@@ -41,10 +41,10 @@ function RepoPage() {
         <EmptyRepoState username={username} repoName={repo?.name || repoName} />
       ) : (
         <div className="border border-border bg-card overflow-hidden">
-          <FileTree 
-            files={files} 
-            username={username} 
-            repoName={repo?.name || repoName} 
+          <FileTree
+            files={files}
+            username={username}
+            repoName={repo?.name || repoName}
             branch={currentBranch}
             commits={treeCommits}
             isLoadingCommits={isLoadingTreeCommits}

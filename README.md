@@ -44,15 +44,18 @@ bun install
 DATABASE_URL=postgresql://postgres:password@localhost:5432/gitbruv
 BETTER_AUTH_SECRET=your-secret-key-here-at-least-32-characters
 BETTER_AUTH_URL=http://localhost:3000
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-INTERNAL_AUTH_URL=http://localhost:3000/api/auth/verify-credentials
-BETTER_AUTH_SECRET=your-internal-auth-secret
+AUTH_SERVICE_URL=http://localhost:3002
+INTERNAL_AUTH_URL=http://localhost:3002/api/auth/verify-credentials
+API_URL=http://localhost:3001
 
 # Cloudflare S3 Configuration
-S3_ACCOUNT_ID=your-cloudflare-account-id
-S3_ACCESS_KEY_ID=your-S3-access-key-id
-S3_SECRET_ACCESS_KEY=your-S3-secret-access-key
-S3_S3_BUCKET_NAME=gitbruv-repos
+AWS_ENDPOINT_URL=your-cloudflare-endpoint-url
+AWS_ACCESS_KEY_ID=your-S3-access-key-id
+AWS_SECRET_ACCESS_KEY=your-S3-secret-access-key
+AWS_S3_BUCKET_NAME=gitbruv-repos
+
+# Redis (optional, for caching)
+REDIS_URL=redis://localhost:6379
 ```
 
 3. Push the database schema:

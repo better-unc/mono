@@ -9,6 +9,7 @@
     "dev": "turbo dev --filter=@gitbruv/web",
     "dev:web": "turbo dev --filter=@gitbruv/web",
     "dev:api": "cd apps/api && cargo watch -x run",
+    "dev:auth": "cd apps/auth-service && bun run dev",
     "build:api": "cd apps/api && cargo build --release",
     "dev:mobile": "turbo dev --filter=@gitbruv/mobile --filter=@gitbruv/web",
     "build": "turbo build",
@@ -16,6 +17,7 @@
     "build:mobile": "turbo build --filter=@gitbruv/mobile",
     "start:web": "turbo start --filter=@gitbruv/web",
     "start:api": "turbo start --filter=@gitbruv/api",
+    "start:auth": "cd apps/auth-service && bun run start",
     "start:mobile": "turbo start --filter=@gitbruv/mobile",
     "lint": "turbo lint",
     "db:generate": "turbo db:generate --filter=@gitbruv/db",
@@ -24,6 +26,7 @@
     "db:studio": "turbo db:studio --filter=@gitbruv/db"
   },
   "devDependencies": {
+    "prettier": "^3.8.0",
     "turbo": "^2.7.2",
     "typescript": "^5"
   },

@@ -1,89 +1,68 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { auth } from "@gitbruv/auth/server";
-
-type RequestBody = {
-  email?: string;
-  password?: string;
-};
+import { getApiUrl } from "@/lib/utils";
 
 export const Route = createFileRoute("/api/auth/verify-credentials" as any)({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const secret = process.env.BETTER_AUTH_SECRET;
-        if (!secret) {
-          console.error("[auth] verify-credentials: missing BETTER_AUTH_SECRET");
-          return new Response(JSON.stringify({ error: "Server misconfigured" }), {
+        const apiUrl = getApiUrl();
+        if (!apiUrl) {
+          return new Response(JSON.stringify({ error: "API URL not configured" }), {
             status: 500,
             headers: { "Content-Type": "application/json" },
           });
         }
 
-        const provided = request.headers.get("x-internal-auth");
-        if (!provided || provided !== secret) {
-          console.warn("[auth] verify-credentials: invalid internal auth header");
-          return new Response(JSON.stringify({ error: "Unauthorized" }), {
-            status: 401,
-            headers: { "Content-Type": "application/json" },
-          });
-        }
+        const url = new URL(request.url);
+        const backendUrl = `${apiUrl}${url.pathname}`;
 
-        let body: RequestBody | null = null;
-        try {
-          body = await request.json();
-        } catch {
-          body = null;
-        }
-
-        const email = body?.email;
-        const password = body?.password;
-        const safeEmail = typeof email === "string" ? email.replace(/^(.).+(@.+)$/, "$1***$2") : "unknown";
-
-        if (!email || !password || typeof email !== "string" || typeof password !== "string" || !email.includes("@")) {
-          console.warn("[auth] verify-credentials: invalid body", { email: safeEmail });
-          return new Response(JSON.stringify({ error: "Invalid credentials" }), {
-            status: 400,
-            headers: { "Content-Type": "application/json" },
-          });
-        }
-
-        let user: any = null;
-        try {
-          const result: any = await auth.api.signInEmail({
-            body: {
-              email,
-              password,
-              rememberMe: false,
-            },
-            headers: request.headers,
-          });
-          user = result?.user ?? result?.session?.user ?? null;
-          if (user) {
-            console.info("[auth] verify-credentials: sign-in ok", { userId: user.id, email: safeEmail });
-          } else {
-            console.warn("[auth] verify-credentials: sign-in ok but no user", { email: safeEmail });
+        const headers = new Headers();
+        request.headers.forEach((value, key) => {
+          const lowerKey = key.toLowerCase();
+          if (lowerKey !== "host" && lowerKey !== "connection" && lowerKey !== "content-length") {
+            headers.set(key, value);
           }
-        } catch {
-          console.warn("[auth] verify-credentials: sign-in failed", { email: safeEmail });
-          user = null;
-        }
+        });
 
-        if (!user) {
-          return new Response(JSON.stringify({ error: "Unauthorized" }), {
-            status: 401,
-            headers: { "Content-Type": "application/json" },
+        const body = await request.arrayBuffer();
+
+        try {
+          const response = await fetch(backendUrl, {
+            method: "POST",
+            headers,
+            body,
+            credentials: "include",
           });
-        }
 
-        return new Response(
-          JSON.stringify({
-            user,
-          }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }
-        );
+          const responseHeaders = new Headers();
+          const headersToSkip = ["content-encoding", "transfer-encoding", "content-length", "connection"];
+          response.headers.forEach((value, key) => {
+            const lowerKey = key.toLowerCase();
+            if (!headersToSkip.includes(lowerKey)) {
+              responseHeaders.set(key, value);
+            }
+          });
+
+          const responseBody = await response.arrayBuffer();
+
+          return new Response(responseBody, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: responseHeaders,
+          });
+        } catch (error) {
+          console.error(`[Auth Proxy] Error proxying verify-credentials:`, error);
+          return new Response(
+            JSON.stringify({
+              error: "Failed to proxy verify-credentials request",
+              message: error instanceof Error ? error.message : "Unknown error",
+            }),
+            {
+              status: 502,
+              headers: { "Content-Type": "application/json" },
+            }
+          );
+        }
       },
     },
   },

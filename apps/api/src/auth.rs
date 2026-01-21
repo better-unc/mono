@@ -303,9 +303,10 @@ struct InternalAuthResponse {
 }
 
 async fn verify_basic_credentials(state: &AppState, email: &str, password: &str) -> Option<User> {
+    let verify_url = format!("{}/api/auth/verify-credentials", state.config.auth_service_url);
     let response = match state
         .http_client
-        .post(&state.config.internal_auth_url)
+        .post(&verify_url)
         .header("x-internal-auth", &state.config.internal_auth_secret)
         .json(&json!({
             "email": email,
@@ -316,7 +317,7 @@ async fn verify_basic_credentials(state: &AppState, email: &str, password: &str)
     {
         Ok(res) => res,
         Err(err) => {
-            tracing::warn!("internal auth request failed {}", err);
+            tracing::warn!("auth service request failed {}", err);
             return None;
         }
     };

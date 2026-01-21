@@ -1,28 +1,29 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
-import type { FileDiff } from "@gitbruv/hooks";
+import { useTheme } from "tanstack-theme-kit";
+import { useCallback, useRef, useState } from "react";
+import { PatchDiff } from "@pierre/diffs/react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  ArrowDown01Icon,
-  ArrowUp01Icon,
-  File01Icon,
   Add01Icon,
-  Remove01Icon,
+  ArrowDown01Icon,
   ArrowExpandIcon,
   ArrowShrinkIcon,
+  ArrowUp01Icon,
+  File01Icon,
   FileAddIcon,
-  FileRemoveIcon,
   FileEditIcon,
+  FileRemoveIcon,
   FileSyncIcon,
+  Remove01Icon,
 } from "@hugeicons-pro/core-stroke-standard";
+
+import type { FileDiff } from "@gitbruv/hooks";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { PatchDiff } from "@pierre/diffs/react";
-import { useTheme } from "tanstack-theme-kit";
 
 function fileDiffToUnifiedDiff(file: FileDiff): string {
-  const lines: string[] = [];
+  const lines: Array<string> = [];
 
   const isNewFile = file.status === "added";
   const isDeletedFile = file.status === "deleted";
@@ -213,7 +214,7 @@ export function DiffViewer({
   viewMode,
   fileRefs,
 }: {
-  files: FileDiff[];
+  files: Array<FileDiff>;
   viewMode: DiffViewMode;
   fileRefs?: React.MutableRefObject<Map<string, HTMLDivElement>>;
 }) {
@@ -262,7 +263,7 @@ export function FilePickerSidebar({
   selectedFile,
   onFileSelect,
 }: {
-  files: FileDiff[];
+  files: Array<FileDiff>;
   selectedFile: string | null;
   onFileSelect: (path: string) => void;
 }) {
@@ -279,7 +280,7 @@ export function FilePickerSidebar({
       </div>
       <div className="overflow-y-auto flex-1">
         {files.map((file) => {
-          const Icon = statusIcons[file.status] || File01Icon;
+          const Icon = statusIcons[file.status];
           const directory = getDirectory(file.path);
           const fileName = getFileName(file.path);
           const isSelected = selectedFile === file.path;

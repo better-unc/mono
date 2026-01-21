@@ -5,19 +5,11 @@ WORKDIR /app
 ARG NPM_CONFIG_HUGEICONS_KEY
 ARG API_URL
 ARG VITE_API_URL
-ARG INTERNAL_AUTH_URL
-ARG BETTER_AUTH_SECRET
-ARG AUTH_URL
-ARG REDIS_URL
 ARG RAILWAY_PUBLIC_DOMAIN
 
 ENV NPM_CONFIG_HUGEICONS_KEY=$NPM_CONFIG_HUGEICONS_KEY
 ENV API_URL=$API_URL
 ENV VITE_API_URL=$VITE_API_URL
-ENV INTERNAL_AUTH_URL=$INTERNAL_AUTH_URL
-ENV BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
-ENV AUTH_URL=$AUTH_URL
-ENV REDIS_URL=$REDIS_URL
 ENV NODE_ENV=production
 ENV PROD=true
 ENV RAILWAY_PUBLIC_DOMAIN=$RAILWAY_PUBLIC_DOMAIN
@@ -26,9 +18,7 @@ COPY package.json bun.lock ./
 COPY .npmrc ./
 COPY apps/web/package.json ./apps/web/
 COPY packages/lib/package.json ./packages/lib/
-COPY packages/auth/package.json ./packages/auth/
 COPY packages/hooks/package.json ./packages/hooks/
-COPY packages/db/package.json ./packages/db/
 
 RUN bun install
 

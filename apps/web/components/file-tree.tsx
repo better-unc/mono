@@ -1,8 +1,8 @@
-import { Link } from "@tanstack/react-router";
-import { Folder, FileCode, FileText, FileJson, File, FileImage, FileAudio, FileVideo } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { timeAgo } from "@gitbruv/lib";
+import { Link } from "@tanstack/react-router";
+import { File, FileAudio, FileCode, FileImage, FileJson, FileText, FileVideo, Folder } from "lucide-react";
 import type { FileLastCommit } from "@gitbruv/hooks";
+import { cn } from "@/lib/utils";
 
 type FileEntry = {
   name: string;
@@ -12,12 +12,12 @@ type FileEntry = {
 };
 
 type FileTreeProps = {
-  files: FileEntry[];
+  files: Array<FileEntry>;
   username: string;
   repoName: string;
   branch: string;
   basePath?: string;
-  commits?: FileLastCommit[];
+  commits?: Array<FileLastCommit>;
   isLoadingCommits?: boolean;
 };
 
@@ -94,25 +94,25 @@ export function FileTree({ files, username, repoName, branch, basePath, commits,
           >
             <Icon className={cn("h-4 w-4 shrink-0 text-muted-foreground")} />
             <span className={cn("text-sm min-w-0 truncate", "w-[180px] sm:w-[200px] shrink-0")}>{file.name}</span>
-            
+
             <div className="hidden md:flex flex-1 items-center gap-3 min-w-0">
               {isLoadingCommits ? (
-                <div className="h-4 w-48 bg-secondary/50 animate-pulse rounded" />
-              ) : commit ? (
+                <div className="h-4 w-48 bg-secondary/50 animate-pulse" />
+              ) : (
                 <span className="text-sm text-muted-foreground truncate">
                   {truncateMessage(commit.message)}
                 </span>
-              ) : null}
+              )}
             </div>
-            
+
             <div className="hidden sm:block shrink-0 text-right">
               {isLoadingCommits ? (
-                <div className="h-4 w-16 bg-secondary/50 animate-pulse rounded ml-auto" />
-              ) : commit ? (
+                <div className="h-4 w-16 bg-secondary/50 animate-pulse ml-auto" />
+              ) : (
                 <span className="text-xs text-muted-foreground whitespace-nowrap">
                   {timeAgo(commit.timestamp)}
                 </span>
-              ) : null}
+              )}
             </div>
           </Link>
         );

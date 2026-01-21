@@ -8,7 +8,7 @@ mod redis;
 
 use std::sync::Arc;
 use std::time::Duration;
-use axum::{middleware, Router};
+use axum::{middleware, Router, extract::Request};
 use axum::http::Method;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
@@ -72,9 +72,9 @@ async fn main() {
         None
     };
 
-    let state = AppState { 
-        db, 
-        s3, 
+    let state = AppState {
+        db,
+        s3,
         config: config.clone(),
         session_cache,
         http_client,
@@ -102,6 +102,8 @@ async fn main() {
         .allow_credentials(true);
 
     let app = Router::new()
+        .route("/api/auth", axum::routing::get(routes::auth::proxy_auth).post(routes::auth::proxy_auth).put(routes::auth::proxy_auth).patch(routes::auth::proxy_auth).delete(routes::auth::proxy_auth).options(routes::auth::proxy_auth))
+        .route("/api/auth/{*path}", axum::routing::get(routes::auth::proxy_auth).post(routes::auth::proxy_auth).put(routes::auth::proxy_auth).patch(routes::auth::proxy_auth).delete(routes::auth::proxy_auth).options(routes::auth::proxy_auth))
         .merge(routes::health::router())
         .merge(routes::repositories::router())
         .merge(routes::users::router())
@@ -109,7 +111,12 @@ async fn main() {
         .merge(routes::git::router())
         .merge(routes::file::router())
         .merge(routes::issues::router())
-        .layer(middleware::from_fn_with_state(state.clone(), auth_middleware))
+        .layer(middleware::from_fn_with_state(state.clone(), |state: axum::extract::State<AppState>, request: Request, next: axum::middleware::Next| async move {
+            if request.uri().path().starts_with("/api/auth") {
+                return next.run(request).await;
+            }
+            auth_middleware(state, request, next).await
+        }))
         .layer(TraceLayer::new_for_http())
         .layer(cors)
         .with_state(state);
