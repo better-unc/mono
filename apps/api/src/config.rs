@@ -1,5 +1,17 @@
 use std::env;
 
+fn normalize_url(url: &str) -> String {
+    if url.starts_with("http://") || url.starts_with("https://") {
+        return url.to_string();
+    }
+    
+    if url.contains("localhost") || url.starts_with("127.0.0.1") || url.starts_with("::1") {
+        return format!("http://{}", url);
+    }
+    
+    format!("https://{}", url)
+}
+
 pub struct Config {
     pub port: u16,
     pub database_url: String,
@@ -28,8 +40,10 @@ impl Config {
                 .expect("AWS_SECRET_ACCESS_KEY must be set"),
             aws_s3_bucket_name: env::var("AWS_S3_BUCKET_NAME")
                 .expect("AWS_S3_BUCKET_NAME must be set"),
-            auth_service_url: env::var("AUTH_SERVICE_URL")
-                .expect("AUTH_SERVICE_URL must be set"),
+            auth_service_url: normalize_url(
+                &env::var("AUTH_SERVICE_URL")
+                    .expect("AUTH_SERVICE_URL must be set")
+            ),
             redis_url: Some(env::var("REDIS_URL")
                 .map(|url| url.to_string())
                 .expect("REDIS_URL must be set")),
