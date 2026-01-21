@@ -4,11 +4,11 @@ fn normalize_url(url: &str) -> String {
     if url.starts_with("http://") || url.starts_with("https://") {
         return url.to_string();
     }
-    
+
     if url.contains("localhost") || url.starts_with("127.0.0.1") || url.starts_with("::1") {
         return format!("http://{}", url);
     }
-    
+
     format!("https://{}", url)
 }
 
