@@ -86,8 +86,3 @@ export const getAllowedOrigins = (): string[] => {
 
   return allowedOrigins;
 };
-
-console.log("Allowed origins:", getAllowedOrigins());
-console.log("Trusted origins:", getTrustedOrigins());
-console.log("API URL:", getApiUrl());
-console.log("Web URL:", getWebUrl());
