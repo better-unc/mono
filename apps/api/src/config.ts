@@ -22,7 +22,7 @@ export const config = {
   },
   betterAuthSecret: process.env.BETTER_AUTH_SECRET!,
   nodeEnv: process.env.NODE_ENV || "development",
-  apiUrl: process.env.API_URL!,
+  apiUrl: process.env.RAILWAY_PUBLIC_DOMAIN || "localhost:3001",
   webUrl: process.env.WEB_URL!,
   expoPublicApiUrl: process.env.EXPO_PUBLIC_API_URL!,
 };
