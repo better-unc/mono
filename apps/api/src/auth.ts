@@ -83,15 +83,21 @@ function isBlockedEmailDomain(email: string): boolean {
 }
 
 let authInstance: ReturnType<typeof betterAuth> | null = null;
+let authInitPromise: Promise<ReturnType<typeof betterAuth>> | null = null;
 
 export const initAuth = async () => {
   if (authInstance) {
     return authInstance;
   }
 
-  const redis = await getRedis();
-  const apiUrl = getApiUrl();
-  console.log(`[API] Better Auth baseURL: ${apiUrl}`);
+  if (authInitPromise) {
+    return authInitPromise;
+  }
+
+  authInitPromise = (async () => {
+    const redis = await getRedis();
+    const apiUrl = getApiUrl();
+    console.log(`[API] Better Auth baseURL: ${apiUrl}`);
 
   authInstance = betterAuth({
     baseURL: apiUrl,
@@ -189,7 +195,10 @@ export const initAuth = async () => {
     },
   });
 
-  return authInstance;
+    return authInstance;
+  })();
+
+  return authInitPromise;
 };
 
 export const getAuth = () => {
@@ -220,7 +229,7 @@ export async function verifyCredentials(request: Request): Promise<Response> {
 
   let body: { email?: string; password?: string } | null = null;
   try {
-    body = await request.json();
+    body = await request.json() as { email?: string; password?: string };
   } catch {
     body = null;
   }

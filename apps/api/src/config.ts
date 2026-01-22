@@ -14,7 +14,7 @@ export const config = {
   databaseUrl: process.env.DATABASE_URL!,
   redisUrl: process.env.REDIS_URL,
   s3: {
-    endpoint: process.env.S3_ENDPOINT!,
+    endpoint: process.env.S3_ENDPOINT || "https://storage.railway.app",
     region: process.env.S3_REGION || "auto",
     accessKeyId: process.env.S3_ACCESS_KEY_ID!,
     secretAccessKey: process.env.S3_SECRET_ACCESS_KEY!,
@@ -23,7 +23,7 @@ export const config = {
   betterAuthSecret: process.env.BETTER_AUTH_SECRET!,
   nodeEnv: process.env.NODE_ENV || "development",
   apiUrl: process.env.RAILWAY_PUBLIC_DOMAIN || "localhost:3001",
-  webUrl: process.env.WEB_URL!,
+  webUrl: process.env.WEB_URL || "localhost:3000",
   expoPublicApiUrl: process.env.EXPO_PUBLIC_API_URL!,
 };
 
