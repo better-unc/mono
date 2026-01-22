@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { db, users, repositories } from "@gitbruv/db";
 import { eq, and } from "drizzle-orm";
 import { authMiddleware, type AuthUser, type AuthVariables } from "../middleware/auth";
-import { createGitStore, getRefsAdvertisement } from "../git";
+import { createGitStore, getRefsAdvertisement, repoCache } from "../git";
 import git from "isomorphic-git";
 import { getAuth } from "../auth";
 import { putObject, deleteObject } from "../s3";
@@ -633,6 +633,13 @@ app.post("/:owner/:name/git-receive-pack", async (c) => {
       const headKey = `repos/${result.userId}/${repo.name}/HEAD`;
       await putObject(headKey, Buffer.from(`ref: ${headRef}\n`));
       console.log(`[API] receive-pack: created HEAD -> ${headRef}`);
+
+      for (const update of updates) {
+        const branch = update.ref.startsWith("refs/heads/") 
+          ? update.ref.replace("refs/heads/", "") 
+          : update.ref;
+        await repoCache.invalidateBranch(result.userId, repo.name, branch);
+      }
     }
 
     let response = "";

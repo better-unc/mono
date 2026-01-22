@@ -4,11 +4,11 @@ import { eq, sql, and } from "drizzle-orm";
 import { authMiddleware, requireAuth, type AuthVariables } from "../middleware/auth";
 import {
   createGitStore,
-  listBranches,
-  getCommits,
-  getCommitCount,
-  getTree,
-  getFile,
+  listBranchesCached,
+  getCommitsCached,
+  getCommitCountCached,
+  getTreeCached,
+  getFileCached,
   getBlobByOid,
   getCommitByOid,
   getCommitDiff,
@@ -93,7 +93,7 @@ app.get("/api/repositories/:owner/:name/branches", async (c) => {
     return c.json({ error: "Repository not found" }, 404);
   }
 
-  const branches = await listBranches(store.fs, store.dir);
+  const branches = await listBranchesCached(store);
   return c.json({ branches });
 });
 
@@ -116,7 +116,7 @@ app.get("/api/repositories/:owner/:name/commits", async (c) => {
     return c.json({ error: "Repository not found" }, 404);
   }
 
-  const { commits, hasMore } = await getCommits(store.fs, store.dir, branch, limit, skip);
+  const { commits, hasMore } = await getCommitsCached(store, branch, limit, skip);
 
   const emails = commits.map((c) => c.author.email);
   const userMap = await getUsersByEmails(emails);
@@ -162,7 +162,7 @@ app.get("/api/repositories/:owner/:name/commits/count", async (c) => {
     return c.json({ count: metadata.commitCount });
   }
 
-  const count = await getCommitCount(store.fs, store.dir, branch);
+  const count = await getCommitCountCached(store, branch);
   return c.json({ count });
 });
 
@@ -238,7 +238,7 @@ app.get("/api/repositories/:owner/:name/tree", async (c) => {
     }
   }
 
-  const files = await getTree(store.fs, store.dir, branch, path);
+  const files = await getTreeCached(store, branch, path);
 
   return c.json({
     files: files || [],
@@ -264,7 +264,7 @@ app.get("/api/repositories/:owner/:name/tree-commits", async (c) => {
     return c.json({ error: "Repository not found" }, 404);
   }
 
-  const files = await getTree(store.fs, store.dir, branch, path);
+  const files = await getTreeCached(store, branch, path);
   if (!files || files.length === 0) {
     return c.json({ files: [] });
   }
@@ -294,7 +294,7 @@ app.get("/api/repositories/:owner/:name/file", async (c) => {
     return c.json({ error: "Repository not found" }, 404);
   }
 
-  const file = await getFile(store.fs, store.dir, branch, path);
+  const file = await getFileCached(store, branch, path);
   if (!file) {
     return c.json({ error: "File not found" }, 404);
   }
@@ -334,7 +334,7 @@ app.get("/api/repositories/:owner/:name/readme-oid", async (c) => {
     }
   }
 
-  const files = await getTree(store.fs, store.dir, branch, "");
+  const files = await getTreeCached(store, branch, "");
   const readme = files?.find((f) => f.name.toLowerCase() === "readme.md" && f.type === "blob");
 
   return c.json({ readmeOid: readme?.oid || null });

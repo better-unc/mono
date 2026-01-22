@@ -1,6 +1,7 @@
 import git from "isomorphic-git";
 import { createS3Fs, type S3Fs } from "./s3-fs";
 import { getRepoPrefix } from "../s3";
+import { getCached, setCache, repoCache, CACHE_TTL } from "../cache";
 
 export interface CommitAuthor {
   name: string;
@@ -43,10 +44,17 @@ export interface CommitDiff {
   };
 }
 
-export function createGitStore(ownerId: string, repoName: string): { fs: S3Fs; dir: string } {
+export interface GitStore {
+  fs: S3Fs;
+  dir: string;
+  ownerId: string;
+  repoName: string;
+}
+
+export function createGitStore(ownerId: string, repoName: string): GitStore {
   const prefix = getRepoPrefix(ownerId, repoName);
   const fs = createS3Fs(prefix);
-  return { fs, dir: "/" };
+  return { fs, dir: "/", ownerId, repoName };
 }
 
 export async function listBranches(fs: S3Fs, dir: string): Promise<string[]> {
@@ -479,3 +487,86 @@ export async function getRefsAdvertisement(
     return Buffer.from(lenHex + line + "0000");
   }
 }
+
+export async function listBranchesCached(store: GitStore): Promise<string[]> {
+  const cacheKey = repoCache.branchesKey(store.ownerId, store.repoName);
+  const cached = await getCached<string[]>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const branches = await listBranches(store.fs, store.dir);
+  await setCache(cacheKey, branches, CACHE_TTL.branches);
+  return branches;
+}
+
+export async function getCommitsCached(
+  store: GitStore,
+  ref: string,
+  limit: number,
+  skip: number
+): Promise<{ commits: CommitInfo[]; hasMore: boolean }> {
+  const cacheKey = repoCache.commitsKey(store.ownerId, store.repoName, ref, limit, skip);
+  const cached = await getCached<{ commits: CommitInfo[]; hasMore: boolean }>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const result = await getCommits(store.fs, store.dir, ref, limit, skip);
+  if (result.commits.length > 0) {
+    await setCache(cacheKey, result, CACHE_TTL.commits);
+  }
+  return result;
+}
+
+export async function getCommitCountCached(store: GitStore, ref: string): Promise<number> {
+  const cacheKey = repoCache.commitCountKey(store.ownerId, store.repoName, ref);
+  const cached = await getCached<number>(cacheKey);
+  if (cached !== null) {
+    return cached;
+  }
+
+  const count = await getCommitCount(store.fs, store.dir, ref);
+  if (count > 0) {
+    await setCache(cacheKey, count, CACHE_TTL.commits);
+  }
+  return count;
+}
+
+export async function getTreeCached(
+  store: GitStore,
+  ref: string,
+  filepath: string
+): Promise<TreeEntry[] | null> {
+  const cacheKey = repoCache.treeKey(store.ownerId, store.repoName, ref, filepath);
+  const cached = await getCached<TreeEntry[]>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const tree = await getTree(store.fs, store.dir, ref, filepath);
+  if (tree) {
+    await setCache(cacheKey, tree, CACHE_TTL.tree);
+  }
+  return tree;
+}
+
+export async function getFileCached(
+  store: GitStore,
+  ref: string,
+  filepath: string
+): Promise<{ content: string; oid: string } | null> {
+  const cacheKey = repoCache.fileKey(store.ownerId, store.repoName, ref, filepath);
+  const cached = await getCached<{ content: string; oid: string }>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const file = await getFile(store.fs, store.dir, ref, filepath);
+  if (file) {
+    await setCache(cacheKey, file, CACHE_TTL.file);
+  }
+  return file;
+}
+
+export { repoCache };
