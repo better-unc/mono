@@ -33,25 +33,6 @@
         "typescript": "^5",
       },
     },
-    "apps/auth-service": {
-      "name": "@gitbruv/auth-service",
-      "version": "0.0.0",
-      "dependencies": {
-        "@better-auth/expo": "^1.4.10",
-        "@better-auth/passkey": "^1.4.12",
-        "@gitbruv/db": "workspace:*",
-        "@gitbruv/lib": "workspace:*",
-        "better-auth": "^1.4.10",
-        "drizzle-orm": "^0.45.1",
-        "hono": "^4.6.11",
-        "postgres": "^3.4.8",
-        "redis": "^5.10.0",
-      },
-      "devDependencies": {
-        "@types/node": "^25",
-        "typescript": "^5",
-      },
-    },
     "apps/mobile": {
       "name": "@gitbruv/mobile",
       "version": "0.1.0",
@@ -660,8 +641,6 @@
     "@fontsource-variable/inter": ["@fontsource-variable/inter@5.2.8", "", {}, "sha512-kOfP2D+ykbcX/P3IFnokOhVRNoTozo5/JxhAIVYLpea/UBmCQ/YWPBfWIDuBImXX/15KH+eKh4xpEUyS2sQQGQ=="],
 
     "@gitbruv/api": ["@gitbruv/api@workspace:apps/api"],
-
-    "@gitbruv/auth-service": ["@gitbruv/auth-service@workspace:apps/auth-service"],
 
     "@gitbruv/db": ["@gitbruv/db@workspace:packages/db"],
 
