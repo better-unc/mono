@@ -53,11 +53,6 @@ mountRoutes(app);
 
 const port = config.port;
 
-Bun.serve({
-  port,
-  fetch: app.fetch,
-});
-
 console.log(`[API] Starting API on http://localhost:${port}`);
 console.log(`[API] Environment: ${config.nodeEnv}`);
 console.log(`[API] Database: ${config.databaseUrl ? "Connected" : "Not configured"}`);
@@ -65,4 +60,7 @@ console.log(`[API] Redis: ${config.redisUrl ? "Configured" : "Not configured"}`)
 console.log(`[API] S3: ${config.s3.endpoint ? "Configured" : "Not configured"}`);
 console.log(`[API] Ready to handle requests`);
 
-export default app;
+export default {
+  port,
+  fetch: app.fetch,
+};
