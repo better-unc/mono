@@ -8,7 +8,7 @@ COPY packages/db/package.json ./packages/db/
 COPY packages/lib/package.json ./packages/lib/
 COPY packages/hooks/package.json ./packages/hooks/
 
-RUN bun install --frozen-lockfile
+RUN bun install
 
 COPY packages/db ./packages/db
 COPY packages/lib ./packages/lib
