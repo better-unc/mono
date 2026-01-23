@@ -1,28 +1,35 @@
-FROM rust:1.88-slim AS builder
+FROM oven/bun:1.1 AS builder
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
+COPY package.json bun.lock ./
+COPY apps/api/package.json ./apps/api/
+COPY packages/db/package.json ./packages/db/
+COPY packages/lib/package.json ./packages/lib/
+COPY packages/hooks/package.json ./packages/hooks/
 
-COPY apps/api/Cargo.toml apps/api/Cargo.lock* ./
-RUN mkdir src && echo "fn main() {}" > src/main.rs
-RUN cargo build --release
-RUN rm -rf src
+RUN bun install
 
-COPY apps/api/src ./src
-RUN touch src/main.rs
-RUN cargo build --release
+COPY packages/db ./packages/db
+COPY packages/lib ./packages/lib
+COPY packages/hooks ./packages/hooks
+COPY auth-schema.ts ./
+COPY apps/api ./apps/api
 
-FROM debian:bookworm-slim
+WORKDIR /app/apps/api
+RUN bun build src/index.ts --outdir dist --target bun --minify
 
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+FROM oven/bun:1.1-alpine AS runner
 
 WORKDIR /app
 
-COPY --from=builder /app/target/release/gitbruv-api /app/gitbruv-api
+COPY --from=builder /app/apps/api/dist ./dist
+COPY --from=builder /app/apps/api/package.json ./
+COPY --from=builder /app/node_modules ./node_modules
 
+ENV NODE_ENV=production
 ENV PORT=3001
 
 EXPOSE 3001
 
-CMD ["/app/gitbruv-api"]
+CMD ["bun", "run", "dist/index.js"]

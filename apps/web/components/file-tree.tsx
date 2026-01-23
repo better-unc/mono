@@ -98,21 +98,21 @@ export function FileTree({ files, username, repoName, branch, basePath, commits,
             <div className="hidden md:flex flex-1 items-center gap-3 min-w-0">
               {isLoadingCommits ? (
                 <div className="h-4 w-48 bg-secondary/50 animate-pulse" />
-              ) : (
+              ) : commit?.message ? (
                 <span className="text-sm text-muted-foreground truncate">
                   {truncateMessage(commit.message)}
                 </span>
-              )}
+              ) : null}
             </div>
 
             <div className="hidden sm:block shrink-0 text-right">
               {isLoadingCommits ? (
                 <div className="h-4 w-16 bg-secondary/50 animate-pulse ml-auto" />
-              ) : (
+              ) : commit?.timestamp ? (
                 <span className="text-xs text-muted-foreground whitespace-nowrap">
                   {timeAgo(commit.timestamp)}
                 </span>
-              )}
+              ) : null}
             </div>
           </Link>
         );

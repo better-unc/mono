@@ -1,15 +1,17 @@
 {
-  "name": "@gitbruv/auth-service",
+  "name": "@gitbruv/api",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
   "scripts": {
-    "dev": "bun run src/index.ts",
+    "dev": "bun run --watch --env-file ../../.env src/index.ts",
     "build": "bun build src/index.ts --outdir dist --target bun --minify",
-    "start": "bun run src/index.ts"
+    "start": "bun run --env-file ../../.env src/index.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.750.0",
+    "@aws-sdk/lib-storage": "^3.750.0",
     "@better-auth/expo": "^1.4.10",
     "@better-auth/passkey": "^1.4.12",
     "@gitbruv/db": "workspace:*",
@@ -17,11 +19,13 @@
     "better-auth": "^1.4.10",
     "drizzle-orm": "^0.45.1",
     "hono": "^4.6.11",
+    "isomorphic-git": "^1.27.1",
     "postgres": "^3.4.8",
     "redis": "^5.10.0"
   },
   "devDependencies": {
     "@types/node": "^25",
+    "bun-types": "latest",
     "typescript": "^5"
   }
 }

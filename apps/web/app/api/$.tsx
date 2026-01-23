@@ -1,14 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getApiUrl } from "@/lib/utils";
 
-export const Route = createFileRoute("/api/$" as any)({
+export const Route = createFileRoute("/api/$")({
   server: {
     handlers: {
       GET: async ({ request, params }) => {
-        if (params._splat?.startsWith("auth/")) {
+        if (params._splat?.startsWith("auth/") || params._splat?.startsWith("avatar/")) {
           return new Response("Not Found", { status: 404 });
         }
-        if (params._splat?.startsWith("avatar/")) {
+        return proxyRequest(request);
+      },
+      HEAD: async ({ request, params }) => {
+        if (params._splat?.startsWith("auth/") || params._splat?.startsWith("avatar/")) {
           return new Response("Not Found", { status: 404 });
         }
         return proxyRequest(request);
@@ -37,11 +40,15 @@ export const Route = createFileRoute("/api/$" as any)({
         }
         return proxyRequest(request);
       },
-      OPTIONS: async ({ request, params }) => {
-        if (params._splat?.startsWith("auth/")) {
-          return new Response("Not Found", { status: 404 });
-        }
-        return proxyRequest(request);
+      OPTIONS: async ({ request }) => {
+        return new Response(null, {
+          status: 204,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization, Cookie",
+          },
+        });
       },
     },
   },
@@ -58,7 +65,6 @@ async function proxyRequest(request: Request): Promise<Response> {
   const apiUrl = getApiUrl();
   if (!apiUrl) {
     const errorMsg = `API URL not configured. process.env.API_URL: ${process.env.API_URL}, NODE_ENV: ${process.env.NODE_ENV}`;
-    console.error(`[Proxy] ${errorMsg}`);
     return new Response(
       JSON.stringify({
         error: "API URL not configured",
@@ -77,7 +83,6 @@ async function proxyRequest(request: Request): Promise<Response> {
 
   const backendPath = shouldRemoveApiPrefix ? path.replace(/^\/api/, "") : path;
   const backendUrl = `${apiUrl}${backendPath}${url.search}`;
-  console.log(`[Proxy] ${request.method} ${path} -> ${backendUrl}`);
 
   const headers = new Headers();
   request.headers.forEach((value, key) => {
@@ -103,8 +108,6 @@ async function proxyRequest(request: Request): Promise<Response> {
 
     clearTimeout(timeoutId);
 
-    console.log(`[Proxy] ${request.method} ${path} -> ${response.status} ${response.statusText} (from ${backendUrl})`);
-
     const responseHeaders = new Headers();
     const headersToSkip = ["content-encoding", "transfer-encoding", "content-length", "connection"];
     response.headers.forEach((value, key) => {
@@ -118,13 +121,6 @@ async function proxyRequest(request: Request): Promise<Response> {
 
     if (responseBody.byteLength > 0) {
       responseHeaders.set("Content-Length", responseBody.byteLength.toString());
-    } else if (response.status === 200 && responseBody.byteLength === 0) {
-      console.warn(`[Proxy] Empty response body for ${path} from ${backendUrl}`);
-    }
-
-    if (!response.ok) {
-      const errorText = new TextDecoder().decode(responseBody);
-      console.error(`[Proxy] Backend returned error for ${path}:`, response.status, errorText.substring(0, 200));
     }
 
     return new Response(responseBody, {
@@ -133,16 +129,15 @@ async function proxyRequest(request: Request): Promise<Response> {
       headers: responseHeaders,
     });
   } catch (error) {
-    console.error(`[Proxy] Fetch error for ${request.method} ${path} -> ${backendUrl}:`, error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     const errorDetails =
       error instanceof Error
         ? {
-            name: error.name,
-            message: error.message,
-            cause: error.cause,
-            stack: error.stack?.split("\n").slice(0, 3).join("\n"),
-          }
+          name: error.name,
+          message: error.message,
+          cause: error.cause,
+          stack: error.stack?.split("\n").slice(0, 3).join("\n"),
+        }
         : {};
 
     return new Response(
