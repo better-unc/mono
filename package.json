@@ -1,28 +1,5 @@
 {
   "name": "gitbruv",
-  "private": true,
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
-  "scripts": {
-    "dev": "turbo dev --filter=@gitbruv/web --filter=@gitbruv/api",
-    "dev:web": "turbo dev --filter=@gitbruv/web",
-    "dev:api": "turbo dev --filter=@gitbruv/api",
-    "dev:mobile": "turbo dev --filter=@gitbruv/mobile --filter=@gitbruv/web",
-    "build": "turbo build",
-    "build:web": "turbo build --filter=@gitbruv/web",
-    "build:api": "turbo build --filter=@gitbruv/api",
-    "build:mobile": "turbo build --filter=@gitbruv/mobile",
-    "start:web": "turbo start --filter=@gitbruv/web",
-    "start:api": "turbo start --filter=@gitbruv/api",
-    "start:mobile": "turbo start --filter=@gitbruv/mobile",
-    "lint": "turbo lint",
-    "db:generate": "turbo db:generate --filter=@gitbruv/db",
-    "db:migrate": "turbo db:migrate --filter=@gitbruv/db",
-    "db:push": "turbo db:push --filter=@gitbruv/db",
-    "db:studio": "turbo db:studio --filter=@gitbruv/db"
-  },
   "devDependencies": {
     "prettier": "^3.8.0",
     "turbo": "^2.7.2",
@@ -42,5 +19,28 @@
     "bcryptjs": "^3.0.3",
     "@types/bcryptjs": "^3.0.0"
   },
-  "packageManager": "bun@1.3.5"
+  "packageManager": "bun@1.3.5",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev --filter=@gitbruv/web --filter=@gitbruv/api",
+    "dev:web": "turbo dev --filter=@gitbruv/web",
+    "dev:api": "turbo dev --filter=@gitbruv/api",
+    "dev:mobile": "turbo dev --filter=@gitbruv/mobile --filter=@gitbruv/web",
+    "build": "turbo build",
+    "build:web": "turbo build --filter=@gitbruv/web",
+    "build:api": "turbo build --filter=@gitbruv/api",
+    "build:mobile": "turbo build --filter=@gitbruv/mobile",
+    "start:web": "turbo start --filter=@gitbruv/web",
+    "start:api": "turbo start --filter=@gitbruv/api",
+    "start:mobile": "turbo start --filter=@gitbruv/mobile",
+    "lint": "turbo lint",
+    "db:generate": "turbo db:generate --filter=@gitbruv/db",
+    "db:migrate": "turbo db:migrate --filter=@gitbruv/db",
+    "db:push": "turbo db:push --filter=@gitbruv/db",
+    "db:studio": "turbo db:studio --filter=@gitbruv/db"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
 }

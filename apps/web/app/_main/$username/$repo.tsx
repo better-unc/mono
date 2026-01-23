@@ -1,9 +1,6 @@
-import { BranchSelector } from "@/components/branch-selector";
-import { CloneUrl } from "@/components/clone-url";
-import { StarButton } from "@/components/star-button";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useIssueCount, useRepoBranches, useRepoCommitCount, useRepositoryInfo } from "@gitbruv/hooks";
+import { Suspense } from "react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { createFileRoute, Link, Outlet, useLocation, useParams } from "@tanstack/react-router";
 import {
   CodeIcon,
   GitForkIcon,
@@ -12,9 +9,13 @@ import {
   SettingsIcon,
   WorkHistoryIcon,
 } from "@hugeicons-pro/core-stroke-standard";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { createFileRoute, Link, Outlet, useLocation, useParams } from "@tanstack/react-router";
-import { Suspense } from "react";
+import { useIssueCount, useRepoBranches, useRepoCommitCount, useRepositoryInfo } from "@gitbruv/hooks";
+import { BranchSelector } from "@/components/branch-selector";
+import { CloneUrl } from "@/components/clone-url";
+import { StarButton } from "@/components/star-button";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 
 function getBranchFromPath(pathname: string, defaultBranch: string): string {
   const treeMatch = pathname.match(/\/tree\/([^/]+)/);

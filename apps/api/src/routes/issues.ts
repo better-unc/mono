@@ -157,7 +157,7 @@ app.get("/api/repositories/:owner/:name/issues", async (c) => {
       closedById: issues.closedById,
     })
     .from(issues)
-    .where(eq(issues.repositoryId, repoAccess.repoId))
+    .where(and(eq(issues.repositoryId, repoAccess.repoId), eq(issues.state, state)))
     .orderBy(desc(issues.createdAt))
     .limit(limit + 1)
     .offset(offset);
