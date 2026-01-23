@@ -183,7 +183,7 @@ export const initAuth = async () => {
     },
     advanced: {
       disableOriginCheck: true,
-      cookiePrefix: config.nodeEnv === "production" ? "gitbruv_" : "gitbruv_dev_",
+      cookiePrefix: config.nodeEnv === "production" ? "gitbruv" : "gitbruv_dev",
       defaultCookieAttributes: {
         domain: getCookieDomain(),
         secure: config.nodeEnv === "production",
