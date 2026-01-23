@@ -2,6 +2,9 @@ FROM oven/bun:1.1 AS builder
 
 WORKDIR /app
 
+ARG WEB_URL
+ENV WEB_URL=$WEB_URL
+
 COPY package.json bun.lock ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/db/package.json ./packages/db/
