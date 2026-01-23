@@ -17,7 +17,7 @@ import {
 } from "@hugeicons-pro/core-stroke-standard";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { parseAsInteger, parseAsStringLiteral, useQueryState } from "nuqs";
+import { parseAsInteger, parseAsStringLiteral, useQueryState } from "@/lib/hooks";
 import { Suspense } from "react";
 
 export const Route = createFileRoute("/_main/explore")({

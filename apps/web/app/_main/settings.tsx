@@ -30,7 +30,7 @@ import {
 } from "@hugeicons-pro/core-stroke-standard";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { parseAsStringLiteral, useQueryState } from "nuqs";
+import { parseAsStringLiteral, useQueryState } from "@/lib/hooks";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
