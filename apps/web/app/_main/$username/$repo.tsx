@@ -163,7 +163,7 @@ function RepoHeader({
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
-        <StarButton repoId={repo.id} initialStarred={repo.starred} initialCount={repo.starCount} />
+        <StarButton repository={repo} />
         <Button variant="secondary" size="sm" className="gap-1.5">
           <HugeiconsIcon icon={GitForkIcon} strokeWidth={2} className="size-3.5" />
           <span>Fork</span>
