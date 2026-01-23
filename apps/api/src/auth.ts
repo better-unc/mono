@@ -8,6 +8,27 @@ import { passkey } from "@better-auth/passkey";
 import { getRedis } from "./redis";
 import { getApiUrl, getWebUrl, getTrustedOrigins, config } from "./config";
 
+function getCookieDomain(): string | undefined {
+  if (config.nodeEnv !== "production") {
+    return undefined;
+  }
+  
+  try {
+    const webUrl = getWebUrl();
+    const hostname = new URL(webUrl).hostname;
+    
+    const parts = hostname.split(".");
+    if (parts.length >= 2) {
+      const rootDomain = parts.slice(-2).join(".");
+      return `.${rootDomain}`;
+    }
+    
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 const BLOCKED_EMAIL_DOMAINS = [
   "tempmail.com",
   "temp-mail.org",
@@ -157,7 +178,16 @@ export const initAuth = async () => {
         },
       },
     },
-    advanced: { disableOriginCheck: true, cookiePrefix: config.nodeEnv === "production" ? "gitbruv_" : "gitbruv_dev_" },
+    advanced: {
+      disableOriginCheck: true,
+      cookiePrefix: config.nodeEnv === "production" ? "gitbruv_" : "gitbruv_dev_",
+      defaultCookieAttributes: {
+        domain: getCookieDomain(),
+        secure: config.nodeEnv === "production",
+        sameSite: "lax" as const,
+        path: "/",
+      },
+    },
     databaseHooks: {
       user: {
         create: {
