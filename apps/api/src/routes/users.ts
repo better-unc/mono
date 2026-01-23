@@ -208,7 +208,7 @@ app.get("/api/users/:username/starred", async (c) => {
     defaultBranch: r.defaultBranch,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
-    starCount: r.starCount,
+    starCount: Number(r.starCount) || 0,
     starredAt: r.starredAt,
     owner: {
       id: r.ownerId,

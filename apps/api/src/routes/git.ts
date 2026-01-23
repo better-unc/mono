@@ -432,7 +432,7 @@ app.get("/api/repositories/:owner/:name/info", async (c) => {
         name: row.userName,
         avatarUrl: row.avatarUrl,
       },
-      starCount: starCount?.count || 0,
+      starCount: Number(starCount?.count) || 0,
       starred,
     },
     isOwner,

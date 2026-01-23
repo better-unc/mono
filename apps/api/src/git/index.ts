@@ -20,9 +20,10 @@ export interface CommitInfo {
 
 export interface TreeEntry {
   name: string;
+  mode: string;
   path: string;
   oid: string;
-  type: string;
+  type: "blob" | "tree" | "commit" | string;
 }
 
 export interface DiffHunkLine {
@@ -90,8 +91,8 @@ export async function listBranches(fs: S3Fs, dir: string): Promise<string[]> {
     const branches: string[] = [];
 
     for (const entry of entries) {
+      const refPath = `${refsDir}/${entry}`;
       try {
-        const refPath = `${refsDir}/${entry}`;
         const refContent = await fs.promises.readFile(refPath, "utf8");
         console.log(`[Git] listBranches: found ref ${refPath} -> ${refContent.toString().trim()}`);
         branches.push(entry);
@@ -359,13 +360,6 @@ export async function getCommitByOid(
     console.error(`[Git] getCommitByOid error for ${oid}:`, error);
     return null;
   }
-}
-
-export interface TreeEntry {
-  mode: string;
-  path: string;
-  oid: string;
-  type: "blob" | "tree" | "commit";
 }
 
 interface ChangedFile {
