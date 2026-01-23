@@ -45,7 +45,7 @@ export const getWebUrl = (): string => {
   }
 
   if (config.nodeEnv === "production") {
-    throw new Error("API_URL must be set in production");
+    throw new Error("WEB_URL must be set in production");
   }
 
   return "http://localhost:3000";

@@ -9,22 +9,29 @@ import { getRedis } from "./redis";
 import { getApiUrl, getWebUrl, getTrustedOrigins, config } from "./config";
 
 function getCookieDomain(): string | undefined {
+  console.log(`[API] getCookieDomain called, nodeEnv: ${config.nodeEnv}`);
+
   if (config.nodeEnv !== "production") {
+    console.log(`[API] Cookie domain: undefined (not production)`);
     return undefined;
   }
-  
+
   try {
     const webUrl = getWebUrl();
     const hostname = new URL(webUrl).hostname;
-    
+    console.log(`[API] webUrl: ${webUrl}, hostname: ${hostname}`);
+
     const parts = hostname.split(".");
     if (parts.length >= 2) {
-      const rootDomain = parts.slice(-2).join(".");
-      return `.${rootDomain}`;
+      const rootDomain = `.${parts.slice(-2).join(".")}`;
+      console.log(`[API] Cookie domain: ${rootDomain}`);
+      return rootDomain;
     }
-    
+
+    console.log(`[API] Cookie domain: undefined (hostname has < 2 parts)`);
     return undefined;
-  } catch {
+  } catch (error) {
+    console.error(`[API] Error getting cookie domain:`, error);
     return undefined;
   }
 }
