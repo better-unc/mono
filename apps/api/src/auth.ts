@@ -139,16 +139,7 @@ export const initAuth = async () => {
       expo({}),
       passkey({
         rpID:
-          config.nodeEnv === "production"
-            ? (() => {
-                const url = getWebUrl();
-                try {
-                  return new URL(url).hostname;
-                } catch {
-                  return "localhost";
-                }
-              })()
-            : "localhost",
+          config.nodeEnv === "production" ? getWebUrl() : "localhost",
         rpName: "gitbruv",
         origin: getWebUrl(),
         authenticatorSelection: {

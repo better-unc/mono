@@ -21,7 +21,7 @@ export const config = {
     bucket: process.env.S3_BUCKET!,
   },
   betterAuthSecret: process.env.BETTER_AUTH_SECRET!,
-  nodeEnv: process.env.NODE_ENV || "development",
+  nodeEnv: process.env.RAILWAY_ENVIRONMENT_NAME || "development",
   apiUrl: process.env.RAILWAY_PUBLIC_DOMAIN || "localhost:3001",
   webUrl: process.env.WEB_URL || "localhost:3000",
   expoPublicApiUrl: process.env.EXPO_PUBLIC_API_URL!,
