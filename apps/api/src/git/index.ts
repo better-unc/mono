@@ -20,17 +20,34 @@ export interface CommitInfo {
 
 export interface TreeEntry {
   name: string;
+  mode: string;
   path: string;
   oid: string;
-  type: string;
+  type: "blob" | "tree" | "commit" | string;
+}
+
+export interface DiffHunkLine {
+  type: "context" | "addition" | "deletion";
+  content: string;
+  oldLineNumber?: number;
+  newLineNumber?: number;
+}
+
+export interface DiffHunk {
+  oldStart: number;
+  oldLines: number;
+  newStart: number;
+  newLines: number;
+  lines: DiffHunkLine[];
 }
 
 export interface FileDiff {
   path: string;
-  status: string;
+  oldPath?: string;
+  status: "added" | "modified" | "deleted" | "renamed";
   additions: number;
   deletions: number;
-  patch?: string;
+  hunks: DiffHunk[];
 }
 
 export interface CommitDiff {
@@ -72,19 +89,19 @@ export async function listBranches(fs: S3Fs, dir: string): Promise<string[]> {
     const refsDir = "refs/heads";
     const entries = await fs.promises.readdir(refsDir);
     const branches: string[] = [];
-    
+
     for (const entry of entries) {
+      const refPath = `${refsDir}/${entry}`;
       try {
-        const refPath = `${refsDir}/${entry}`;
         const refContent = await fs.promises.readFile(refPath, "utf8");
-        console.log(`[Git] listBranches: found ref ${refPath} -> ${refContent.trim()}`);
+        console.log(`[Git] listBranches: found ref ${refPath} -> ${refContent.toString().trim()}`);
         branches.push(entry);
       } catch (error) {
         console.error(`[Git] listBranches: failed to read ${refPath}:`, error);
         continue;
       }
     }
-    
+
     console.log(`[Git] listBranches (manual) found ${branches.length} branches:`, branches);
     return branches;
   } catch (error) {
@@ -114,8 +131,8 @@ export async function refExists(fs: S3Fs, dir: string, ref: string): Promise<boo
     try {
       const refPath = normalizeRef(ref);
       const content = await fs.promises.readFile(refPath, "utf8");
-      console.log(`[Git] refExists: manually read ${refPath} -> ${content.trim()}`);
-      return content.trim().length === 40;
+      console.log(`[Git] refExists: manually read ${refPath} -> ${content.toString().trim()}`);
+      return content.toString().trim().length === 40;
     } catch (readError) {
       console.error(`[Git] refExists: failed to read ref file:`, readError);
       return false;
@@ -139,7 +156,7 @@ export async function getCommits(
     }
 
     console.log(`[Git] getCommits: reading log for ref ${ref} (${normalizedRef})`);
-    
+
     let commitOid: string;
     try {
       commitOid = await git.resolveRef({ fs, dir, ref: normalizedRef });
@@ -147,7 +164,7 @@ export async function getCommits(
       console.error(`[Git] getCommits: resolveRef failed, trying manual read:`, error);
       try {
         const refContent = await fs.promises.readFile(normalizedRef, "utf8");
-        commitOid = refContent.trim();
+        commitOid = refContent.toString().trim();
         console.log(`[Git] getCommits: manually read ref -> ${commitOid}`);
       } catch (readError) {
         console.error(`[Git] getCommits: failed to read ref manually:`, readError);
@@ -241,6 +258,7 @@ export async function getTree(
     const tree = await git.readTree({ fs, dir, oid: treeOid });
 
     const entries: TreeEntry[] = tree.tree.map((entry) => ({
+      mode: entry.mode,
       name: entry.path,
       path: filepath ? `${filepath}/${entry.path}` : entry.path,
       oid: entry.oid,
@@ -324,6 +342,7 @@ export async function getCommitByOid(
   oid: string
 ): Promise<{ commit: CommitInfo; parent: string | null } | null> {
   try {
+    console.log(`[Git] getCommitByOid: reading commit ${oid}`);
     const { commit } = await git.readCommit({ fs, dir, oid });
     return {
       commit: {
@@ -337,9 +356,265 @@ export async function getCommitByOid(
       },
       parent: commit.parent.length > 0 ? commit.parent[0] : null,
     };
-  } catch {
+  } catch (error) {
+    console.error(`[Git] getCommitByOid error for ${oid}:`, error);
     return null;
   }
+}
+
+interface ChangedFile {
+  path: string;
+  status: string;
+  oldOid: string | null;
+  newOid: string | null;
+}
+
+async function compareTreesRecursive(
+  fs: S3Fs,
+  dir: string,
+  parentTreeOid: string | null,
+  currentTreeOid: string,
+  basePath: string
+): Promise<ChangedFile[]> {
+  const results: ChangedFile[] = [];
+
+  const currentEntries: TreeEntry[] = [];
+  const parentEntries: TreeEntry[] = [];
+
+  try {
+    const currentTree = await git.readTree({ fs, dir, oid: currentTreeOid });
+    for (const entry of currentTree.tree) {
+      currentEntries.push(entry as TreeEntry);
+    }
+  } catch (e) {
+    console.error(`[Git] compareTreesRecursive: failed to read current tree ${currentTreeOid}:`, e);
+    return results;
+  }
+
+  if (parentTreeOid) {
+    try {
+      const parentTree = await git.readTree({ fs, dir, oid: parentTreeOid });
+      for (const entry of parentTree.tree) {
+        parentEntries.push(entry as TreeEntry);
+      }
+    } catch (e) {
+      console.error(`[Git] compareTreesRecursive: failed to read parent tree ${parentTreeOid}:`, e);
+    }
+  }
+
+  const parentMap = new Map<string, TreeEntry>();
+  for (const entry of parentEntries) {
+    parentMap.set(entry.path, entry);
+  }
+
+  const currentMap = new Map<string, TreeEntry>();
+  for (const entry of currentEntries) {
+    currentMap.set(entry.path, entry);
+  }
+
+  for (const entry of currentEntries) {
+    const fullPath = basePath ? `${basePath}/${entry.path}` : entry.path;
+    const parentEntry = parentMap.get(entry.path);
+
+    if (!parentEntry) {
+      if (entry.type === "blob") {
+        results.push({ path: fullPath, status: "added", oldOid: null, newOid: entry.oid });
+      } else if (entry.type === "tree") {
+        const subResults = await compareTreesRecursive(fs, dir, null, entry.oid, fullPath);
+        results.push(...subResults);
+      }
+    } else if (parentEntry.oid !== entry.oid) {
+      if (entry.type === "blob" && parentEntry.type === "blob") {
+        results.push({ path: fullPath, status: "modified", oldOid: parentEntry.oid, newOid: entry.oid });
+      } else if (entry.type === "tree" && parentEntry.type === "tree") {
+        const subResults = await compareTreesRecursive(fs, dir, parentEntry.oid, entry.oid, fullPath);
+        results.push(...subResults);
+      } else {
+        results.push({ path: fullPath, status: "modified", oldOid: parentEntry.oid, newOid: entry.oid });
+      }
+    }
+  }
+
+  for (const entry of parentEntries) {
+    if (!currentMap.has(entry.path)) {
+      const fullPath = basePath ? `${basePath}/${entry.path}` : entry.path;
+      if (entry.type === "blob") {
+        results.push({ path: fullPath, status: "deleted", oldOid: entry.oid, newOid: null });
+      } else if (entry.type === "tree") {
+        const subResults = await compareTreesRecursive(fs, dir, entry.oid, entry.oid, fullPath);
+        for (const r of subResults) {
+          results.push({ path: r.path, status: "deleted", oldOid: r.oldOid, newOid: null });
+        }
+      }
+    }
+  }
+
+  return results;
+}
+
+async function generateDiffHunks(
+  fs: S3Fs,
+  dir: string,
+  oldOid: string | null,
+  newOid: string | null,
+  status: string
+): Promise<DiffHunk[]> {
+  try {
+    let oldContent = "";
+    let newContent = "";
+
+    if (oldOid) {
+      const { blob } = await git.readBlob({ fs, dir, oid: oldOid });
+      oldContent = new TextDecoder().decode(blob);
+    }
+
+    if (newOid) {
+      const { blob } = await git.readBlob({ fs, dir, oid: newOid });
+      newContent = new TextDecoder().decode(blob);
+    }
+
+    const oldLines = oldContent ? oldContent.split("\n") : [];
+    const newLines = newContent ? newContent.split("\n") : [];
+
+    if (status === "added") {
+      if (newLines.length === 0) return [];
+      return [{
+        oldStart: 0,
+        oldLines: 0,
+        newStart: 1,
+        newLines: newLines.length,
+        lines: newLines.map((content, i) => ({
+          type: "addition" as const,
+          content,
+          newLineNumber: i + 1,
+        })),
+      }];
+    }
+
+    if (status === "deleted") {
+      if (oldLines.length === 0) return [];
+      return [{
+        oldStart: 1,
+        oldLines: oldLines.length,
+        newStart: 0,
+        newLines: 0,
+        lines: oldLines.map((content, i) => ({
+          type: "deletion" as const,
+          content,
+          oldLineNumber: i + 1,
+        })),
+      }];
+    }
+
+    const hunks: DiffHunk[] = [];
+    const diffResult = simpleDiff(oldLines, newLines);
+
+    if (diffResult.length > 0) {
+      let currentHunk: DiffHunk | null = null;
+
+      for (const change of diffResult) {
+        if (!currentHunk || change.oldLine > (currentHunk.oldStart + currentHunk.oldLines + 3)) {
+          if (currentHunk) hunks.push(currentHunk);
+          currentHunk = {
+            oldStart: Math.max(1, change.oldLine - 3),
+            oldLines: 0,
+            newStart: Math.max(1, change.newLine - 3),
+            newLines: 0,
+            lines: [],
+          };
+        }
+
+        if (change.type === "delete") {
+          currentHunk.lines.push({
+            type: "deletion",
+            content: change.content,
+            oldLineNumber: change.oldLine,
+          });
+          currentHunk.oldLines++;
+        } else if (change.type === "insert") {
+          currentHunk.lines.push({
+            type: "addition",
+            content: change.content,
+            newLineNumber: change.newLine,
+          });
+          currentHunk.newLines++;
+        }
+      }
+
+      if (currentHunk) hunks.push(currentHunk);
+    }
+
+    return hunks;
+  } catch (e) {
+    console.error(`[Git] generateDiffHunks error:`, e);
+    return [];
+  }
+}
+
+interface DiffChange {
+  type: "insert" | "delete";
+  content: string;
+  oldLine: number;
+  newLine: number;
+}
+
+function simpleDiff(oldLines: string[], newLines: string[]): DiffChange[] {
+  const changes: DiffChange[] = [];
+
+  const oldSet = new Set(oldLines);
+  const newSet = new Set(newLines);
+
+  let oldIdx = 0;
+  let newIdx = 0;
+
+  while (oldIdx < oldLines.length || newIdx < newLines.length) {
+    if (oldIdx >= oldLines.length) {
+      changes.push({
+        type: "insert",
+        content: newLines[newIdx],
+        oldLine: oldIdx + 1,
+        newLine: newIdx + 1,
+      });
+      newIdx++;
+    } else if (newIdx >= newLines.length) {
+      changes.push({
+        type: "delete",
+        content: oldLines[oldIdx],
+        oldLine: oldIdx + 1,
+        newLine: newIdx + 1,
+      });
+      oldIdx++;
+    } else if (oldLines[oldIdx] === newLines[newIdx]) {
+      oldIdx++;
+      newIdx++;
+    } else if (!newSet.has(oldLines[oldIdx])) {
+      changes.push({
+        type: "delete",
+        content: oldLines[oldIdx],
+        oldLine: oldIdx + 1,
+        newLine: newIdx + 1,
+      });
+      oldIdx++;
+    } else if (!oldSet.has(newLines[newIdx])) {
+      changes.push({
+        type: "insert",
+        content: newLines[newIdx],
+        oldLine: oldIdx + 1,
+        newLine: newIdx + 1,
+      });
+      newIdx++;
+    } else {
+      changes.push({
+        type: "delete",
+        content: oldLines[oldIdx],
+        oldLine: oldIdx + 1,
+        newLine: newIdx + 1,
+      });
+      oldIdx++;
+    }
+  }
+
+  return changes;
 }
 
 export async function getCommitDiff(
@@ -348,7 +623,9 @@ export async function getCommitDiff(
   oid: string
 ): Promise<CommitDiff | null> {
   try {
+    console.log(`[Git] getCommitDiff: reading commit ${oid}`);
     const { commit } = await git.readCommit({ fs, dir, oid });
+    console.log(`[Git] getCommitDiff: commit found, parent: ${commit.parent[0] || 'none'}`);
     const parentOid = commit.parent.length > 0 ? commit.parent[0] : null;
 
     const commitInfo: CommitInfo = {
@@ -365,45 +642,46 @@ export async function getCommitDiff(
     let additions = 0;
     let deletions = 0;
 
-    if (parentOid) {
-      const changes = await git.walk({
-        fs,
-        dir,
-        trees: [git.TREE({ ref: parentOid }), git.TREE({ ref: oid })],
-        map: async (filepath, [A, B]) => {
-          if (filepath === ".") return null;
+    try {
+      const currentTree = commit.tree;
+      let parentTree: string | null = null;
 
-          const aOid = A ? await A.oid() : null;
-          const bOid = B ? await B.oid() : null;
+      if (parentOid) {
+        const parentCommit = await git.readCommit({ fs, dir, oid: parentOid });
+        parentTree = parentCommit.commit.tree;
+      }
 
-          if (aOid === bOid) return null;
+      console.log(`[Git] getCommitDiff: comparing trees - current: ${currentTree}, parent: ${parentTree || 'none'}`);
 
-          const aType = A ? await A.type() : null;
-          const bType = B ? await B.type() : null;
+      const changedFiles = await compareTreesRecursive(fs, dir, parentTree, currentTree, "");
 
-          if (aType === "tree" || bType === "tree") return null;
+      for (const file of changedFiles) {
+        const hunks = await generateDiffHunks(fs, dir, file.oldOid, file.newOid, file.status);
 
-          let status: string;
-          if (!aOid) {
-            status = "added";
-          } else if (!bOid) {
-            status = "deleted";
-          } else {
-            status = "modified";
+        let additionCount = 0;
+        let deletionCount = 0;
+        for (const hunk of hunks) {
+          for (const line of hunk.lines) {
+            if (line.type === "addition") additionCount++;
+            if (line.type === "deletion") deletionCount++;
           }
+        }
 
-          return { path: filepath, status, aOid, bOid };
-        },
-      });
+        additions += additionCount;
+        deletions += deletionCount;
 
-      for (const change of changes.filter(Boolean)) {
         files.push({
-          path: change.path,
-          status: change.status,
-          additions: 0,
-          deletions: 0,
+          path: file.path,
+          status: file.status as "added" | "modified" | "deleted" | "renamed",
+          additions: additionCount,
+          deletions: deletionCount,
+          hunks,
         });
       }
+
+      console.log(`[Git] getCommitDiff: found ${files.length} changed files`);
+    } catch (walkError) {
+      console.error(`[Git] getCommitDiff walk error:`, walkError);
     }
 
     return {
@@ -416,7 +694,8 @@ export async function getCommitDiff(
         filesChanged: files.length,
       },
     };
-  } catch {
+  } catch (error) {
+    console.error(`[Git] getCommitDiff error for ${oid}:`, error);
     return null;
   }
 }
@@ -508,7 +787,7 @@ export async function getCommitsCached(
 ): Promise<{ commits: CommitInfo[]; hasMore: boolean }> {
   const cacheKey = repoCache.commitsKey(store.ownerId, store.repoName, ref, limit, skip);
   const cached = await getCached<{ commits: CommitInfo[]; hasMore: boolean }>(cacheKey);
-  if (cached) {
+  if (cached && cached.commits && cached.commits.length > 0) {
     return cached;
   }
 

@@ -55,7 +55,7 @@ app.get("/api/users/public", async (c) => {
 
   const orderBy = sortBy === "oldest" ? asc(users.createdAt) : desc(users.createdAt);
 
-  const result = await db
+  const usersResult = await db
     .select({
       id: users.id,
       name: users.name,
@@ -63,14 +63,27 @@ app.get("/api/users/public", async (c) => {
       avatarUrl: users.avatarUrl,
       bio: users.bio,
       createdAt: users.createdAt,
-      repoCount: sql<number>`(SELECT COUNT(*) FROM repositories WHERE owner_id = ${users.id} AND visibility = 'public')`.as(
-        "repo_count"
-      ),
+      updatedAt: users.updatedAt,
     })
     .from(users)
     .orderBy(orderBy)
     .limit(limit + 1)
     .offset(offset);
+
+  const result = await Promise.all(
+    usersResult.map(async (user) => {
+      const [repoCountResult] = await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(repositories)
+        .where(and(eq(repositories.ownerId, user.id), eq(repositories.visibility, "public")));
+      
+      return {
+        ...user,
+        avatarUrl: cacheBustAvatarUrl(user.avatarUrl, user.updatedAt),
+        repoCount: Number(repoCountResult?.count) || 0,
+      };
+    })
+  );
 
   const hasMore = result.length > limit;
   const usersData = result.slice(0, limit);
@@ -208,7 +221,7 @@ app.get("/api/users/:username/starred", async (c) => {
     defaultBranch: r.defaultBranch,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
-    starCount: r.starCount,
+    starCount: Number(r.starCount) || 0,
     starredAt: r.starredAt,
     owner: {
       id: r.ownerId,

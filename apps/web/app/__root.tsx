@@ -6,7 +6,6 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { HomeIcon, GitBranchIcon } from "@hugeicons-pro/core-stroke-standard";
 import appCss from "./globals.css?url";
 import { ThemeProvider } from "tanstack-theme-kit";
-import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
 
 function NotFound() {
   return (
@@ -64,19 +63,17 @@ function RootLayout() {
       </head>
       <body>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-          <NuqsAdapter>
-            <Outlet />
-            <Toaster richColors position="top-right" />
-            <Databuddy
-              clientId="f2d7ca37-ab52-4782-be5a-f88b59c8bac2"
-              trackErrors
-              trackPerformance
-              trackWebVitals
-              trackAttributes
-              trackHashChanges
-              trackOutgoingLinks
-            />
-          </NuqsAdapter>
+          <Outlet />
+          <Toaster richColors position="top-right" />
+          <Databuddy
+            clientId="f2d7ca37-ab52-4782-be5a-f88b59c8bac2"
+            trackErrors
+            trackPerformance
+            trackWebVitals
+            trackAttributes
+            trackHashChanges
+            trackOutgoingLinks
+          />
         </ThemeProvider>
         <Scripts />
       </body>

@@ -7,7 +7,7 @@ import { useIssueCount, useIssues, useLabels } from "@gitbruv/hooks";
 import { Add01Icon, CheckmarkCircle02Icon, Loading02Icon, RecordIcon, TagsIcon } from "@hugeicons-pro/core-stroke-standard";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { parseAsStringLiteral, useQueryState } from "nuqs";
+import { parseAsStringLiteral, useQueryState } from "@/lib/hooks";
 import { Suspense, useState } from "react";
 import { IssueItem } from "@/components/issues/issue-item";
 

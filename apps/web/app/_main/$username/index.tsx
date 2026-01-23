@@ -17,7 +17,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { timeAgo, formatDate } from "@gitbruv/lib";
-import { parseAsStringLiteral, useQueryState } from "nuqs";
+import { parseAsStringLiteral, useQueryState } from "@/lib/hooks";
 
 export const Route = createFileRoute("/_main/$username/")({
   component: ProfilePage,

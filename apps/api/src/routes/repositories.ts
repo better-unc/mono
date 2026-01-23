@@ -97,7 +97,7 @@ app.get("/api/repositories/public", async (c) => {
       name: row.userName,
       avatarUrl: row.avatarUrl,
     },
-    starCount: row.starCount,
+    starCount: Number(row.starCount) || 0,
   }));
 
   return c.json({ repos, hasMore });
@@ -140,12 +140,47 @@ app.get("/api/repositories/user/:username", async (c) => {
           name: userResult.name,
           avatarUrl: userResult.avatarUrl,
         },
-        starCount: starCount?.count || 0,
+        starCount: Number(starCount?.count) || 0,
       };
     })
   );
 
   return c.json({ repos: reposWithStars });
+});
+
+app.post("/api/repositories/:id/star", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const id = c.req.param("id");
+
+  const existing = await db.query.stars.findFirst({
+    where: and(eq(stars.userId, user.id), eq(stars.repositoryId, id)),
+  });
+
+  if (existing) {
+    await db.delete(stars).where(and(eq(stars.userId, user.id), eq(stars.repositoryId, id)));
+    return c.json({ starred: false });
+  } else {
+    await db.insert(stars).values({
+      userId: user.id,
+      repositoryId: id,
+    });
+    return c.json({ starred: true });
+  }
+});
+
+app.get("/api/repositories/:id/is-starred", async (c) => {
+  const currentUser = c.get("user");
+  const id = c.req.param("id");
+
+  if (!currentUser) {
+    return c.json({ starred: false });
+  }
+
+  const existing = await db.query.stars.findFirst({
+    where: and(eq(stars.userId, currentUser.id), eq(stars.repositoryId, id)),
+  });
+
+  return c.json({ starred: !!existing });
 });
 
 app.get("/api/repositories/:owner/:name", async (c) => {
@@ -200,7 +235,7 @@ app.get("/api/repositories/:owner/:name", async (c) => {
       name: row.userName,
       avatarUrl: row.avatarUrl,
     },
-    starCount: starCount?.count || 0,
+    starCount: Number(starCount?.count) || 0,
   });
 });
 
@@ -264,7 +299,7 @@ app.get("/api/repositories/:owner/:name/with-stars", async (c) => {
       name: row.userName,
       avatarUrl: row.avatarUrl,
     },
-    starCount: starCount?.count || 0,
+    starCount: Number(starCount?.count) || 0,
     starred,
   });
 });
@@ -344,41 +379,6 @@ app.patch("/api/repositories/:id", requireAuth, async (c) => {
     .returning();
 
   return c.json(updated);
-});
-
-app.post("/api/repositories/:id/star", requireAuth, async (c) => {
-  const user = c.get("user")!;
-  const id = c.req.param("id");
-
-  const existing = await db.query.stars.findFirst({
-    where: and(eq(stars.userId, user.id), eq(stars.repositoryId, id)),
-  });
-
-  if (existing) {
-    await db.delete(stars).where(and(eq(stars.userId, user.id), eq(stars.repositoryId, id)));
-    return c.json({ starred: false });
-  } else {
-    await db.insert(stars).values({
-      userId: user.id,
-      repositoryId: id,
-    });
-    return c.json({ starred: true });
-  }
-});
-
-app.get("/api/repositories/:id/is-starred", async (c) => {
-  const currentUser = c.get("user");
-  const id = c.req.param("id");
-
-  if (!currentUser) {
-    return c.json({ starred: false });
-  }
-
-  const existing = await db.query.stars.findFirst({
-    where: and(eq(stars.userId, currentUser.id), eq(stars.repositoryId, id)),
-  });
-
-  return c.json({ starred: !!existing });
 });
 
 export default app;
