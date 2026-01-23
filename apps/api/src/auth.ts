@@ -11,13 +11,9 @@ import { getApiUrl, getWebUrl, getTrustedOrigins, config } from "./config";
 function getCookieDomain(): string | undefined {
   console.log(`[API] getCookieDomain called, nodeEnv: ${config.nodeEnv}`);
 
-  if (config.nodeEnv !== "production") {
-    console.log(`[API] Cookie domain: undefined (not production)`);
-    return undefined;
-  }
-
   try {
     const webUrl = getWebUrl();
+    console.log(`[API] webUrl: ${webUrl}`)
     const hostname = new URL(webUrl).hostname;
     console.log(`[API] webUrl: ${webUrl}, hostname: ${hostname}`);
 
