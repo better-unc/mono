@@ -157,7 +157,7 @@ export const initAuth = async () => {
         },
       },
     },
-    advanced: { disableOriginCheck: true },
+    advanced: { disableOriginCheck: true, cookiePrefix: config.nodeEnv === "production" ? "gitbruv_" : "gitbruv_dev_" },
     databaseHooks: {
       user: {
         create: {
