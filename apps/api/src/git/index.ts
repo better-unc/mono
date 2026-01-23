@@ -93,7 +93,7 @@ export async function listBranches(fs: S3Fs, dir: string): Promise<string[]> {
       try {
         const refPath = `${refsDir}/${entry}`;
         const refContent = await fs.promises.readFile(refPath, "utf8");
-        console.log(`[Git] listBranches: found ref ${refPath} -> ${refContent..toString().trim()}`);
+        console.log(`[Git] listBranches: found ref ${refPath} -> ${refContent.toString().trim()}`);
         branches.push(entry);
       } catch (error) {
         console.error(`[Git] listBranches: failed to read ${refPath}:`, error);
@@ -130,8 +130,8 @@ export async function refExists(fs: S3Fs, dir: string, ref: string): Promise<boo
     try {
       const refPath = normalizeRef(ref);
       const content = await fs.promises.readFile(refPath, "utf8");
-      console.log(`[Git] refExists: manually read ${refPath} -> ${content.trim()}`);
-      return content.trim().length === 40;
+      console.log(`[Git] refExists: manually read ${refPath} -> ${content.toString().trim()}`);
+      return content.toString().trim().length === 40;
     } catch (readError) {
       console.error(`[Git] refExists: failed to read ref file:`, readError);
       return false;
@@ -163,7 +163,7 @@ export async function getCommits(
       console.error(`[Git] getCommits: resolveRef failed, trying manual read:`, error);
       try {
         const refContent = await fs.promises.readFile(normalizedRef, "utf8");
-        commitOid = refContent.trim();
+        commitOid = refContent.toString().trim();
         console.log(`[Git] getCommits: manually read ref -> ${commitOid}`);
       } catch (readError) {
         console.error(`[Git] getCommits: failed to read ref manually:`, readError);
@@ -257,6 +257,7 @@ export async function getTree(
     const tree = await git.readTree({ fs, dir, oid: treeOid });
 
     const entries: TreeEntry[] = tree.tree.map((entry) => ({
+      mode: entry.mode,
       name: entry.path,
       path: filepath ? `${filepath}/${entry.path}` : entry.path,
       oid: entry.oid,
