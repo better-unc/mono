@@ -77,20 +77,25 @@ export const verifications = pgTable("verifications", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const repositories = pgTable("repositories", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull(),
-  description: text("description"),
-  ownerId: text("owner_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  visibility: text("visibility", { enum: ["public", "private"] })
-    .notNull()
-    .default("public"),
-  defaultBranch: text("default_branch").notNull().default("main"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+export const repositories = pgTable(
+  "repositories",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    description: text("description"),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    forkedFromId: uuid("forked_from_id").references(() => repositories.id, { onDelete: "set null" }),
+    visibility: text("visibility", { enum: ["public", "private"] })
+      .notNull()
+      .default("public"),
+    defaultBranch: text("default_branch").notNull().default("main"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [index("repositories_forked_from_id_idx").on(table.forkedFromId)]
+);
 
 export const repoBranchMetadata = pgTable(
   "repo_branch_metadata",

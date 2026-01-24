@@ -181,3 +181,19 @@ export const getObjectStream = async (key: string): Promise<ReadableStream | nul
     throw error;
   }
 };
+
+export const copyPrefix = async (sourcePrefix: string, targetPrefix: string): Promise<void> => {
+  const keys = await listObjects(sourcePrefix);
+  const normalizedSource = sourcePrefix.replace(/\/$/, "");
+  const normalizedTarget = targetPrefix.replace(/\/$/, "");
+
+  for (const key of keys) {
+    const data = await getObject(key);
+    if (!data) {
+      continue;
+    }
+    const suffix = key.slice(normalizedSource.length);
+    const targetKey = `${normalizedTarget}${suffix}`;
+    await putObject(targetKey, data);
+  }
+};

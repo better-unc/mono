@@ -12,19 +12,30 @@ export type Repository = {
   visibility: "public" | "private";
   defaultBranch: string;
   ownerId: string;
+  forkedFromId?: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type ForkedFrom = {
+  id: string;
+  name: string;
+  owner: Owner;
 };
 
 export type RepositoryWithOwner = Repository & {
   owner: Owner;
   starCount: number;
   starred: boolean;
+  forkedFrom?: ForkedFrom | null;
+  forkCount?: number;
 };
 
 export type RepositoryWithStars = Repository & {
   owner: Owner;
   starCount: number;
+  forkedFrom?: ForkedFrom | null;
+  forkCount?: number;
 };
 
 export type FileEntry = {
@@ -218,6 +229,8 @@ export type IssueFilters = {
 export type ApiClient = {
   repositories: {
     create: (data: { name: string; description?: string; visibility: "public" | "private" }) => Promise<Repository>;
+    fork: (owner: string, name: string, data?: { name?: string; description?: string }) => Promise<RepoInfo>;
+    getForks: (owner: string, name: string, limit?: number, offset?: number) => Promise<{ forks: RepositoryWithOwner[] }>;
     get: (owner: string, name: string) => Promise<RepositoryWithOwner>;
     getWithStars: (owner: string, name: string) => Promise<RepositoryWithOwner>;
     getInfo: (owner: string, name: string) => Promise<RepoInfo>;

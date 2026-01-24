@@ -18,16 +18,11 @@ export default function LoginScreen() {
     }
 
     setLoading(true);
+
     try {
-      const result = await signIn.email({ email, password });
-      if (result.error) {
-        Alert.alert("Error", result.error.message || "Login failed");
-        console.log(result.error);
-      } else {
-        router.replace("/(tabs)");
-      }
-    } catch {
-      Alert.alert("Error", "An unexpected error occurred");
+      await signIn.email({ email, password });
+    } catch (err) {
+      Alert.alert("Error", `Network error: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setLoading(false);
     }

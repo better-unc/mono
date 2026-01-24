@@ -148,6 +148,32 @@ export function useCreateRepository() {
   });
 }
 
+export function useForkRepository(owner: string, name: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data?: { name?: string; description?: string }) => api.repositories.fork(owner, name, data),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["repositories"] });
+      queryClient.invalidateQueries({ queryKey: ["repository", owner, name] });
+      if (result?.repo?.owner?.username && result?.repo?.name) {
+        queryClient.invalidateQueries({
+          queryKey: ["repository", result.repo.owner.username, result.repo.name],
+        });
+      }
+    },
+  });
+}
+
+export function useRepoForks(owner: string, name: string, limit = 20, offset = 0) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ["repository", owner, name, "forks", limit, offset],
+    queryFn: () => api.repositories.getForks(owner, name, limit, offset),
+    enabled: !!owner && !!name,
+  });
+}
+
 export function useUpdateRepository(id: string) {
   const api = useApi();
   const queryClient = useQueryClient();

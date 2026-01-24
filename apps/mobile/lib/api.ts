@@ -6,10 +6,18 @@ import type {
   RepoInfo,
   RepoPageData,
   TreeResponse,
+  FileLastCommit,
   Commit,
+  CommitDiff,
   UserProfile,
   PublicUser,
   ApiClient,
+  UserPreferences,
+  UserSummary,
+  Issue,
+  Label,
+  IssueComment,
+  IssueFilters,
 } from "@gitbruv/hooks";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3001";
@@ -53,6 +61,17 @@ export const api: ApiClient = {
         body: JSON.stringify(data),
       }),
 
+    fork: (owner: string, name: string, data?: { name?: string; description?: string }) =>
+      apiFetch<RepoInfo>(`/api/repositories/${owner}/${name}/fork`, {
+        method: "POST",
+        body: JSON.stringify(data || {}),
+      }),
+
+    getForks: (owner: string, name: string, limit = 20, offset = 0) =>
+      apiFetch<{ forks: RepositoryWithOwner[] }>(
+        `/api/repositories/${owner}/${name}/forks?limit=${limit}&offset=${offset}`
+      ),
+
     get: (owner: string, name: string) => apiFetch<RepositoryWithOwner>(`/api/repositories/${owner}/${name}`),
 
     getWithStars: (owner: string, name: string) => apiFetch<RepositoryWithOwner>(`/api/repositories/${owner}/${name}/with-stars`),
@@ -89,6 +108,9 @@ export const api: ApiClient = {
     getTree: (owner: string, name: string, branch: string, path = "") =>
       apiFetch<TreeResponse>(`/api/repositories/${owner}/${name}/tree?branch=${branch}&path=${encodeURIComponent(path)}`),
 
+    getTreeCommits: (owner: string, name: string, branch: string, path = "") =>
+      apiFetch<{ files: FileLastCommit[] }>(`/api/repositories/${owner}/${name}/tree-commits?branch=${branch}&path=${encodeURIComponent(path)}`),
+
     getFile: (owner: string, name: string, branch: string, path: string) =>
       apiFetch<{ content: string; oid: string; path: string }>(`/api/repositories/${owner}/${name}/file?branch=${branch}&path=${encodeURIComponent(path)}`),
 
@@ -98,6 +120,9 @@ export const api: ApiClient = {
     getCommitCount: (owner: string, name: string, branch: string) =>
       apiFetch<{ count: number }>(`/api/repositories/${owner}/${name}/commits/count?branch=${branch}`),
 
+    getCommitDiff: (owner: string, name: string, oid: string) =>
+      apiFetch<CommitDiff>(`/api/repositories/${owner}/${name}/commits/${oid}/diff`),
+
     getReadme: (owner: string, name: string, oid: string) => apiFetch<{ content: string }>(`/api/repositories/${owner}/${name}/readme?oid=${oid}`),
 
     getReadmeOid: (owner: string, name: string, branch: string) =>
@@ -106,6 +131,8 @@ export const api: ApiClient = {
 
   users: {
     getProfile: (username: string) => apiFetch<UserProfile>(`/api/users/${username}/profile`),
+
+    getSummary: () => apiFetch<UserSummary>(`/api/users/me/summary`),
 
     getStarred: (username: string) => apiFetch<{ repos: RepositoryWithStars[] }>(`/api/users/${username}/starred`),
 
@@ -118,14 +145,50 @@ export const api: ApiClient = {
   settings: {
     getCurrentUser: () => apiFetch<{ user: UserProfile }>(`/api/settings`),
 
-    updateProfile: (data: { name?: string; bio?: string; location?: string; website?: string; pronouns?: string }) =>
-      apiFetch<UserProfile>(`/api/settings/profile`, {
+    getWordWrap: () => apiFetch<{ wordWrap: boolean }>(`/api/settings/word-wrap`),
+
+    updateProfile: (data: {
+      name?: string;
+      username?: string;
+      bio?: string;
+      location?: string;
+      website?: string;
+      pronouns?: string;
+      company?: string;
+      gitEmail?: string;
+      defaultRepositoryVisibility?: "public" | "private";
+    }) =>
+      apiFetch<{ success: boolean; username: string }>(`/api/settings/profile`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+
+    updatePreferences: (data: Partial<UserPreferences>) =>
+      apiFetch<{ success: boolean }>(`/api/settings/preferences`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+
+    updateWordWrap: (data: { wordWrap: boolean }) =>
+      apiFetch<{ success: boolean; wordWrap: boolean }>(`/api/settings/word-wrap`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+
+    updateSocialLinks: (data: { github?: string; twitter?: string; linkedin?: string; custom?: string[] }) =>
+      apiFetch<{ success: boolean }>(`/api/settings/social-links`, {
         method: "PATCH",
         body: JSON.stringify(data),
       }),
 
     updateEmail: (data: { email: string }) =>
-      apiFetch<UserProfile>(`/api/settings/email`, {
+      apiFetch<{ success: boolean }>(`/api/settings/email`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+
+    updatePassword: (data: { currentPassword: string; newPassword: string }) =>
+      apiFetch<{ success: boolean }>(`/api/settings/password`, {
         method: "PATCH",
         body: JSON.stringify(data),
       }),
@@ -133,6 +196,118 @@ export const api: ApiClient = {
     deleteAccount: () =>
       apiFetch<{ success: boolean }>(`/api/settings/account`, {
         method: "DELETE",
+      }),
+  },
+
+  issues: {
+    list: (owner: string, repo: string, filters?: IssueFilters) => {
+      const params = new URLSearchParams();
+      if (filters?.state) params.set("state", filters.state);
+      if (filters?.label) params.set("label", filters.label);
+      if (filters?.assignee) params.set("assignee", filters.assignee);
+      if (filters?.limit) params.set("limit", String(filters.limit));
+      if (filters?.offset) params.set("offset", String(filters.offset));
+      const query = params.toString();
+      return apiFetch<{ issues: Issue[]; hasMore: boolean }>(
+        `/api/repositories/${owner}/${repo}/issues${query ? `?${query}` : ""}`
+      );
+    },
+
+    get: (owner: string, repo: string, number: number) =>
+      apiFetch<Issue>(`/api/repositories/${owner}/${repo}/issues/${number}`),
+
+    create: (owner: string, repo: string, data: { title: string; body?: string; labels?: string[]; assignees?: string[] }) =>
+      apiFetch<Issue>(`/api/repositories/${owner}/${repo}/issues`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+
+    update: (id: string, data: { title?: string; body?: string; state?: "open" | "closed"; locked?: boolean }) =>
+      apiFetch<{ success: boolean }>(`/api/issues/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+
+    delete: (id: string) =>
+      apiFetch<{ success: boolean }>(`/api/issues/${id}`, {
+        method: "DELETE",
+      }),
+
+    getCount: (owner: string, repo: string) =>
+      apiFetch<{ open: number; closed: number }>(`/api/repositories/${owner}/${repo}/issues/count`),
+
+    listLabels: (owner: string, repo: string) =>
+      apiFetch<{ labels: Label[] }>(`/api/repositories/${owner}/${repo}/labels`),
+
+    createLabel: (owner: string, repo: string, data: { name: string; description?: string; color: string }) =>
+      apiFetch<Label>(`/api/repositories/${owner}/${repo}/labels`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+
+    updateLabel: (id: string, data: { name?: string; description?: string; color?: string }) =>
+      apiFetch<Label>(`/api/labels/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+
+    deleteLabel: (id: string) =>
+      apiFetch<{ success: boolean }>(`/api/labels/${id}`, {
+        method: "DELETE",
+      }),
+
+    addLabels: (issueId: string, labels: string[]) =>
+      apiFetch<{ success: boolean }>(`/api/issues/${issueId}/labels`, {
+        method: "POST",
+        body: JSON.stringify({ labels }),
+      }),
+
+    removeLabel: (issueId: string, labelId: string) =>
+      apiFetch<{ success: boolean }>(`/api/issues/${issueId}/labels/${labelId}`, {
+        method: "DELETE",
+      }),
+
+    addAssignees: (issueId: string, assignees: string[]) =>
+      apiFetch<{ success: boolean }>(`/api/issues/${issueId}/assignees`, {
+        method: "POST",
+        body: JSON.stringify({ assignees }),
+      }),
+
+    removeAssignee: (issueId: string, userId: string) =>
+      apiFetch<{ success: boolean }>(`/api/issues/${issueId}/assignees/${userId}`, {
+        method: "DELETE",
+      }),
+
+    listComments: (issueId: string) =>
+      apiFetch<{ comments: IssueComment[] }>(`/api/issues/${issueId}/comments`),
+
+    createComment: (issueId: string, body: string) =>
+      apiFetch<IssueComment>(`/api/issues/${issueId}/comments`, {
+        method: "POST",
+        body: JSON.stringify({ body }),
+      }),
+
+    updateComment: (commentId: string, body: string) =>
+      apiFetch<{ success: boolean }>(`/api/issues/comments/${commentId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ body }),
+      }),
+
+    deleteComment: (commentId: string) =>
+      apiFetch<{ success: boolean }>(`/api/issues/comments/${commentId}`, {
+        method: "DELETE",
+      }),
+
+    toggleIssueReaction: (issueId: string, emoji: string) =>
+      apiFetch<{ added: boolean }>(`/api/issues/${issueId}/reactions`, {
+        method: "POST",
+        body: JSON.stringify({ emoji }),
+      }),
+
+    toggleCommentReaction: (commentId: string, emoji: string) =>
+      apiFetch<{ added: boolean }>(`/api/issues/comments/${commentId}/reactions`, {
+        method: "POST",
+        body: JSON.stringify({ emoji }),
       }),
   },
 };
@@ -156,6 +331,20 @@ export async function updateAvatar(uri: string, mimeType: string): Promise<{ suc
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.error || "Failed to upload avatar");
+  }
+  return res.json();
+}
+
+export async function deleteAvatar(): Promise<{ success: boolean; avatarUrl: string | null }> {
+  const authHeaders = await getAuthHeaders();
+  const res = await fetch(`${API_URL}/api/settings/avatar`, {
+    method: "DELETE",
+    headers: authHeaders,
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Failed to delete avatar");
   }
   return res.json();
 }

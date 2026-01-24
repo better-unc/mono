@@ -1,6 +1,6 @@
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { createFileRoute, Link, Outlet, useLocation, useParams } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation, useNavigate, useParams } from "@tanstack/react-router";
 import {
   CodeIcon,
   GitForkIcon,
@@ -9,12 +9,16 @@ import {
   SettingsIcon,
   WorkHistoryIcon,
 } from "@hugeicons-pro/core-stroke-standard";
-import { useIssueCount, useRepoBranches, useRepoCommitCount, useRepositoryInfo } from "@gitbruv/hooks";
+import { useForkRepository, useIssueCount, useRepoBranches, useRepoCommitCount, useRepositoryInfo } from "@gitbruv/hooks";
 import { BranchSelector } from "@/components/branch-selector";
 import { CloneUrl } from "@/components/clone-url";
 import { StarButton } from "@/components/star-button";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
 
 
 function getBranchFromPath(pathname: string, defaultBranch: string): string {
@@ -45,10 +49,12 @@ function RepoLayout() {
 function RepoLayoutContent() {
   const { username, repo: repoName } = useParams({ from: "/_main/$username/$repo" });
   const location = useLocation();
+  const navigate = useNavigate();
 
   const { data: repoInfo, isLoading: isLoadingInfo } = useRepositoryInfo(username, repoName);
   const { data: branchesData, isLoading: isLoadingBranches } = useRepoBranches(username, repoName);
   const { data: issueCountData } = useIssueCount(username, repoName);
+  const forkMutation = useForkRepository(username, repoName);
 
   const repo = repoInfo?.repo;
   const isOwner = repoInfo?.isOwner ?? false;
@@ -66,6 +72,45 @@ function RepoLayoutContent() {
   const isSettings = pathname.includes("/settings");
 
   const currentTab = isSettings ? "settings" : isCommits ? "commits" : isIssues ? "issues" : "code";
+  const forkCount = repo?.forkCount ?? 0;
+  const [isForkDialogOpen, setIsForkDialogOpen] = useState(false);
+  const [forkName, setForkName] = useState("");
+
+  useEffect(() => {
+    if (repo?.name) {
+      setForkName(repo.name);
+    }
+  }, [repo?.name]);
+
+  function handleForkSubmit(e?: React.FormEvent) {
+    e?.preventDefault();
+    const trimmed = forkName.trim().toLowerCase().replace(/ /g, "-");
+    if (!trimmed) {
+      toast.error("Repository name is required");
+      return;
+    }
+    if (!/^[a-zA-Z0-9_.-]+$/.test(trimmed)) {
+      toast.error("Invalid repository name");
+      return;
+    }
+    forkMutation.mutate({ name: trimmed }, {
+      onSuccess: (result) => {
+        const forkRepo = result.repo;
+        toast.success("Repository forked");
+        setIsForkDialogOpen(false);
+        navigate({
+          to: "/$username/$repo",
+          params: {
+            username: forkRepo.owner.username,
+            repo: forkRepo.name,
+          },
+        });
+      },
+      onError: (err) => {
+        toast.error(err instanceof Error ? err.message : "Failed to fork repository");
+      },
+    });
+  }
 
   return (
     <div>
@@ -74,9 +119,26 @@ function RepoLayoutContent() {
           <RepoHeaderSkeleton />
         ) : (
           <>
-            <RepoHeader repo={repo} />
+            <RepoHeader
+              repo={repo}
+              forkCount={forkCount}
+              onFork={() => setIsForkDialogOpen(true)}
+              isForking={forkMutation.isPending}
+            />
             {repo.description && (
               <p className="text-sm text-muted-foreground">{repo.description}</p>
+            )}
+            {repo.forkedFrom && (
+              <p className="text-xs text-muted-foreground">
+                Forked from{" "}
+                <Link
+                  to="/$username/$repo"
+                  params={{ username: repo.forkedFrom.owner.username, repo: repo.forkedFrom.name }}
+                  className="text-primary hover:underline"
+                >
+                  {repo.forkedFrom.owner.username}/{repo.forkedFrom.name}
+                </Link>
+              </p>
             )}
           </>
         )}
@@ -144,14 +206,50 @@ function RepoLayoutContent() {
       </div>
 
       <Outlet />
+
+      <Dialog open={isForkDialogOpen} onOpenChange={setIsForkDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Fork repository</DialogTitle>
+            <DialogDescription>Choose a name for your fork.</DialogDescription>
+          </DialogHeader>
+          <form className="space-y-4" onSubmit={handleForkSubmit}>
+            <div className="space-y-2">
+              <Label htmlFor="fork-name">Repository name</Label>
+              <Input
+                id="fork-name"
+                value={forkName}
+                onChange={(e) => setForkName(e.target.value)}
+                placeholder="my-fork"
+                pattern="^[a-zA-Z0-9_.-]+$"
+                required
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsForkDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={forkMutation.isPending || !forkName.trim()}>
+                {forkMutation.isPending ? "Forking..." : "Fork"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
 function RepoHeader({
   repo,
+  forkCount,
+  onFork,
+  isForking,
 }: {
   repo: any;
+  forkCount: number;
+  onFork: () => void;
+  isForking: boolean;
 }) {
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -164,9 +262,10 @@ function RepoHeader({
 
       <div className="flex items-center gap-2 shrink-0">
         <StarButton repository={repo} />
-        <Button variant="secondary" size="sm" className="gap-1.5">
+        <Button variant="secondary" size="sm" className="gap-1.5 pr-[4px]" onClick={onFork} disabled={isForking}>
           <HugeiconsIcon icon={GitForkIcon} strokeWidth={2} className="size-3.5" />
           <span>Fork</span>
+          <span className="font-mono text-[10px] px-1.5 py-0.5 bg-foreground/5">{forkCount}</span>
         </Button>
       </div>
     </div>

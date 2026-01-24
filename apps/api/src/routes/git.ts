@@ -19,6 +19,54 @@ const app = new Hono<{ Variables: AuthVariables }>();
 
 app.use("*", authMiddleware);
 
+async function getForkCount(repoId: string): Promise<number> {
+  const [countRow] = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(repositories)
+    .where(eq(repositories.forkedFromId, repoId));
+  return Number(countRow?.count) || 0;
+}
+
+async function getForkedFromInfo(forkedFromId: string | null, currentUserId?: string) {
+  if (!forkedFromId) {
+    return null;
+  }
+
+  const [row] = await db
+    .select({
+      id: repositories.id,
+      name: repositories.name,
+      visibility: repositories.visibility,
+      ownerId: repositories.ownerId,
+      username: users.username,
+      userName: users.name,
+      avatarUrl: users.avatarUrl,
+    })
+    .from(repositories)
+    .innerJoin(users, eq(users.id, repositories.ownerId))
+    .where(eq(repositories.id, forkedFromId))
+    .limit(1);
+
+  if (!row) {
+    return null;
+  }
+
+  if (row.visibility === "private" && currentUserId !== row.ownerId) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    name: row.name,
+    owner: {
+      id: row.ownerId,
+      username: row.username,
+      name: row.userName,
+      avatarUrl: row.avatarUrl,
+    },
+  };
+}
+
 async function getRepoAndStore(owner: string, name: string) {
   const repoName = name.replace(/\.git$/, "");
 
@@ -384,6 +432,7 @@ app.get("/api/repositories/:owner/:name/info", async (c) => {
       defaultBranch: repositories.defaultBranch,
       createdAt: repositories.createdAt,
       updatedAt: repositories.updatedAt,
+      forkedFromId: repositories.forkedFromId,
       username: users.username,
       userName: users.name,
       avatarUrl: users.avatarUrl,
@@ -416,6 +465,8 @@ app.get("/api/repositories/:owner/:name/info", async (c) => {
   }
 
   const isOwner = currentUser?.id === row.ownerId;
+  const forkedFrom = await getForkedFromInfo(row.forkedFromId, currentUser?.id);
+  const forkCount = await getForkCount(row.id);
 
   return c.json({
     repo: {
@@ -434,6 +485,8 @@ app.get("/api/repositories/:owner/:name/info", async (c) => {
       },
       starCount: Number(starCount?.count) || 0,
       starred,
+      forkedFrom,
+      forkCount,
     },
     isOwner,
   });

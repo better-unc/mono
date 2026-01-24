@@ -179,6 +179,7 @@
         "tailwind-merge": "^3.4.0",
       },
       "devDependencies": {
+        "bun-types": "latest",
         "typescript": "^5",
       },
     },

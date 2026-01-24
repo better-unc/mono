@@ -34,12 +34,7 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      const result = await signUpWithUsername({ name, username, email, password });
-      if (result.error) {
-        Alert.alert("Error", result.error.message || "Registration failed");
-      } else {
-        router.replace("/(tabs)");
-      }
+      await signUpWithUsername({ email, password, name, username });
     } catch {
       Alert.alert("Error", "An unexpected error occurred");
     } finally {

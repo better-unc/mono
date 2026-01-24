@@ -1,12 +1,60 @@
 import { Hono } from "hono";
-import { db, users, repositories, stars } from "@gitbruv/db";
+import { db, users, repositories, stars, repoBranchMetadata } from "@gitbruv/db";
 import { eq, sql, desc, and } from "drizzle-orm";
 import { authMiddleware, requireAuth, type AuthVariables } from "../middleware/auth";
-import { putObject, deletePrefix, getRepoPrefix } from "../s3";
+import { putObject, deletePrefix, getRepoPrefix, copyPrefix } from "../s3";
 
 const app = new Hono<{ Variables: AuthVariables }>();
 
 app.use("*", authMiddleware);
+
+async function getForkCount(repoId: string): Promise<number> {
+  const [countRow] = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(repositories)
+    .where(eq(repositories.forkedFromId, repoId));
+  return Number(countRow?.count) || 0;
+}
+
+async function getForkedFromInfo(forkedFromId: string | null, currentUserId?: string) {
+  if (!forkedFromId) {
+    return null;
+  }
+
+  const [row] = await db
+    .select({
+      id: repositories.id,
+      name: repositories.name,
+      visibility: repositories.visibility,
+      ownerId: repositories.ownerId,
+      username: users.username,
+      userName: users.name,
+      avatarUrl: users.avatarUrl,
+    })
+    .from(repositories)
+    .innerJoin(users, eq(users.id, repositories.ownerId))
+    .where(eq(repositories.id, forkedFromId))
+    .limit(1);
+
+  if (!row) {
+    return null;
+  }
+
+  if (row.visibility === "private" && currentUserId !== row.ownerId) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    name: row.name,
+    owner: {
+      id: row.ownerId,
+      username: row.username,
+      name: row.userName,
+      avatarUrl: row.avatarUrl,
+    },
+  };
+}
 
 app.post("/api/repositories", requireAuth, async (c) => {
   const user = c.get("user")!;
@@ -46,6 +94,163 @@ app.post("/api/repositories", requireAuth, async (c) => {
   await putObject(`${repoPrefix}/description`, "Unnamed repository; edit this file to name the repository.\n");
 
   return c.json(repo);
+});
+
+app.post("/api/repositories/:owner/:name/fork", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const owner = c.req.param("owner");
+  const name = c.req.param("name").replace(/\.git$/, "");
+  const body = await c.req.json<{ name?: string; description?: string }>().catch(() => ({}));
+
+  const sourceResult = await db
+    .select({
+      id: repositories.id,
+      name: repositories.name,
+      description: repositories.description,
+      ownerId: repositories.ownerId,
+      visibility: repositories.visibility,
+      defaultBranch: repositories.defaultBranch,
+      createdAt: repositories.createdAt,
+      updatedAt: repositories.updatedAt,
+      forkedFromId: repositories.forkedFromId,
+      username: users.username,
+      userName: users.name,
+      avatarUrl: users.avatarUrl,
+    })
+    .from(repositories)
+    .innerJoin(users, eq(users.id, repositories.ownerId))
+    .where(and(eq(users.username, owner), eq(repositories.name, name)))
+    .limit(1);
+
+  const source = sourceResult[0];
+  if (!source) {
+    return c.json({ error: "Repository not found" }, 404);
+  }
+
+  if (source.visibility === "private" && user.id !== source.ownerId) {
+    return c.json({ error: "Repository not found" }, 404);
+  }
+
+  const existingFork = await db.query.repositories.findFirst({
+    where: and(eq(repositories.ownerId, user.id), eq(repositories.forkedFromId, source.id)),
+  });
+
+  if (existingFork) {
+    const [starCount] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(stars)
+      .where(eq(stars.repositoryId, existingFork.id));
+
+    const existingStar = await db.query.stars.findFirst({
+      where: and(eq(stars.userId, user.id), eq(stars.repositoryId, existingFork.id)),
+    });
+
+    const forkedFrom = await getForkedFromInfo(existingFork.forkedFromId, user.id);
+    const forkCount = await getForkCount(existingFork.id);
+
+    return c.json({
+      repo: {
+        id: existingFork.id,
+        name: existingFork.name,
+        description: existingFork.description,
+        visibility: existingFork.visibility,
+        defaultBranch: existingFork.defaultBranch,
+        createdAt: existingFork.createdAt,
+        updatedAt: existingFork.updatedAt,
+        ownerId: existingFork.ownerId,
+        owner: {
+          id: user.id,
+          username: user.username,
+          name: user.name,
+          avatarUrl: user.avatarUrl,
+        },
+        starCount: Number(starCount?.count) || 0,
+        starred: !!existingStar,
+        forkedFrom,
+        forkCount,
+      },
+      isOwner: true,
+    });
+  }
+
+  const targetName = (body.name || source.name).toLowerCase().replace(/ /g, "-");
+
+  if (!/^[a-zA-Z0-9_.-]+$/.test(targetName)) {
+    return c.json({ error: "Invalid repository name" }, 400);
+  }
+
+  const existingName = await db.query.repositories.findFirst({
+    where: and(eq(repositories.ownerId, user.id), eq(repositories.name, targetName)),
+  });
+
+  if (existingName) {
+    return c.json({ error: "Repository with this name already exists" }, 400);
+  }
+
+  const [forkRepo] = await db
+    .insert(repositories)
+    .values({
+      name: targetName,
+      description: body.description ?? source.description,
+      visibility: "public",
+      ownerId: user.id,
+      forkedFromId: source.id,
+    })
+    .returning();
+
+  const sourcePrefix = getRepoPrefix(source.ownerId, source.name);
+  const targetPrefix = getRepoPrefix(user.id, targetName);
+  await copyPrefix(sourcePrefix, targetPrefix);
+
+  const sourceMetadata = await db.query.repoBranchMetadata.findMany({
+    where: eq(repoBranchMetadata.repoId, source.id),
+  });
+
+  if (sourceMetadata.length > 0) {
+    await db.insert(repoBranchMetadata).values(
+      sourceMetadata.map((row) => ({
+        repoId: forkRepo.id,
+        branch: row.branch,
+        headOid: row.headOid,
+        commitCount: row.commitCount,
+        lastCommitOid: row.lastCommitOid,
+        lastCommitMessage: row.lastCommitMessage,
+        lastCommitAuthorName: row.lastCommitAuthorName,
+        lastCommitAuthorEmail: row.lastCommitAuthorEmail,
+        lastCommitTimestamp: row.lastCommitTimestamp,
+        readmeOid: row.readmeOid,
+        rootTree: row.rootTree,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }))
+    );
+  }
+
+  const forkedFrom = await getForkedFromInfo(source.id, user.id);
+
+  return c.json({
+    repo: {
+      id: forkRepo.id,
+      name: forkRepo.name,
+      description: forkRepo.description,
+      visibility: forkRepo.visibility,
+      defaultBranch: forkRepo.defaultBranch,
+      createdAt: forkRepo.createdAt,
+      updatedAt: forkRepo.updatedAt,
+      ownerId: forkRepo.ownerId,
+      owner: {
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        avatarUrl: user.avatarUrl,
+      },
+      starCount: 0,
+      starred: false,
+      forkedFrom,
+      forkCount: 0,
+    },
+    isOwner: true,
+  });
 });
 
 app.get("/api/repositories/public", async (c) => {
@@ -221,6 +426,9 @@ app.get("/api/repositories/:owner/:name", async (c) => {
     .from(stars)
     .where(eq(stars.repositoryId, row.id));
 
+  const forkedFrom = await getForkedFromInfo(row.forkedFromId, currentUser?.id);
+  const forkCount = await getForkCount(row.id);
+
   return c.json({
     id: row.id,
     name: row.name,
@@ -236,6 +444,8 @@ app.get("/api/repositories/:owner/:name", async (c) => {
       avatarUrl: row.avatarUrl,
     },
     starCount: Number(starCount?.count) || 0,
+    forkedFrom,
+    forkCount,
   });
 });
 
@@ -254,6 +464,7 @@ app.get("/api/repositories/:owner/:name/with-stars", async (c) => {
       defaultBranch: repositories.defaultBranch,
       createdAt: repositories.createdAt,
       updatedAt: repositories.updatedAt,
+      forkedFromId: repositories.forkedFromId,
       username: users.username,
       userName: users.name,
       avatarUrl: users.avatarUrl,
@@ -285,6 +496,9 @@ app.get("/api/repositories/:owner/:name/with-stars", async (c) => {
     starred = !!existing;
   }
 
+  const forkedFrom = await getForkedFromInfo(row.forkedFromId, currentUser?.id);
+  const forkCount = await getForkCount(row.id);
+
   return c.json({
     id: row.id,
     name: row.name,
@@ -301,7 +515,87 @@ app.get("/api/repositories/:owner/:name/with-stars", async (c) => {
     },
     starCount: Number(starCount?.count) || 0,
     starred,
+    forkedFrom,
+    forkCount,
   });
+});
+
+app.get("/api/repositories/:owner/:name/forks", async (c) => {
+  const owner = c.req.param("owner");
+  const name = c.req.param("name");
+  const currentUser = c.get("user");
+  const limit = parseInt(c.req.query("limit") || "20", 10);
+  const offset = parseInt(c.req.query("offset") || "0", 10);
+
+  const sourceResult = await db
+    .select({
+      id: repositories.id,
+      ownerId: repositories.ownerId,
+      visibility: repositories.visibility,
+    })
+    .from(repositories)
+    .innerJoin(users, eq(users.id, repositories.ownerId))
+    .where(and(eq(users.username, owner), eq(repositories.name, name)))
+    .limit(1);
+
+  const source = sourceResult[0];
+  if (!source) {
+    return c.json({ error: "Repository not found" }, 404);
+  }
+
+  if (source.visibility === "private" && currentUser?.id !== source.ownerId) {
+    return c.json({ error: "Repository not found" }, 404);
+  }
+
+  const forkRows = await db
+    .select({
+      id: repositories.id,
+      name: repositories.name,
+      description: repositories.description,
+      ownerId: repositories.ownerId,
+      visibility: repositories.visibility,
+      defaultBranch: repositories.defaultBranch,
+      createdAt: repositories.createdAt,
+      updatedAt: repositories.updatedAt,
+      username: users.username,
+      userName: users.name,
+      avatarUrl: users.avatarUrl,
+    })
+    .from(repositories)
+    .innerJoin(users, eq(users.id, repositories.ownerId))
+    .where(eq(repositories.forkedFromId, source.id))
+    .orderBy(desc(repositories.updatedAt))
+    .limit(limit)
+    .offset(offset);
+
+  const forks = await Promise.all(
+    forkRows.map(async (row) => {
+      const [starCount] = await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(stars)
+        .where(eq(stars.repositoryId, row.id));
+
+      return {
+        id: row.id,
+        name: row.name,
+        description: row.description,
+        visibility: row.visibility,
+        defaultBranch: row.defaultBranch,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+        ownerId: row.ownerId,
+        owner: {
+          id: row.ownerId,
+          username: row.username,
+          name: row.userName,
+          avatarUrl: row.avatarUrl,
+        },
+        starCount: Number(starCount?.count) || 0,
+      };
+    })
+  );
+
+  return c.json({ forks });
 });
 
 app.delete("/api/repositories/:id", requireAuth, async (c) => {

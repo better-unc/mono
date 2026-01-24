@@ -1,11 +1,12 @@
-import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator, StyleSheet } from "react-native";
-import { useLocalSearchParams, Link, Stack, RelativePathString } from "expo-router";
+import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator, StyleSheet, Alert, Modal, TextInput } from "react-native";
+import { useLocalSearchParams, Link, Stack, RelativePathString, router } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { BlurView } from "expo-blur";
-import { type FileEntry, useRepositoryInfo, useRepoTree, useRepoReadmeOid, useRepoReadme, useToggleStar } from "@gitbruv/hooks";
+import { type FileEntry, useRepositoryInfo, useRepoTree, useRepoReadmeOid, useRepoReadme, useToggleStar, useForkRepository } from "@gitbruv/hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import Markdown from "react-native-markdown-display";
 import { markdownStyles } from "@/constants/markdownStyles";
+import { useEffect, useState } from "react";
 
 export default function RepositoryScreen() {
   const { username, repo: repoName } = useLocalSearchParams<{ username: string; repo: string }>();
@@ -30,10 +31,19 @@ export default function RepositoryScreen() {
   const { data: readmeData, isLoading: readmeLoading } = useRepoReadme(username || "", repoName || "", readmeOidData?.readmeOid || null);
 
   const toggleStar = useToggleStar(repoInfo?.repo.id || "");
+  const forkRepository = useForkRepository(username || "", repoName || "");
+  const [isForkDialogOpen, setIsForkDialogOpen] = useState(false);
+  const [forkName, setForkName] = useState("");
 
   const isLoading = isLoadingInfo || isLoadingTree;
   const error = infoError;
   const isRefetching = isRefetchingInfo || isRefetchingTree;
+
+  useEffect(() => {
+    if (repoInfo?.repo?.name) {
+      setForkName(repoInfo.repo.name);
+    }
+  }, [repoInfo?.repo?.name]);
 
   const handleRefresh = () => {
     refetchInfo();
@@ -56,6 +66,29 @@ export default function RepositoryScreen() {
             },
           };
         });
+      },
+    });
+  };
+
+  const handleFork = () => {
+    if (!repoInfo) return;
+    const trimmed = forkName.trim().toLowerCase().replace(/ /g, "-");
+    if (!trimmed) {
+      Alert.alert("Error", "Repository name is required");
+      return;
+    }
+    if (!/^[a-zA-Z0-9_.-]+$/.test(trimmed)) {
+      Alert.alert("Error", "Invalid repository name");
+      return;
+    }
+    forkRepository.mutate({ name: trimmed }, {
+      onSuccess: (result) => {
+        const forkRepo = result.repo;
+        setIsForkDialogOpen(false);
+        router.push(`/${forkRepo.owner.username}/${forkRepo.name}` as RelativePathString);
+      },
+      onError: (err) => {
+        Alert.alert("Error", err instanceof Error ? err.message : "Failed to fork repository");
       },
     });
   };
@@ -151,6 +184,18 @@ export default function RepositoryScreen() {
             </View>
 
             {repo.description && <Text className="text-white/60 text-[13px] mt-3 leading-5">{repo.description}</Text>}
+            {repo.forkedFrom && (
+              <View className="flex-row flex-wrap items-center mt-2">
+                <Text className="text-white/50 text-[12px]">Forked from </Text>
+                <Link href={`/${repo.forkedFrom.owner.username}/${repo.forkedFrom.name}` as RelativePathString} asChild>
+                  <Pressable>
+                    <Text className="text-blue-400 text-[12px] font-semibold">
+                      {repo.forkedFrom.owner.username}/{repo.forkedFrom.name}
+                    </Text>
+                  </Pressable>
+                </Link>
+              </View>
+            )}
 
             <View className="flex-row mt-4">
               <Pressable onPress={handleStar} disabled={toggleStar.isPending} className="mr-2">
@@ -166,10 +211,19 @@ export default function RepositoryScreen() {
                   </View>
                 </View>
               </Pressable>
+              <Pressable onPress={() => setIsForkDialogOpen(true)} disabled={forkRepository.isPending} className="mr-2">
+                <View className="overflow-hidden bg-[rgba(60,60,90,0.4)] border border-white/10">
+                  <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+                  <View className="flex-row items-center py-2 px-3 relative z-10">
+                    <FontAwesome name="code-fork" size={16} color="#60a5fa" />
+                    <Text className="text-blue-400 text-[13px] font-semibold ml-1.5">{repo.forkCount || 0}</Text>
+                  </View>
+                </View>
+              </Pressable>
               <View className="overflow-hidden bg-[rgba(60,60,90,0.4)] border border-white/10">
                 <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
                 <View className="flex-row items-center py-2 px-3 relative z-10">
-                  <FontAwesome name="code-fork" size={16} color="#60a5fa" />
+                  <FontAwesome name="code" size={16} color="#60a5fa" />
                   <Text className="text-blue-400 text-[13px] font-semibold ml-1.5">{defaultBranch}</Text>
                 </View>
               </View>
@@ -256,6 +310,43 @@ export default function RepositoryScreen() {
           </>
         ) : null}
       </ScrollView>
+      <Modal
+        visible={isForkDialogOpen}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setIsForkDialogOpen(false)}
+      >
+        <View className="flex-1 items-center justify-center bg-black/60 px-6">
+          <View className="w-full overflow-hidden border border-white/10 bg-[rgba(30,30,50,0.9)]">
+            <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+            <View className="p-5 relative z-10">
+              <Text className="text-white text-base font-semibold mb-1">Fork repository</Text>
+              <Text className="text-white/60 text-xs mb-4">Choose a name for your fork.</Text>
+              <Text className="text-white/80 text-xs mb-2">Repository name</Text>
+              <TextInput
+                value={forkName}
+                onChangeText={setForkName}
+                placeholder="my-fork"
+                placeholderTextColor="rgba(255,255,255,0.3)"
+                className="text-white text-sm px-3 py-2 border border-white/10 bg-white/5"
+                autoCapitalize="none"
+              />
+              <View className="flex-row justify-end mt-4">
+                <Pressable onPress={() => setIsForkDialogOpen(false)} className="mr-2">
+                  <View className="px-4 py-2 border border-white/10">
+                    <Text className="text-white/80 text-xs font-semibold">Cancel</Text>
+                  </View>
+                </Pressable>
+                <Pressable onPress={handleFork} disabled={forkRepository.isPending}>
+                  <View className={`px-4 py-2 border border-blue-500 bg-blue-600 ${forkRepository.isPending ? "opacity-60" : ""}`}>
+                    <Text className="text-white text-xs font-semibold">{forkRepository.isPending ? "Forking..." : "Fork"}</Text>
+                  </View>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

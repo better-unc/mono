@@ -52,7 +52,8 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const { data: session } = useSession();
+  const sessionResult = useSession();
+  const session = sessionResult.data;
 
   return (
     <QueryProvider>

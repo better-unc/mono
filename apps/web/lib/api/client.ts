@@ -59,6 +59,17 @@ export const api: ApiClient = {
         body: JSON.stringify(data),
       }),
 
+    fork: (owner: string, name: string, data?: { name?: string; description?: string }) =>
+      apiFetch<RepoInfo>(`/api/repositories/${owner}/${name}/fork`, {
+        method: "POST",
+        body: JSON.stringify(data || {}),
+      }),
+
+    getForks: (owner: string, name: string, limit = 20, offset = 0) =>
+      apiFetch<{ forks: RepositoryWithOwner[] }>(
+        `/api/repositories/${owner}/${name}/forks?limit=${limit}&offset=${offset}`
+      ),
+
     get: (owner: string, name: string) => apiFetch<RepositoryWithOwner>(`/api/repositories/${owner}/${name}`),
 
     getWithStars: (owner: string, name: string) => apiFetch<RepositoryWithOwner>(`/api/repositories/${owner}/${name}/with-stars`),

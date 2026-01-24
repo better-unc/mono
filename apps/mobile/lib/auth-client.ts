@@ -2,14 +2,15 @@ import { createAuthClient } from "better-auth/react";
 import * as SecureStore from "expo-secure-store";
 import { expoClient } from "@better-auth/expo/client";
 
-const AUTH_URL = process.env.EXPO_PUBLIC_AUTH_URL || "http://localhost:3000";
+const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3001";
 
 export const authClient = createAuthClient({
-  baseURL: AUTH_URL,
+  baseURL: API_URL,
   plugins: [
     expoClient({
       scheme: "exp",
-      storagePrefix: "exp",
+      storagePrefix: process.env.NODE_ENV === "production" ? "gitbruv" : "gitbruv_dev",
+      cookiePrefix: process.env.NODE_ENV === "production" ? "gitbruv" : "gitbruv_dev",
       storage: SecureStore,
     }),
   ],
