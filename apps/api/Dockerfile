@@ -16,7 +16,6 @@ RUN bun install
 COPY packages/db ./packages/db
 COPY packages/lib ./packages/lib
 COPY packages/hooks ./packages/hooks
-COPY auth-schema.ts ./
 COPY apps/api ./apps/api
 
 WORKDIR /app/apps/api
