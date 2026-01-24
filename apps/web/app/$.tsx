@@ -17,13 +17,16 @@ export const Route = createFileRoute("/$" as any)({
   },
 });
 
-async function handleGitRequest(request: Request): Promise<Response | undefined> {
+async function handleGitRequest(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const path = url.pathname;
 
   const gitPattern = /^\/[^/]+\/[^/]+\.git\//;
   if (!gitPattern.test(path)) {
-    return undefined;
+    return new Response(null, {
+      status: 404,
+      statusText: "Not Found",
+    });
   }
 
   const apiUrl = getApiUrl();
