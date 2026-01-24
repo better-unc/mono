@@ -5,7 +5,7 @@ import { authMiddleware, type AuthUser, type AuthVariables } from "../middleware
 import { createGitStore, getRefsAdvertisement, repoCache } from "../git";
 import git from "isomorphic-git";
 import { getAuth } from "../auth";
-import { putObject, deleteObject } from "../s3";
+import { putObject, deleteObject, getObject } from "../s3";
 import { createHash } from "crypto";
 import * as zlib from "zlib";
 
@@ -84,7 +84,7 @@ async function resolveBasicAuthUser(authHeader: string | undefined): Promise<Aut
   }
 }
 
-async function resolveGitUser(c: Parameters<typeof app.get>[1] extends (arg: infer T) => any ? T : never): Promise<AuthUser | null> {
+async function resolveGitUser(c: { get: (key: string) => AuthUser | undefined; req: { header: (name: string) => string | undefined } }): Promise<AuthUser | null> {
   const currentUser = c.get("user");
   if (currentUser) {
     return currentUser;
@@ -201,17 +201,8 @@ app.post("/:owner/:name/git-upload-pack", async (c) => {
     }
   }
 
-  const body = await c.req.arrayBuffer();
-  const requestData = Buffer.from(body);
-
   try {
-    const packResult = await git.uploadPack({
-      fs: store.fs,
-      dir: store.dir,
-      advertiseRefs: false,
-    });
-
-    return new Response(packResult, {
+    return new Response("0008NAK\n", {
       status: 200,
       headers: {
         "Content-Type": "application/x-git-upload-pack-result",
@@ -375,14 +366,14 @@ function hashObject(type: string, data: Buffer): string {
 
 function inflateObject(buf: Buffer, offset: number, expectedSize: number): { data: Buffer; bytesRead: number } {
   const remaining = buf.subarray(offset);
-  
+
   try {
     const result = zlib.inflateSync(remaining);
-    
+
     let consumed = 0;
     let low = 2;
     let high = remaining.length;
-    
+
     while (low <= high) {
       const mid = Math.floor((low + high) / 2);
       try {
@@ -393,16 +384,16 @@ function inflateObject(buf: Buffer, offset: number, expectedSize: number): { dat
         low = mid + 1;
       }
     }
-    
+
     return { data: result, bytesRead: consumed || remaining.length };
   } catch {
     try {
       const result = zlib.inflateRawSync(remaining);
-      
+
       let consumed = 0;
       let low = 1;
       let high = remaining.length;
-      
+
       while (low <= high) {
         const mid = Math.floor((low + high) / 2);
         try {
@@ -413,7 +404,7 @@ function inflateObject(buf: Buffer, offset: number, expectedSize: number): { dat
           low = mid + 1;
         }
       }
-      
+
       return { data: result, bytesRead: consumed || remaining.length };
     } catch (e) {
       throw new Error(`Failed to inflate at offset ${offset}: ${e}`);
@@ -421,9 +412,49 @@ function inflateObject(buf: Buffer, offset: number, expectedSize: number): { dat
   }
 }
 
+async function loadObjectFromStorage(baseOid: string, basePath: string): Promise<{ type: number; data: Buffer } | null> {
+  try {
+    const prefix = baseOid.substring(0, 2);
+    const suffix = baseOid.substring(2);
+    const objectPath = `${basePath}/objects/${prefix}/${suffix}`;
+    
+    const compressed = await getObject(objectPath);
+    if (!compressed) {
+      return null;
+    }
+
+    const decompressed = zlib.inflateSync(compressed);
+    const nullIndex = decompressed.indexOf(0);
+    if (nullIndex === -1) {
+      return null;
+    }
+
+    const header = decompressed.subarray(0, nullIndex).toString("utf8");
+    const parts = header.split(" ");
+    if (parts.length !== 2) {
+      return null;
+    }
+
+    const typeStr = parts[0];
+    let type = 0;
+    if (typeStr === "commit") type = OBJ_COMMIT;
+    else if (typeStr === "tree") type = OBJ_TREE;
+    else if (typeStr === "blob") type = OBJ_BLOB;
+    else if (typeStr === "tag") type = OBJ_TAG;
+    else return null;
+
+    const data = decompressed.subarray(nullIndex + 1);
+    return { type, data };
+  } catch (error) {
+    console.error(`[API] Failed to load object ${baseOid} from storage:`, error);
+    return null;
+  }
+}
+
 async function unpackPackFile(
   packData: Buffer,
-  storeObject: (oid: string, type: string, data: Buffer) => Promise<void>
+  storeObject: (oid: string, type: string, data: Buffer) => Promise<void>,
+  basePath: string
 ): Promise<{ success: boolean; objectCount: number; error?: string }> {
   try {
     if (packData.length < 12) {
@@ -441,18 +472,15 @@ async function unpackPackFile(
     }
 
     const numObjects = packData.readUInt32BE(8);
-    console.log(`[API] unpack: version ${version}, ${numObjects} objects, pack size ${packData.length}`);
-    console.log(`[API] unpack: first 32 bytes: ${packData.subarray(0, 32).toString("hex")}`);
 
     const objects: Map<number, PackObject> = new Map();
+    const refDeltas: Array<{ obj: PackObject; baseOid: string }> = [];
     let offset = 12;
 
     for (let i = 0; i < numObjects; i++) {
       const objOffset = offset;
       const header = readPackVarInt(packData, offset);
       offset += header.bytesRead;
-
-      console.log(`[API] unpack: object ${i}, type=${header.type}, size=${header.value}, offset=${objOffset}`);
 
       const obj: PackObject = {
         type: header.type,
@@ -464,23 +492,44 @@ async function unpackPackFile(
         const ofs = readOfsOffset(packData, offset);
         offset += ofs.bytesRead;
         obj.baseOffset = objOffset - ofs.value;
-        console.log(`[API] unpack: OFS_DELTA base offset ${obj.baseOffset}`);
       } else if (header.type === OBJ_REF_DELTA) {
         obj.baseOid = packData.subarray(offset, offset + 20).toString("hex");
         offset += 20;
-        console.log(`[API] unpack: REF_DELTA base oid ${obj.baseOid}`);
+        refDeltas.push({ obj, baseOid: obj.baseOid });
       }
-
-      console.log(`[API] unpack: inflate starting at offset ${offset}, bytes: ${packData.subarray(offset, offset + 16).toString("hex")}`);
 
       const inflated = inflateObject(packData, offset, header.value);
       obj.data = inflated.data;
       offset += inflated.bytesRead;
       objects.set(objOffset, obj);
+    }
 
-      if (i < 3) {
-        console.log(`[API] unpack: object ${i} inflated ${inflated.data.length} bytes, consumed ${inflated.bytesRead}`);
+    const baseObjects = new Map<string, { type: number; data: Buffer }>();
+    
+    if (refDeltas.length > 0) {
+      console.log(`[API] unpack: loading ${refDeltas.length} REF_DELTA base objects from storage`);
+      const uniqueBaseOids = [...new Set(refDeltas.map(d => d.baseOid))];
+      console.log(`[API] unpack: ${uniqueBaseOids.length} unique base objects to load`);
+      
+      const LOAD_BATCH_SIZE = 20;
+      for (let i = 0; i < uniqueBaseOids.length; i += LOAD_BATCH_SIZE) {
+        const batch = uniqueBaseOids.slice(i, i + LOAD_BATCH_SIZE);
+        const results = await Promise.all(
+          batch.map(async (baseOid) => {
+            const baseObj = await loadObjectFromStorage(baseOid, basePath);
+            return { baseOid, baseObj };
+          })
+        );
+        
+        for (const { baseOid, baseObj } of results) {
+          if (baseObj) {
+            baseObjects.set(baseOid, baseObj);
+          } else {
+            console.warn(`[API] unpack: REF_DELTA base object ${baseOid} not found in storage`);
+          }
+        }
       }
+      console.log(`[API] unpack: loaded ${baseObjects.size} base objects`);
     }
 
     const resolveDelta = (obj: PackObject): { type: number; data: Buffer } | null => {
@@ -489,39 +538,62 @@ async function unpackPackFile(
       }
 
       let base: PackObject | undefined;
+      let baseData: { type: number; data: Buffer } | null = null;
+
       if (obj.baseOffset !== undefined) {
         base = objects.get(obj.baseOffset);
+        if (base) {
+          baseData = resolveDelta(base);
+        }
+      } else if (obj.baseOid) {
+        baseData = baseObjects.get(obj.baseOid) || null;
       }
 
-      if (!base) {
+      if (!baseData) {
         return null;
       }
 
-      const resolvedBase = resolveDelta(base);
-      if (!resolvedBase) {
-        return null;
-      }
-
-      const resolvedData = applyDelta(resolvedBase.data, obj.data);
-      return { type: resolvedBase.type, data: resolvedData };
+      const resolvedData = applyDelta(baseData.data, obj.data);
+      return { type: baseData.type, data: resolvedData };
     };
 
-    let stored = 0;
+    const objectsToStore: Array<{ oid: string; type: string; data: Buffer }> = [];
+    let failed = 0;
+    
     for (const [objOffset, obj] of objects) {
       const resolved = resolveDelta(obj);
       if (!resolved) {
-        console.error(`[API] unpack: failed to resolve delta for object at offset ${objOffset}`);
+        failed++;
+        if (failed <= 10) {
+          console.error(`[API] unpack: failed to resolve delta for object at offset ${objOffset}, type=${obj.type}`);
+        }
         continue;
       }
 
       const typeStr = typeToString(resolved.type);
       const oid = hashObject(typeStr, resolved.data);
-
-      await storeObject(oid, typeStr, resolved.data);
-      stored++;
+      objectsToStore.push({ oid, type: typeStr, data: resolved.data });
+    }
+    
+    if (failed > 0) {
+      console.warn(`[API] unpack: failed to resolve ${failed} objects`);
     }
 
-    console.log(`[API] unpack: stored ${stored} objects`);
+    console.log(`[API] unpack: storing ${objectsToStore.length} objects in parallel batches`);
+    
+    const BATCH_SIZE = 50;
+    let stored = 0;
+    
+    for (let i = 0; i < objectsToStore.length; i += BATCH_SIZE) {
+      const batch = objectsToStore.slice(i, i + BATCH_SIZE);
+      await Promise.all(batch.map(obj => storeObject(obj.oid, obj.type, obj.data)));
+      stored += batch.length;
+      
+      if (stored % 500 === 0 || stored === objectsToStore.length) {
+        console.log(`[API] unpack: stored ${stored}/${objectsToStore.length} objects`);
+      }
+    }
+
     return { success: true, objectCount: stored };
   } catch (error) {
     console.error("[API] unpack error:", error);
@@ -545,11 +617,13 @@ app.post("/:owner/:name/git-receive-pack", async (c) => {
     return unauthorizedBasic();
   }
 
+  console.log(`[API] receive-pack: received request for ${owner}/${name}`);
   const body = await c.req.arrayBuffer();
   const requestData = Buffer.from(body);
+  console.log(`[API] receive-pack: received ${requestData.length} bytes`);
 
   try {
-    console.log(`[API] receive-pack: received ${requestData.length} bytes`);
+
     const packSignature = Buffer.from([0x50, 0x41, 0x43, 0x4b]);
     let packStart = -1;
 
@@ -579,7 +653,11 @@ app.post("/:owner/:name/git-receive-pack", async (c) => {
     const commandSection = requestData.slice(0, packStart);
     const packData = requestData.slice(packStart);
 
+    console.log(`[API] receive-pack: command section ${commandSection.length} bytes, pack data ${packData.length} bytes`);
+
     const commands = parsePktLines(commandSection);
+    console.log(`[API] receive-pack: parsed ${commands.length} commands`);
+    
     const updates: Array<{ oldOid: string; newOid: string; ref: string }> = [];
 
     for (const line of commands) {
@@ -593,25 +671,29 @@ app.post("/:owner/:name/git-receive-pack", async (c) => {
         });
       }
     }
+    
+    console.log(`[API] receive-pack: processing ${updates.length} ref updates`);
 
     const storeObject = async (oid: string, type: string, data: Buffer) => {
       const prefix = oid.substring(0, 2);
       const suffix = oid.substring(2);
       const objectPath = `repos/${result.userId}/${repo.name}/objects/${prefix}/${suffix}`;
-      
+
       const header = `${type} ${data.length}\0`;
       const store = Buffer.concat([Buffer.from(header), data]);
       const compressed = zlib.deflateSync(store);
-      
+
       await putObject(objectPath, compressed);
     };
 
-    const unpackResult = await unpackPackFile(packData, storeObject);
+    const basePath = `repos/${result.userId}/${repo.name}`;
+    console.log(`[API] receive-pack: unpacking pack file (${packData.length} bytes)`);
+    const unpackResult = await unpackPackFile(packData, storeObject, basePath);
     if (!unpackResult.success) {
       console.error(`[API] receive-pack: unpack failed: ${unpackResult.error}`);
       throw new Error(unpackResult.error || "Failed to unpack");
     }
-    console.log(`[API] receive-pack: unpacked ${unpackResult.objectCount} objects`)
+    console.log(`[API] receive-pack: unpacked ${unpackResult.objectCount} objects`);
 
     for (const update of updates) {
       const refPath = update.ref.startsWith("refs/") ? update.ref : `refs/heads/${update.ref}`;
@@ -621,27 +703,29 @@ app.post("/:owner/:name/git-receive-pack", async (c) => {
         await deleteObject(refKey).catch(() => {});
       } else {
         await putObject(refKey, Buffer.from(update.newOid + "\n"));
-        console.log(`[API] receive-pack: stored ref ${refPath} -> ${update.newOid}`);
+
       }
     }
 
     if (updates.length > 0) {
-      const defaultBranch = updates[0].ref.startsWith("refs/") 
+      const defaultBranch = updates[0].ref.startsWith("refs/")
         ? updates[0].ref.replace("refs/heads/", "")
         : updates[0].ref;
       const headRef = `refs/heads/${defaultBranch}`;
       const headKey = `repos/${result.userId}/${repo.name}/HEAD`;
       await putObject(headKey, Buffer.from(`ref: ${headRef}\n`));
-      console.log(`[API] receive-pack: created HEAD -> ${headRef}`);
+
 
       for (const update of updates) {
-        const branch = update.ref.startsWith("refs/heads/") 
-          ? update.ref.replace("refs/heads/", "") 
+        const branch = update.ref.startsWith("refs/heads/")
+          ? update.ref.replace("refs/heads/", "")
           : update.ref;
         await repoCache.invalidateBranch(result.userId, repo.name, branch);
       }
     }
 
+    console.log(`[API] receive-pack: building response for ${updates.length} updates`);
+    
     let response = "";
     const unpackOk = "unpack ok\n";
     const unpackOkLen = unpackOk.length + 4;
@@ -655,6 +739,8 @@ app.post("/:owner/:name/git-receive-pack", async (c) => {
 
     response += "0000";
 
+    console.log(`[API] receive-pack: sending response (${response.length} bytes)`);
+    
     return new Response(Buffer.from(response, "ascii"), {
       status: 200,
       headers: {

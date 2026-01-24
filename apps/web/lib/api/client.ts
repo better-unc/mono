@@ -1,4 +1,5 @@
 import { authClient } from "@/lib/auth-client";
+import { getApiUrl } from "@/lib/utils";
 import type {
   Repository,
   RepositoryWithOwner,
@@ -32,8 +33,14 @@ async function getAuthHeaders(): Promise<HeadersInit> {
 }
 
 async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const apiUrl = getApiUrl();
+  if (!apiUrl) {
+    throw new Error("API URL not configured");
+  }
+
+  const fullUrl = endpoint.startsWith("http") ? endpoint : `${apiUrl}${endpoint}`;
   const authHeaders = await getAuthHeaders();
-  const res = await fetch(endpoint, {
+  const res = await fetch(fullUrl, {
     ...options,
     credentials: "include",
     headers: {
@@ -309,10 +316,15 @@ export const api: ApiClient = {
 };
 
 export async function updateAvatar(file: File): Promise<{ success: boolean; avatarUrl: string }> {
+  const apiUrl = getApiUrl();
+  if (!apiUrl) {
+    throw new Error("API URL not configured");
+  }
+
   const authHeaders = await getAuthHeaders();
   const formData = new FormData();
   formData.append("avatar", file);
-  const res = await fetch("/api/settings/avatar", {
+  const res = await fetch(`${apiUrl}/api/settings/avatar`, {
     method: "POST",
     credentials: "include",
     headers: authHeaders,
@@ -326,8 +338,13 @@ export async function updateAvatar(file: File): Promise<{ success: boolean; avat
 }
 
 export async function deleteAvatar(): Promise<{ success: boolean; avatarUrl: string | null }> {
+  const apiUrl = getApiUrl();
+  if (!apiUrl) {
+    throw new Error("API URL not configured");
+  }
+
   const authHeaders = await getAuthHeaders();
-  const res = await fetch("/api/settings/avatar", {
+  const res = await fetch(`${apiUrl}/api/settings/avatar`, {
     method: "DELETE",
     credentials: "include",
     headers: authHeaders,

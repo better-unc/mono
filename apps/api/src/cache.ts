@@ -22,7 +22,7 @@ export const getRedisClient = async (): Promise<RedisClientType | null> => {
   try {
     redis = createClient({ url: config.redisUrl });
     await redis.connect();
-    console.log("[Cache] Redis connected");
+    
     return redis;
   } catch (error) {
     console.error("[Cache] Redis connection failed:", error instanceof Error ? error.message : "Unknown");
@@ -114,7 +114,7 @@ export const repoCache = {
   async invalidateRepo(userId: string, repoName: string): Promise<void> {
     await deleteCachePattern(`gitbruv:*:${userId}:${repoName}:*`);
     await deleteCachePattern(`gitbruv:*:${userId}:${repoName}`);
-    console.log(`[Cache] Invalidated cache for repo ${userId}/${repoName}`);
+    
   },
 
   async invalidateBranch(userId: string, repoName: string, branch: string): Promise<void> {
@@ -124,6 +124,6 @@ export const repoCache = {
     await deleteCachePattern(`gitbruv:file:${userId}:${repoName}:${branch}:*`);
     await deleteCache(repoCache.refKey(userId, repoName, branch));
     await deleteCache(repoCache.branchesKey(userId, repoName));
-    console.log(`[Cache] Invalidated cache for branch ${userId}/${repoName}:${branch}`);
+    
   },
 };

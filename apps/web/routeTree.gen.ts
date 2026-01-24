@@ -13,17 +13,12 @@ import { Route as MainRouteImport } from './app/_main'
 import { Route as AuthRouteImport } from './app/_auth'
 import { Route as SplatRouteImport } from './app/$'
 import { Route as MainIndexRouteImport } from './app/_main/index'
-import { Route as ApiSplatRouteImport } from './app/api/$'
 import { Route as MainSettingsRouteImport } from './app/_main/settings'
-import { Route as MainNewRouteImport } from './app/_main/new'
 import { Route as MainExploreRouteImport } from './app/_main/explore'
 import { Route as MainUsernameRouteImport } from './app/_main/$username'
 import { Route as AuthRegisterRouteImport } from './app/_auth/register'
 import { Route as AuthLoginRouteImport } from './app/_auth/login'
 import { Route as MainUsernameIndexRouteImport } from './app/_main/$username/index'
-import { Route as ApiAvatarSplatRouteImport } from './app/api/avatar/$'
-import { Route as ApiAuthVerifyCredentialsRouteImport } from './app/api/auth/verify-credentials'
-import { Route as ApiAuthSplatRouteImport } from './app/api/auth/$'
 import { Route as MainUsernameRepoRouteImport } from './app/_main/$username/$repo'
 import { Route as MainUsernameRepoIndexRouteImport } from './app/_main/$username/$repo/index'
 import { Route as MainUsernameRepoSettingsRouteImport } from './app/_main/$username/$repo/settings'
@@ -56,19 +51,9 @@ const MainIndexRoute = MainIndexRouteImport.update({
   path: '/',
   getParentRoute: () => MainRoute,
 } as any)
-const ApiSplatRoute = ApiSplatRouteImport.update({
-  id: '/api/$',
-  path: '/api/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const MainSettingsRoute = MainSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => MainRoute,
-} as any)
-const MainNewRoute = MainNewRouteImport.update({
-  id: '/new',
-  path: '/new',
   getParentRoute: () => MainRoute,
 } as any)
 const MainExploreRoute = MainExploreRouteImport.update({
@@ -95,22 +80,6 @@ const MainUsernameIndexRoute = MainUsernameIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => MainUsernameRoute,
-} as any)
-const ApiAvatarSplatRoute = ApiAvatarSplatRouteImport.update({
-  id: '/api/avatar/$',
-  path: '/api/avatar/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAuthVerifyCredentialsRoute =
-  ApiAuthVerifyCredentialsRouteImport.update({
-    id: '/api/auth/verify-credentials',
-    path: '/api/auth/verify-credentials',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
-  id: '/api/auth/$',
-  path: '/api/auth/$',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const MainUsernameRepoRoute = MainUsernameRepoRouteImport.update({
   id: '/$repo',
@@ -194,13 +163,8 @@ export interface FileRoutesByFullPath {
   '/register': typeof AuthRegisterRoute
   '/$username': typeof MainUsernameRouteWithChildren
   '/explore': typeof MainExploreRoute
-  '/new': typeof MainNewRoute
   '/settings': typeof MainSettingsRoute
-  '/api/$': typeof ApiSplatRoute
   '/$username/$repo': typeof MainUsernameRepoRouteWithChildren
-  '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/auth/verify-credentials': typeof ApiAuthVerifyCredentialsRoute
-  '/api/avatar/$': typeof ApiAvatarSplatRoute
   '/$username/': typeof MainUsernameIndexRoute
   '/$username/$repo/commits': typeof MainUsernameRepoCommitsRouteWithChildren
   '/$username/$repo/labels': typeof MainUsernameRepoLabelsRoute
@@ -221,12 +185,7 @@ export interface FileRoutesByTo {
   '/login': typeof AuthLoginRoute
   '/register': typeof AuthRegisterRoute
   '/explore': typeof MainExploreRoute
-  '/new': typeof MainNewRoute
   '/settings': typeof MainSettingsRoute
-  '/api/$': typeof ApiSplatRoute
-  '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/auth/verify-credentials': typeof ApiAuthVerifyCredentialsRoute
-  '/api/avatar/$': typeof ApiAvatarSplatRoute
   '/$username': typeof MainUsernameIndexRoute
   '/$username/$repo/commits': typeof MainUsernameRepoCommitsRouteWithChildren
   '/$username/$repo/labels': typeof MainUsernameRepoLabelsRoute
@@ -249,14 +208,9 @@ export interface FileRoutesById {
   '/_auth/register': typeof AuthRegisterRoute
   '/_main/$username': typeof MainUsernameRouteWithChildren
   '/_main/explore': typeof MainExploreRoute
-  '/_main/new': typeof MainNewRoute
   '/_main/settings': typeof MainSettingsRoute
-  '/api/$': typeof ApiSplatRoute
   '/_main/': typeof MainIndexRoute
   '/_main/$username/$repo': typeof MainUsernameRepoRouteWithChildren
-  '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/auth/verify-credentials': typeof ApiAuthVerifyCredentialsRoute
-  '/api/avatar/$': typeof ApiAvatarSplatRoute
   '/_main/$username/': typeof MainUsernameIndexRoute
   '/_main/$username/$repo/commits': typeof MainUsernameRepoCommitsRouteWithChildren
   '/_main/$username/$repo/labels': typeof MainUsernameRepoLabelsRoute
@@ -280,13 +234,8 @@ export interface FileRouteTypes {
     | '/register'
     | '/$username'
     | '/explore'
-    | '/new'
     | '/settings'
-    | '/api/$'
     | '/$username/$repo'
-    | '/api/auth/$'
-    | '/api/auth/verify-credentials'
-    | '/api/avatar/$'
     | '/$username/'
     | '/$username/$repo/commits'
     | '/$username/$repo/labels'
@@ -307,12 +256,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/explore'
-    | '/new'
     | '/settings'
-    | '/api/$'
-    | '/api/auth/$'
-    | '/api/auth/verify-credentials'
-    | '/api/avatar/$'
     | '/$username'
     | '/$username/$repo/commits'
     | '/$username/$repo/labels'
@@ -334,14 +278,9 @@ export interface FileRouteTypes {
     | '/_auth/register'
     | '/_main/$username'
     | '/_main/explore'
-    | '/_main/new'
     | '/_main/settings'
-    | '/api/$'
     | '/_main/'
     | '/_main/$username/$repo'
-    | '/api/auth/$'
-    | '/api/auth/verify-credentials'
-    | '/api/avatar/$'
     | '/_main/$username/'
     | '/_main/$username/$repo/commits'
     | '/_main/$username/$repo/labels'
@@ -361,10 +300,6 @@ export interface RootRouteChildren {
   SplatRoute: typeof SplatRoute
   AuthRoute: typeof AuthRouteWithChildren
   MainRoute: typeof MainRouteWithChildren
-  ApiSplatRoute: typeof ApiSplatRoute
-  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
-  ApiAuthVerifyCredentialsRoute: typeof ApiAuthVerifyCredentialsRoute
-  ApiAvatarSplatRoute: typeof ApiAvatarSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -397,25 +332,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainIndexRouteImport
       parentRoute: typeof MainRoute
     }
-    '/api/$': {
-      id: '/api/$'
-      path: '/api/$'
-      fullPath: '/api/$'
-      preLoaderRoute: typeof ApiSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_main/settings': {
       id: '/_main/settings'
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof MainSettingsRouteImport
-      parentRoute: typeof MainRoute
-    }
-    '/_main/new': {
-      id: '/_main/new'
-      path: '/new'
-      fullPath: '/new'
-      preLoaderRoute: typeof MainNewRouteImport
       parentRoute: typeof MainRoute
     }
     '/_main/explore': {
@@ -452,27 +373,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/$username/'
       preLoaderRoute: typeof MainUsernameIndexRouteImport
       parentRoute: typeof MainUsernameRoute
-    }
-    '/api/avatar/$': {
-      id: '/api/avatar/$'
-      path: '/api/avatar/$'
-      fullPath: '/api/avatar/$'
-      preLoaderRoute: typeof ApiAvatarSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/auth/verify-credentials': {
-      id: '/api/auth/verify-credentials'
-      path: '/api/auth/verify-credentials'
-      fullPath: '/api/auth/verify-credentials'
-      preLoaderRoute: typeof ApiAuthVerifyCredentialsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/auth/$': {
-      id: '/api/auth/$'
-      path: '/api/auth/$'
-      fullPath: '/api/auth/$'
-      preLoaderRoute: typeof ApiAuthSplatRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/_main/$username/$repo': {
       id: '/_main/$username/$repo'
@@ -657,7 +557,6 @@ const MainUsernameRouteWithChildren = MainUsernameRoute._addFileChildren(
 interface MainRouteChildren {
   MainUsernameRoute: typeof MainUsernameRouteWithChildren
   MainExploreRoute: typeof MainExploreRoute
-  MainNewRoute: typeof MainNewRoute
   MainSettingsRoute: typeof MainSettingsRoute
   MainIndexRoute: typeof MainIndexRoute
 }
@@ -665,7 +564,6 @@ interface MainRouteChildren {
 const MainRouteChildren: MainRouteChildren = {
   MainUsernameRoute: MainUsernameRouteWithChildren,
   MainExploreRoute: MainExploreRoute,
-  MainNewRoute: MainNewRoute,
   MainSettingsRoute: MainSettingsRoute,
   MainIndexRoute: MainIndexRoute,
 }
@@ -676,10 +574,6 @@ const rootRouteChildren: RootRouteChildren = {
   SplatRoute: SplatRoute,
   AuthRoute: AuthRouteWithChildren,
   MainRoute: MainRouteWithChildren,
-  ApiSplatRoute: ApiSplatRoute,
-  ApiAuthSplatRoute: ApiAuthSplatRoute,
-  ApiAuthVerifyCredentialsRoute: ApiAuthVerifyCredentialsRoute,
-  ApiAvatarSplatRoute: ApiAvatarSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

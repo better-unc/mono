@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { CodeViewer } from "./code-viewer";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Loading02Icon } from "@hugeicons-pro/core-stroke-standard";
+import { getApiUrl } from "@/lib/utils";
 
 const CHUNK_SIZE = 64 * 1024;
 const LARGE_FILE_THRESHOLD = 100 * 1024;
@@ -32,7 +33,13 @@ export function ChunkedCodeViewer({ username, repoName, branch, filePath, langua
     setError(null);
 
     try {
-      const response = await fetch(`/api/file/${username}/${repoName}/${branch}/${filePath}`);
+      const apiUrl = getApiUrl();
+      if (!apiUrl) {
+        throw new Error("API URL not configured");
+      }
+
+      const pathSegments = filePath.split("/").map(segment => encodeURIComponent(segment)).join("/");
+      const response = await fetch(`${apiUrl}/file/${encodeURIComponent(username)}/${encodeURIComponent(repoName)}/${encodeURIComponent(branch)}/${pathSegments}`);
 
       if (!response.ok) {
         throw new Error("Failed to load file");

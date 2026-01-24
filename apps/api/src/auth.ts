@@ -9,22 +9,21 @@ import { getRedis } from "./redis";
 import { getApiUrl, getWebUrl, getTrustedOrigins, config } from "./config";
 
 function getCookieDomain(): string | undefined {
-  console.log(`[API] getCookieDomain called, nodeEnv: ${config.nodeEnv}`);
+
 
   try {
     const webUrl = getWebUrl();
-    console.log(`[API] webUrl: ${webUrl}`)
     const hostname = new URL(webUrl).hostname;
-    console.log(`[API] webUrl: ${webUrl}, hostname: ${hostname}`);
+
 
     const parts = hostname.split(".");
     if (parts.length >= 2) {
       const rootDomain = `.${parts.slice(-2).join(".")}`;
-      console.log(`[API] Cookie domain: ${rootDomain}`);
+
       return rootDomain;
     }
 
-    console.log(`[API] Cookie domain: undefined (hostname has < 2 parts)`);
+
     return undefined;
   } catch (error) {
     console.error(`[API] Error getting cookie domain:`, error);
@@ -121,7 +120,7 @@ export const initAuth = async () => {
   authInitPromise = (async () => {
     const redis = await getRedis();
     const apiUrl = getApiUrl();
-    console.log(`[API] Better Auth baseURL: ${apiUrl}`);
+
 
     authInstance = betterAuth({
       baseURL: apiUrl,
@@ -272,7 +271,7 @@ export async function verifyCredentials(request: Request): Promise<Response> {
   const auth = getAuth();
   let user: any = null;
   try {
-    console.log(`[API] verify-credentials: attempting sign-in for ${safeEmail}`);
+
     const result: any = await auth.api.signInEmail({
       body: {
         email,

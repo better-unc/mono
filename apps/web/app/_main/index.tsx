@@ -1,11 +1,13 @@
+import { useState } from "react";
 import RepositoryCard from "@/components/repository-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/auth-client";
 import { useCurrentUserSummary, useUserRepositories } from "@gitbruv/hooks";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { GitBranchIcon, Loading02Icon, PlusSignIcon } from "@hugeicons-pro/core-stroke-standard";
+import { NewRepositoryModal } from "@/components/new-repository-modal";
 
 export const Route = createFileRoute("/_main/")({
   component: HomePage,
@@ -34,6 +36,7 @@ function LoggedInHomePage({ session }: { session: { user: { username?: string; [
   const username = session?.user?.username || "";
   const { data: user, isLoading: userLoading } = useCurrentUserSummary(!!session?.user);
   const { data, isLoading: reposLoading } = useUserRepositories(username);
+  const [newRepoModalOpen, setNewRepoModalOpen] = useState(false);
 
   const repos = data?.repos || [];
 
@@ -68,12 +71,10 @@ function LoggedInHomePage({ session }: { session: { user: { username?: string; [
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold">Your repositories</h2>
-            <Link to="/new">
-              <Button size="sm" className="gap-2">
-                <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} className="size-4" />
-                New
-              </Button>
-            </Link>
+            <Button size="sm" className="gap-2" onClick={() => setNewRepoModalOpen(true)}>
+              <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} className="size-4" />
+              New
+            </Button>
           </div>
 
           {userLoading || reposLoading ? (
@@ -87,12 +88,10 @@ function LoggedInHomePage({ session }: { session: { user: { username?: string; [
               <HugeiconsIcon icon={GitBranchIcon} strokeWidth={2} className="size-8 text-primary" />
               <h3 className="text-lg font-semibold mb-2">No repositories yet</h3>
               <p className="text-muted-foreground mb-6 max-w-sm mx-auto">Create your first repository to start building something awesome</p>
-              <Link to="/new">
-                <Button size="lg" className="gap-2 flex items-center">
-                  <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} className="size-4 mr-2" />
-                  Create repository
-                </Button>
-              </Link>
+              <Button size="lg" className="gap-2 flex items-center" onClick={() => setNewRepoModalOpen(true)}>
+                <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} className="size-4 mr-2" />
+                Create repository
+              </Button>
             </div>
           ) : (
             <div className="flex flex-col gap-4">
@@ -103,6 +102,7 @@ function LoggedInHomePage({ session }: { session: { user: { username?: string; [
           )}
         </div>
       </div>
+      <NewRepositoryModal open={newRepoModalOpen} onOpenChange={setNewRepoModalOpen} />
     </div>
   );
 }

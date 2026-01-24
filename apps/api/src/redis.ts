@@ -18,7 +18,7 @@ export const getRedis = async (): Promise<RedisClientType | null> => {
 
   try {
     await redis.connect();
-    console.log("[API] Redis connected successfully");
+    
   } catch (error) {
     console.error("[API] Failed to connect to Redis:", error instanceof Error ? error.message : "Unknown error");
     redis = null;

@@ -2,7 +2,8 @@ import { Hono } from "hono";
 import { db, users, repositories, stars, repoBranchMetadata } from "@gitbruv/db";
 import { eq, sql, desc, and } from "drizzle-orm";
 import { authMiddleware, requireAuth, type AuthVariables } from "../middleware/auth";
-import { putObject, deletePrefix, getRepoPrefix, copyPrefix } from "../s3";
+import { putObject, deletePrefix, getRepoPrefix, copyPrefix, listObjects } from "../s3";
+import { repoCache } from "../cache";
 
 const app = new Hono<{ Variables: AuthVariables }>();
 
@@ -614,10 +615,20 @@ app.delete("/api/repositories/:id", requireAuth, async (c) => {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
+  console.log(`[API] Deleting repository ${user.id}/${repo.name}`);
   const repoPrefix = getRepoPrefix(user.id, repo.name);
+  
+  const keys = await listObjects(repoPrefix);
+  console.log(`[API] Found ${keys.length} objects to delete`);
+  
   await deletePrefix(repoPrefix);
+  console.log(`[API] Deleted all objects for repository`);
+
+  await repoCache.invalidateRepo(user.id, repo.name);
+  console.log(`[API] Invalidated Redis cache for repository`);
 
   await db.delete(repositories).where(eq(repositories.id, id));
+  console.log(`[API] Deleted repository record`);
 
   return c.json({ success: true });
 });

@@ -25,9 +25,7 @@ const loggingMiddleware = createMiddleware(async (c, next) => {
     const statusColor =
       status >= 500 ? "\x1b[31m" : status >= 400 ? "\x1b[33m" : status >= 300 ? "\x1b[36m" : "\x1b[32m";
     const resetColor = "\x1b[0m";
-    console.log(
-      `[API] ${method} ${path}${query ? query : ""} -> ${statusColor}${status}${resetColor} (${duration}ms, ${contentLength} bytes)`
-    );
+
   }
 });
 
@@ -53,14 +51,8 @@ mountRoutes(app);
 
 const port = config.port;
 
-console.log(`[API] Starting API on http://localhost:${port}`);
-console.log(`[API] Environment: ${config.nodeEnv}`);
-console.log(`[API] Database: ${config.databaseUrl ? "Connected" : "Not configured"}`);
-console.log(`[API] Redis: ${config.redisUrl ? "Configured" : "Not configured"}`);
-console.log(`[API] S3: ${config.s3.endpoint ? "Configured" : "Not configured"}`);
-console.log(`[API] Ready to handle requests`);
-
 export default {
   port,
   fetch: app.fetch,
+  idleTimeout: 255,
 };

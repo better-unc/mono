@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -17,12 +18,14 @@ import {
   UserIcon,
 } from "@hugeicons-pro/core-stroke-standard";
 import { useTheme } from "tanstack-theme-kit";
+import { NewRepositoryModal } from "@/components/new-repository-modal";
 
 export function Header() {
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const location = useLocation();
   const params = useParams({ strict: false });
+  const [newRepoModalOpen, setNewRepoModalOpen] = useState(false);
 
   const { data: session } = useSession();
   const { data: user } = useCurrentUserSummary(!!session?.user);
@@ -94,10 +97,13 @@ export function Header() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuItem className="p-0!">
-                    <Link to="/new" className="gap-2 flex items-center grow p-2">
+                    <button
+                      onClick={() => setNewRepoModalOpen(true)}
+                      className="gap-2 flex items-center grow p-2 text-left w-full"
+                    >
                       <HugeiconsIcon icon={BookOpenIcon} strokeWidth={2} className="size-4" />
                       New repository
-                    </Link>
+                    </button>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -164,6 +170,7 @@ export function Header() {
           )}
         </div>
       </div>
+      <NewRepositoryModal open={newRepoModalOpen} onOpenChange={setNewRepoModalOpen} />
     </header>
   );
 }

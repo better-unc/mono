@@ -78,7 +78,7 @@ export async function listBranches(fs: S3Fs, dir: string): Promise<string[]> {
   try {
     const branches = await git.listBranches({ fs, dir });
     if (branches.length > 0) {
-      console.log(`[Git] listBranches found ${branches.length} branches:`, branches);
+      
       return branches;
     }
   } catch (error) {
@@ -94,7 +94,7 @@ export async function listBranches(fs: S3Fs, dir: string): Promise<string[]> {
       const refPath = `${refsDir}/${entry}`;
       try {
         const refContent = await fs.promises.readFile(refPath, "utf8");
-        console.log(`[Git] listBranches: found ref ${refPath} -> ${refContent.toString().trim()}`);
+        
         branches.push(entry);
       } catch (error) {
         console.error(`[Git] listBranches: failed to read ${refPath}:`, error);
@@ -102,7 +102,7 @@ export async function listBranches(fs: S3Fs, dir: string): Promise<string[]> {
       }
     }
 
-    console.log(`[Git] listBranches (manual) found ${branches.length} branches:`, branches);
+    
     return branches;
   } catch (error) {
     console.error(`[Git] listBranches (manual) error:`, error);
@@ -124,19 +124,34 @@ export async function refExists(fs: S3Fs, dir: string, ref: string): Promise<boo
   try {
     const normalizedRef = normalizeRef(ref);
     const resolved = await git.resolveRef({ fs, dir, ref: normalizedRef });
-    console.log(`[Git] refExists: ${ref} (${normalizedRef}) -> ${resolved}`);
+    
     return true;
   } catch (error) {
     console.error(`[Git] refExists: ${ref} failed:`, error instanceof Error ? error.message : error);
     try {
       const refPath = normalizeRef(ref);
       const content = await fs.promises.readFile(refPath, "utf8");
-      console.log(`[Git] refExists: manually read ${refPath} -> ${content.toString().trim()}`);
+      
       return content.toString().trim().length === 40;
     } catch (readError) {
       console.error(`[Git] refExists: failed to read ref file:`, readError);
       return false;
     }
+  }
+}
+
+async function objectExists(fs: S3Fs, oid: string): Promise<boolean> {
+  try {
+    const prefix = oid.substring(0, 2);
+    const suffix = oid.substring(2);
+    const objectPath = `.git/objects/${prefix}/${suffix}`;
+    await fs.promises.stat(objectPath);
+    return true;
+  } catch (error: any) {
+    if (error.code === "ENOENT" || error.name === "NotFound" || error.$metadata?.httpStatusCode === 404) {
+      return false;
+    }
+    return false;
   }
 }
 
@@ -151,11 +166,11 @@ export async function getCommits(
     const normalizedRef = normalizeRef(ref);
     const exists = await refExists(fs, dir, ref);
     if (!exists) {
-      console.log(`[Git] getCommits: ref ${ref} (${normalizedRef}) does not exist`);
+      
       return { commits: [], hasMore: false };
     }
 
-    console.log(`[Git] getCommits: reading log for ref ${ref} (${normalizedRef})`);
+    
 
     let commitOid: string;
     try {
@@ -165,44 +180,58 @@ export async function getCommits(
       try {
         const refContent = await fs.promises.readFile(normalizedRef, "utf8");
         commitOid = refContent.toString().trim();
-        console.log(`[Git] getCommits: manually read ref -> ${commitOid}`);
+        
       } catch (readError) {
         console.error(`[Git] getCommits: failed to read ref manually:`, readError);
         return { commits: [], hasMore: false };
       }
     }
 
+    if (!(await objectExists(fs, commitOid))) {
+      console.error(`[Git] getCommits: commit ${commitOid} does not exist`);
+      return { commits: [], hasMore: false };
+    }
+
     const commits: CommitInfo[] = [];
     let count = 0;
     let skipped = 0;
+    let currentOid: string | null = commitOid;
+    let hasMore = false;
 
-    const logs = await git.log({ fs, dir, ref: commitOid, depth: limit + skip + 1 });
-    console.log(`[Git] getCommits: found ${logs.length} commits`);
+    while (currentOid && count < limit + skip) {
+      try {
+        const { commit } = await git.readCommit({ fs, dir, oid: currentOid });
+        
+        if (skipped >= skip) {
+          if (count < limit) {
+            commits.push({
+              oid: currentOid,
+              message: commit.message,
+              author: {
+                name: commit.author.name,
+                email: commit.author.email,
+              },
+              timestamp: commit.author.timestamp * 1000,
+            });
+            count++;
+          } else {
+            hasMore = true;
+            break;
+          }
+        } else {
+          skipped++;
+        }
 
-    for (const entry of logs) {
-      if (skipped < skip) {
-        skipped++;
-        continue;
+        currentOid = commit.parent.length > 0 ? commit.parent[0] : null;
+      } catch (error: any) {
+        if (error.code === "NotFoundError" || error.message?.includes("Could not find")) {
+          break;
+        }
+        throw error;
       }
-
-      if (count >= limit) {
-        return { commits, hasMore: true };
-      }
-
-      const commit = entry.commit;
-      commits.push({
-        oid: entry.oid,
-        message: commit.message,
-        author: {
-          name: commit.author.name,
-          email: commit.author.email,
-        },
-        timestamp: commit.author.timestamp * 1000,
-      });
-      count++;
     }
 
-    return { commits, hasMore: false };
+    return { commits, hasMore };
   } catch (error) {
     console.error("[Git] getCommits error:", error);
     return { commits: [], hasMore: false };
@@ -217,8 +246,39 @@ export async function getCommitCount(fs: S3Fs, dir: string, ref: string): Promis
       return 0;
     }
 
-    const logs = await git.log({ fs, dir, ref: normalizedRef });
-    return logs.length;
+    let commitOid: string;
+    try {
+      commitOid = await git.resolveRef({ fs, dir, ref: normalizedRef });
+    } catch (error) {
+      try {
+        const refContent = await fs.promises.readFile(normalizedRef, "utf8");
+        commitOid = refContent.toString().trim();
+      } catch {
+        return 0;
+      }
+    }
+
+    if (!(await objectExists(fs, commitOid))) {
+      return 0;
+    }
+
+    let count = 0;
+    let currentOid: string | null = commitOid;
+
+    while (currentOid) {
+      try {
+        const { commit } = await git.readCommit({ fs, dir, oid: currentOid });
+        count++;
+        currentOid = commit.parent.length > 0 ? commit.parent[0] : null;
+      } catch (error: any) {
+        if (error.code === "NotFoundError" || error.message?.includes("Could not find")) {
+          break;
+        }
+        throw error;
+      }
+    }
+
+    return count;
   } catch (error) {
     console.error("[Git] getCommitCount error:", error);
     return 0;
@@ -238,7 +298,22 @@ export async function getTree(
       return null;
     }
 
-    const commitOid = await git.resolveRef({ fs, dir, ref: normalizedRef });
+    let commitOid: string;
+    try {
+      commitOid = await git.resolveRef({ fs, dir, ref: normalizedRef });
+    } catch (error) {
+      try {
+        const refContent = await fs.promises.readFile(normalizedRef, "utf8");
+        commitOid = refContent.toString().trim();
+      } catch {
+        return null;
+      }
+    }
+
+    if (!(await objectExists(fs, commitOid))) {
+      return null;
+    }
+
     const { commit } = await git.readCommit({ fs, dir, oid: commitOid });
 
     let treeOid = commit.tree;
@@ -290,7 +365,22 @@ export async function getFile(
       return null;
     }
 
-    const commitOid = await git.resolveRef({ fs, dir, ref: normalizedRef });
+    let commitOid: string;
+    try {
+      commitOid = await git.resolveRef({ fs, dir, ref: normalizedRef });
+    } catch (error) {
+      try {
+        const refContent = await fs.promises.readFile(normalizedRef, "utf8");
+        commitOid = refContent.toString().trim();
+      } catch {
+        return null;
+      }
+    }
+
+    if (!(await objectExists(fs, commitOid))) {
+      return null;
+    }
+
     const { commit } = await git.readCommit({ fs, dir, oid: commitOid });
 
     const parts = filepath.split("/").filter(Boolean);
@@ -342,7 +432,7 @@ export async function getCommitByOid(
   oid: string
 ): Promise<{ commit: CommitInfo; parent: string | null } | null> {
   try {
-    console.log(`[Git] getCommitByOid: reading commit ${oid}`);
+    
     const { commit } = await git.readCommit({ fs, dir, oid });
     return {
       commit: {
@@ -623,9 +713,12 @@ export async function getCommitDiff(
   oid: string
 ): Promise<CommitDiff | null> {
   try {
-    console.log(`[Git] getCommitDiff: reading commit ${oid}`);
+    if (!(await objectExists(fs, oid))) {
+      return null;
+    }
+    
     const { commit } = await git.readCommit({ fs, dir, oid });
-    console.log(`[Git] getCommitDiff: commit found, parent: ${commit.parent[0] || 'none'}`);
+    
     const parentOid = commit.parent.length > 0 ? commit.parent[0] : null;
 
     const commitInfo: CommitInfo = {
@@ -646,12 +739,20 @@ export async function getCommitDiff(
       const currentTree = commit.tree;
       let parentTree: string | null = null;
 
-      if (parentOid) {
-        const parentCommit = await git.readCommit({ fs, dir, oid: parentOid });
-        parentTree = parentCommit.commit.tree;
+      if (parentOid && await objectExists(fs, parentOid)) {
+        try {
+          const parentCommit = await git.readCommit({ fs, dir, oid: parentOid });
+          parentTree = parentCommit.commit.tree;
+        } catch (error: any) {
+          if (error.code === "NotFoundError" || error.message?.includes("Could not find")) {
+            parentTree = null;
+          } else {
+            throw error;
+          }
+        }
       }
 
-      console.log(`[Git] getCommitDiff: comparing trees - current: ${currentTree}, parent: ${parentTree || 'none'}`);
+      
 
       const changedFiles = await compareTreesRecursive(fs, dir, parentTree, currentTree, "");
 
@@ -679,7 +780,7 @@ export async function getCommitDiff(
         });
       }
 
-      console.log(`[Git] getCommitDiff: found ${files.length} changed files`);
+      
     } catch (walkError) {
       console.error(`[Git] getCommitDiff walk error:`, walkError);
     }
