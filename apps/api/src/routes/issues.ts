@@ -131,7 +131,8 @@ app.get("/api/repositories/:owner/:name/issues", async (c) => {
   const owner = c.req.param("owner");
   const name = c.req.param("name");
   const currentUser = c.get("user");
-  const state = c.req.query("state") || "open";
+  const stateParam = c.req.query("state") || "open";
+  const state: "open" | "closed" = stateParam === "closed" ? "closed" : "open";
   const labelFilter = c.req.query("label");
   const assigneeFilter = c.req.query("assignee");
   const limit = parseInt(c.req.query("limit") || "30", 10);

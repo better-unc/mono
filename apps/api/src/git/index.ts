@@ -78,7 +78,7 @@ export async function listBranches(fs: S3Fs, dir: string): Promise<string[]> {
   try {
     const branches = await git.listBranches({ fs, dir });
     if (branches.length > 0) {
-      
+
       return branches;
     }
   } catch (error) {
@@ -94,7 +94,7 @@ export async function listBranches(fs: S3Fs, dir: string): Promise<string[]> {
       const refPath = `${refsDir}/${entry}`;
       try {
         const refContent = await fs.promises.readFile(refPath, "utf8");
-        
+
         branches.push(entry);
       } catch (error) {
         console.error(`[Git] listBranches: failed to read ${refPath}:`, error);
@@ -102,7 +102,7 @@ export async function listBranches(fs: S3Fs, dir: string): Promise<string[]> {
       }
     }
 
-    
+
     return branches;
   } catch (error) {
     console.error(`[Git] listBranches (manual) error:`, error);
@@ -124,14 +124,14 @@ export async function refExists(fs: S3Fs, dir: string, ref: string): Promise<boo
   try {
     const normalizedRef = normalizeRef(ref);
     const resolved = await git.resolveRef({ fs, dir, ref: normalizedRef });
-    
+
     return true;
   } catch (error) {
     console.error(`[Git] refExists: ${ref} failed:`, error instanceof Error ? error.message : error);
     try {
       const refPath = normalizeRef(ref);
       const content = await fs.promises.readFile(refPath, "utf8");
-      
+
       return content.toString().trim().length === 40;
     } catch (readError) {
       console.error(`[Git] refExists: failed to read ref file:`, readError);
@@ -166,11 +166,11 @@ export async function getCommits(
     const normalizedRef = normalizeRef(ref);
     const exists = await refExists(fs, dir, ref);
     if (!exists) {
-      
+
       return { commits: [], hasMore: false };
     }
 
-    
+
 
     let commitOid: string;
     try {
@@ -180,7 +180,7 @@ export async function getCommits(
       try {
         const refContent = await fs.promises.readFile(normalizedRef, "utf8");
         commitOid = refContent.toString().trim();
-        
+
       } catch (readError) {
         console.error(`[Git] getCommits: failed to read ref manually:`, readError);
         return { commits: [], hasMore: false };
@@ -201,7 +201,7 @@ export async function getCommits(
     while (currentOid && count < limit + skip) {
       try {
         const { commit } = await git.readCommit({ fs, dir, oid: currentOid });
-        
+
         if (skipped >= skip) {
           if (count < limit) {
             commits.push({
@@ -432,7 +432,7 @@ export async function getCommitByOid(
   oid: string
 ): Promise<{ commit: CommitInfo; parent: string | null } | null> {
   try {
-    
+
     const { commit } = await git.readCommit({ fs, dir, oid });
     return {
       commit: {
@@ -716,9 +716,9 @@ export async function getCommitDiff(
     if (!(await objectExists(fs, oid))) {
       return null;
     }
-    
+
     const { commit } = await git.readCommit({ fs, dir, oid });
-    
+
     const parentOid = commit.parent.length > 0 ? commit.parent[0] : null;
 
     const commitInfo: CommitInfo = {
@@ -752,7 +752,7 @@ export async function getCommitDiff(
         }
       }
 
-      
+
 
       const changedFiles = await compareTreesRecursive(fs, dir, parentTree, currentTree, "");
 
@@ -780,7 +780,7 @@ export async function getCommitDiff(
         });
       }
 
-      
+
     } catch (walkError) {
       console.error(`[Git] getCommitDiff walk error:`, walkError);
     }

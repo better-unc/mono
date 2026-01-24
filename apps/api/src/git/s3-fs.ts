@@ -65,7 +65,7 @@ export function createS3Fs(basePath: string) {
         const prefix = normalize(filepath);
         const searchPrefix = prefix.endsWith("/") ? prefix : prefix + "/";
         const keys = await listObjects(searchPrefix);
-        
+
         const entries = new Set<string>();
         for (const key of keys) {
           const relative = key.slice(searchPrefix.length);
@@ -76,7 +76,7 @@ export function createS3Fs(basePath: string) {
             }
           }
         }
-        
+
         return Array.from(entries);
       },
 
@@ -94,7 +94,7 @@ export function createS3Fs(basePath: string) {
 
       async stat(filepath: string): Promise<S3FsStats> {
         const key = normalize(filepath);
-        
+
         if (key === basePath) {
           return {
             type: "dir",

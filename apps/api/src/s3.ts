@@ -131,11 +131,11 @@ export const deletePrefix = async (prefix: string): Promise<void> => {
     throw new Error("S3 is not configured");
   }
   const keys = await listObjects(prefix);
-  
+
   if (keys.length === 0) {
     return;
   }
-  
+
   const BATCH_SIZE = 50;
   for (let i = 0; i < keys.length; i += BATCH_SIZE) {
     const batch = keys.slice(i, i + BATCH_SIZE);

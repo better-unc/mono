@@ -3,8 +3,6 @@ import { db, users, repositories, accounts } from "@gitbruv/db";
 import { eq, ne, and } from "drizzle-orm";
 import { authMiddleware, requireAuth, type AuthVariables } from "../middleware/auth";
 import { putObject, deleteObject, deletePrefix, getRepoPrefix } from "../s3";
-import { s3Client, bucket } from "../s3";
-import { PutObjectCommand } from "@aws-sdk/client-s3";
 
 const app = new Hono<{ Variables: AuthVariables }>();
 
@@ -226,14 +224,7 @@ app.post("/api/settings/avatar", requireAuth, async (c) => {
   const ext = file.name.split(".").pop() || "png";
   const key = `avatars/${user.id}.${ext}`;
 
-  await s3Client.send(
-    new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      Body: Buffer.from(data),
-      ContentType: contentType,
-    })
-  );
+  await putObject(key, Buffer.from(data), contentType);
 
   const timestamp = Date.now();
   const avatarUrl = `/api/avatar/${user.id}.${ext}?v=${timestamp}`;
@@ -287,12 +278,25 @@ app.patch("/api/settings/social-links", requireAuth, async (c) => {
     custom?: string[];
   }>();
 
-  const socialLinks = {
-    github: body.github?.trim() || null,
-    twitter: body.twitter?.trim() || null,
-    linkedin: body.linkedin?.trim() || null,
-    custom: body.custom?.filter((s) => s.trim()) || null,
-  };
+  const socialLinks: {
+    github?: string;
+    twitter?: string;
+    linkedin?: string;
+    custom?: string[];
+  } = {};
+
+  if (body.github?.trim()) {
+    socialLinks.github = body.github.trim();
+  }
+  if (body.twitter?.trim()) {
+    socialLinks.twitter = body.twitter.trim();
+  }
+  if (body.linkedin?.trim()) {
+    socialLinks.linkedin = body.linkedin.trim();
+  }
+  if (body.custom?.filter((s) => s.trim()).length) {
+    socialLinks.custom = body.custom.filter((s) => s.trim());
+  }
 
   await db
     .update(users)

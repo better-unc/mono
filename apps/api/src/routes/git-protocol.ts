@@ -417,7 +417,7 @@ async function loadObjectFromStorage(baseOid: string, basePath: string): Promise
     const prefix = baseOid.substring(0, 2);
     const suffix = baseOid.substring(2);
     const objectPath = `${basePath}/objects/${prefix}/${suffix}`;
-    
+
     const compressed = await getObject(objectPath);
     if (!compressed) {
       return null;
@@ -505,12 +505,12 @@ async function unpackPackFile(
     }
 
     const baseObjects = new Map<string, { type: number; data: Buffer }>();
-    
+
     if (refDeltas.length > 0) {
       console.log(`[API] unpack: loading ${refDeltas.length} REF_DELTA base objects from storage`);
       const uniqueBaseOids = [...new Set(refDeltas.map(d => d.baseOid))];
       console.log(`[API] unpack: ${uniqueBaseOids.length} unique base objects to load`);
-      
+
       const LOAD_BATCH_SIZE = 20;
       for (let i = 0; i < uniqueBaseOids.length; i += LOAD_BATCH_SIZE) {
         const batch = uniqueBaseOids.slice(i, i + LOAD_BATCH_SIZE);
@@ -520,7 +520,7 @@ async function unpackPackFile(
             return { baseOid, baseObj };
           })
         );
-        
+
         for (const { baseOid, baseObj } of results) {
           if (baseObj) {
             baseObjects.set(baseOid, baseObj);
@@ -559,7 +559,7 @@ async function unpackPackFile(
 
     const objectsToStore: Array<{ oid: string; type: string; data: Buffer }> = [];
     let failed = 0;
-    
+
     for (const [objOffset, obj] of objects) {
       const resolved = resolveDelta(obj);
       if (!resolved) {
@@ -574,21 +574,21 @@ async function unpackPackFile(
       const oid = hashObject(typeStr, resolved.data);
       objectsToStore.push({ oid, type: typeStr, data: resolved.data });
     }
-    
+
     if (failed > 0) {
       console.warn(`[API] unpack: failed to resolve ${failed} objects`);
     }
 
     console.log(`[API] unpack: storing ${objectsToStore.length} objects in parallel batches`);
-    
+
     const BATCH_SIZE = 50;
     let stored = 0;
-    
+
     for (let i = 0; i < objectsToStore.length; i += BATCH_SIZE) {
       const batch = objectsToStore.slice(i, i + BATCH_SIZE);
       await Promise.all(batch.map(obj => storeObject(obj.oid, obj.type, obj.data)));
       stored += batch.length;
-      
+
       if (stored % 500 === 0 || stored === objectsToStore.length) {
         console.log(`[API] unpack: stored ${stored}/${objectsToStore.length} objects`);
       }
@@ -657,7 +657,7 @@ app.post("/:owner/:name/git-receive-pack", async (c) => {
 
     const commands = parsePktLines(commandSection);
     console.log(`[API] receive-pack: parsed ${commands.length} commands`);
-    
+
     const updates: Array<{ oldOid: string; newOid: string; ref: string }> = [];
 
     for (const line of commands) {
@@ -671,7 +671,7 @@ app.post("/:owner/:name/git-receive-pack", async (c) => {
         });
       }
     }
-    
+
     console.log(`[API] receive-pack: processing ${updates.length} ref updates`);
 
     const storeObject = async (oid: string, type: string, data: Buffer) => {
@@ -725,7 +725,7 @@ app.post("/:owner/:name/git-receive-pack", async (c) => {
     }
 
     console.log(`[API] receive-pack: building response for ${updates.length} updates`);
-    
+
     let response = "";
     const unpackOk = "unpack ok\n";
     const unpackOkLen = unpackOk.length + 4;
@@ -740,7 +740,7 @@ app.post("/:owner/:name/git-receive-pack", async (c) => {
     response += "0000";
 
     console.log(`[API] receive-pack: sending response (${response.length} bytes)`);
-    
+
     return new Response(Buffer.from(response, "ascii"), {
       status: 200,
       headers: {

@@ -174,7 +174,7 @@ app.post("/api/repositories/:owner/:name/fork", requireAuth, async (c) => {
     });
   }
 
-  const targetName = (body.name || source.name).toLowerCase().replace(/ /g, "-");
+  const targetName = ("name" in body && body.name ? body.name : source.name).toLowerCase().replace(/ /g, "-");
 
   if (!/^[a-zA-Z0-9_.-]+$/.test(targetName)) {
     return c.json({ error: "Invalid repository name" }, 400);
@@ -192,7 +192,7 @@ app.post("/api/repositories/:owner/:name/fork", requireAuth, async (c) => {
     .insert(repositories)
     .values({
       name: targetName,
-      description: body.description ?? source.description,
+      description: ("description" in body ? body.description : source.description) ?? null,
       visibility: "public",
       ownerId: user.id,
       forkedFromId: source.id,
@@ -404,6 +404,7 @@ app.get("/api/repositories/:owner/:name", async (c) => {
       defaultBranch: repositories.defaultBranch,
       createdAt: repositories.createdAt,
       updatedAt: repositories.updatedAt,
+      forkedFromId: repositories.forkedFromId,
       username: users.username,
       userName: users.name,
       avatarUrl: users.avatarUrl,
@@ -617,10 +618,10 @@ app.delete("/api/repositories/:id", requireAuth, async (c) => {
 
   console.log(`[API] Deleting repository ${user.id}/${repo.name}`);
   const repoPrefix = getRepoPrefix(user.id, repo.name);
-  
+
   const keys = await listObjects(repoPrefix);
   console.log(`[API] Found ${keys.length} objects to delete`);
-  
+
   await deletePrefix(repoPrefix);
   console.log(`[API] Deleted all objects for repository`);
 

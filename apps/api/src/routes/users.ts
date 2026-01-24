@@ -76,7 +76,7 @@ app.get("/api/users/public", async (c) => {
         .select({ count: sql<number>`COUNT(*)` })
         .from(repositories)
         .where(and(eq(repositories.ownerId, user.id), eq(repositories.visibility, "public")));
-      
+
       return {
         ...user,
         avatarUrl: cacheBustAvatarUrl(user.avatarUrl, user.updatedAt),
