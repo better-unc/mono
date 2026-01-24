@@ -1,5 +1,3 @@
-import { authClient } from "@/lib/auth-client";
-import { getApiUrl } from "@/lib/utils";
 import type {
   Repository,
   RepositoryWithOwner,
@@ -21,6 +19,8 @@ import type {
   IssueComment,
   IssueFilters,
 } from "@gitbruv/hooks";
+import { authClient } from "@/lib/auth-client";
+import { getApiUrl } from "@/lib/utils";
 
 async function getAuthHeaders(): Promise<HeadersInit> {
   try {
@@ -195,6 +195,47 @@ export const api: ApiClient = {
         method: "PATCH",
         body: JSON.stringify(data),
       }),
+
+    updateAvatar: async (file: File) => {
+      const apiUrl = getApiUrl();
+      if (!apiUrl) {
+        throw new Error("API URL not configured");
+      }
+
+      const authHeaders = await getAuthHeaders();
+      const formData = new FormData();
+      formData.append("avatar", file);
+      const res = await fetch(`${apiUrl}/api/settings/avatar`, {
+        method: "POST",
+        credentials: "include",
+        headers: authHeaders,
+        body: formData,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to upload avatar");
+      }
+      return res.json();
+    },
+
+    deleteAvatar: async () => {
+      const apiUrl = getApiUrl();
+      if (!apiUrl) {
+        throw new Error("API URL not configured");
+      }
+
+      const authHeaders = await getAuthHeaders();
+      const res = await fetch(`${apiUrl}/api/settings/avatar`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: authHeaders,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to delete avatar");
+      }
+      return res.json();
+    },
 
     deleteAccount: () =>
       apiFetch<{ success: boolean }>(`/api/settings/account`, {

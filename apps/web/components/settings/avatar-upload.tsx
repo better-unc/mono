@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { deleteAvatar, updateAvatar } from "@/lib/api/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { CameraIcon, DeleteIcon, Loading02Icon } from "@hugeicons-pro/core-stroke-standard";
 import { toast } from "sonner";
+import { useDeleteAvatar, useUpdateAvatar } from "@gitbruv/hooks";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 
 interface AvatarUploadProps {
   currentAvatar?: string | null;
@@ -15,13 +14,16 @@ interface AvatarUploadProps {
 }
 
 export function AvatarUpload({ currentAvatar, name }: AvatarUploadProps) {
-  const queryClient = useQueryClient();
   const [preview, setPreview] = useState<string | null>(currentAvatar || null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const updateAvatarMutation = useUpdateAvatar();
+  const deleteAvatarMutation = useDeleteAvatar();
 
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  useEffect(() => {
+    setPreview(currentAvatar || null);
+  }, [currentAvatar]);
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -41,39 +43,33 @@ export function AvatarUpload({ currentAvatar, name }: AvatarUploadProps) {
     };
     reader.readAsDataURL(file);
 
-    setIsUploading(true);
-
-    try {
-      const result = await updateAvatar(file);
-      if (result) {
-        setPreview(result.avatarUrl);
-        queryClient.invalidateQueries({ queryKey: ["settings"] });
-        queryClient.invalidateQueries({ queryKey: ["user"] });
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to upload avatar");
-      setPreview(currentAvatar || null);
-    } finally {
-      setIsUploading(false);
-    }
+    updateAvatarMutation.mutate(file, {
+      onSuccess: (result) => {
+        if (result?.avatarUrl) {
+          setPreview(result.avatarUrl);
+        }
+        toast.success("Avatar updated successfully");
+      },
+      onError: (err) => {
+        toast.error(err instanceof Error ? err.message : "Failed to upload avatar");
+        setPreview(currentAvatar || null);
+      },
+    });
   }
 
-  async function handleDeleteAvatar() {
-    setIsDeleting(true);
-    try {
-      await deleteAvatar();
-      setPreview(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-      queryClient.invalidateQueries({ queryKey: ["settings"] });
-      queryClient.invalidateQueries({ queryKey: ["user"] });
-      toast.success("Avatar removed");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete avatar");
-    } finally {
-      setIsDeleting(false);
-    }
+  function handleDeleteAvatar() {
+    deleteAvatarMutation.mutate(undefined, {
+      onSuccess: () => {
+        setPreview(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+        toast.success("Avatar removed");
+      },
+      onError: (err) => {
+        toast.error(err instanceof Error ? err.message : "Failed to delete avatar");
+      },
+    });
   }
 
   return (
@@ -83,7 +79,7 @@ export function AvatarUpload({ currentAvatar, name }: AvatarUploadProps) {
           <AvatarImage src={preview || undefined} alt={name} className="rounded-none border-none" />
           <AvatarFallback className="bg-muted text-muted-foreground font-semibold rounded-none">{name.charAt(0).toUpperCase()}</AvatarFallback>
         </Avatar>
-        {isUploading && (
+        {updateAvatarMutation.isPending && (
           <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
             <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-6 animate-spin" />
           </div>
@@ -93,13 +89,13 @@ export function AvatarUpload({ currentAvatar, name }: AvatarUploadProps) {
       <div className="space-y-2">
         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
         <div className="flex items-center gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isUploading || isDeleting}>
+          <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={updateAvatarMutation.isPending || deleteAvatarMutation.isPending}>
             <HugeiconsIcon icon={CameraIcon} strokeWidth={2} className="size-4 mr-2" />
             Change Avatar
           </Button>
           {preview && (
-            <Button type="button" variant="destructive" size="sm" onClick={handleDeleteAvatar} disabled={isUploading || isDeleting}>
-              {isDeleting ? (
+            <Button type="button" variant="destructive" size="sm" onClick={handleDeleteAvatar} disabled={updateAvatarMutation.isPending || deleteAvatarMutation.isPending}>
+              {deleteAvatarMutation.isPending ? (
                 <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />
               ) : (
                 <HugeiconsIcon icon={DeleteIcon} strokeWidth={2} className="size-4 mr-2" />

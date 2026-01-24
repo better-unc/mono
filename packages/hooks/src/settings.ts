@@ -100,6 +100,30 @@ export function useUpdatePassword() {
   });
 }
 
+export function useUpdateAvatar() {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => api.settings.updateAvatar(file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+    },
+  });
+}
+
+export function useDeleteAvatar() {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.settings.deleteAvatar(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+    },
+  });
+}
+
 export function useDeleteAccount() {
   const api = useApi();
   const queryClient = useQueryClient();
