@@ -949,4 +949,455 @@ export async function getFileCached(
   return file;
 }
 
+export interface BranchComparison {
+  commits: CommitInfo[];
+  files: FileDiff[];
+  stats: {
+    additions: number;
+    deletions: number;
+    filesChanged: number;
+  };
+  ahead: number;
+  behind: number;
+  mergeBaseOid: string | null;
+}
+
+async function getCommitOidsUpTo(
+  fs: S3Fs,
+  dir: string,
+  startOid: string,
+  stopOid: string | null,
+  maxCommits: number = 1000
+): Promise<string[]> {
+  const oids: string[] = [];
+  let currentOid: string | null = startOid;
+  const seen = new Set<string>();
+
+  while (currentOid && oids.length < maxCommits) {
+    if (seen.has(currentOid) || currentOid === stopOid) {
+      break;
+    }
+    seen.add(currentOid);
+    oids.push(currentOid);
+
+    try {
+      const { commit } = await git.readCommit({ fs, dir, oid: currentOid });
+      currentOid = commit.parent.length > 0 ? commit.parent[0] : null;
+    } catch {
+      break;
+    }
+  }
+
+  return oids;
+}
+
+async function findMergeBase(
+  fs: S3Fs,
+  dir: string,
+  oid1: string,
+  oid2: string
+): Promise<string | null> {
+  const ancestors1 = new Set<string>();
+  let current: string | null = oid1;
+  
+  while (current) {
+    ancestors1.add(current);
+    try {
+      const { commit } = await git.readCommit({ fs, dir, oid: current });
+      current = commit.parent.length > 0 ? commit.parent[0] : null;
+    } catch {
+      break;
+    }
+    if (ancestors1.size > 10000) break;
+  }
+
+  current = oid2;
+  while (current) {
+    if (ancestors1.has(current)) {
+      return current;
+    }
+    try {
+      const { commit } = await git.readCommit({ fs, dir, oid: current });
+      current = commit.parent.length > 0 ? commit.parent[0] : null;
+    } catch {
+      break;
+    }
+  }
+
+  return null;
+}
+
+export async function getMergeBase(
+  baseStore: GitStore,
+  baseBranch: string,
+  headStore: GitStore,
+  headBranch: string
+): Promise<string | null> {
+  try {
+    const baseExists = await refExists(baseStore.fs, baseStore.dir, baseBranch);
+    const headExists = await refExists(headStore.fs, headStore.dir, headBranch);
+
+    if (!baseExists || !headExists) {
+      return null;
+    }
+
+    const baseOid = await git.resolveRef({ fs: baseStore.fs, dir: baseStore.dir, ref: normalizeRef(baseBranch) });
+    const headOid = await git.resolveRef({ fs: headStore.fs, dir: headStore.dir, ref: normalizeRef(headBranch) });
+
+    if (baseStore.ownerId === headStore.ownerId && baseStore.repoName === headStore.repoName) {
+      return findMergeBase(baseStore.fs, baseStore.dir, baseOid, headOid);
+    }
+
+    return findMergeBase(headStore.fs, headStore.dir, headOid, baseOid);
+  } catch (error) {
+    console.error("[Git] getMergeBase error:", error);
+    return null;
+  }
+}
+
+export async function compareBranches(
+  baseStore: GitStore,
+  baseBranch: string,
+  headStore: GitStore,
+  headBranch: string
+): Promise<BranchComparison | null> {
+  try {
+    const baseExists = await refExists(baseStore.fs, baseStore.dir, baseBranch);
+    const headExists = await refExists(headStore.fs, headStore.dir, headBranch);
+
+    if (!baseExists || !headExists) {
+      return null;
+    }
+
+    const baseOid = await git.resolveRef({ fs: baseStore.fs, dir: baseStore.dir, ref: normalizeRef(baseBranch) });
+    const headOid = await git.resolveRef({ fs: headStore.fs, dir: headStore.dir, ref: normalizeRef(headBranch) });
+
+    const mergeBaseOid = await getMergeBase(baseStore, baseBranch, headStore, headBranch);
+
+    const headCommitOids = mergeBaseOid
+      ? await getCommitOidsUpTo(headStore.fs, headStore.dir, headOid, mergeBaseOid)
+      : await getCommitOidsUpTo(headStore.fs, headStore.dir, headOid, null, 100);
+
+    const baseCommitOids = mergeBaseOid
+      ? await getCommitOidsUpTo(baseStore.fs, baseStore.dir, baseOid, mergeBaseOid)
+      : [];
+
+    const commits: CommitInfo[] = [];
+    for (const oid of headCommitOids) {
+      try {
+        const { commit } = await git.readCommit({ fs: headStore.fs, dir: headStore.dir, oid });
+        commits.push({
+          oid,
+          message: commit.message,
+          author: {
+            name: commit.author.name,
+            email: commit.author.email,
+          },
+          timestamp: commit.author.timestamp * 1000,
+        });
+      } catch {
+        continue;
+      }
+    }
+
+    let files: FileDiff[] = [];
+    let stats = { additions: 0, deletions: 0, filesChanged: 0 };
+
+    if (mergeBaseOid) {
+      const baseTreeOid = await getTreeOidForCommit(baseStore.fs, baseStore.dir, mergeBaseOid);
+      const headTreeOid = await getTreeOidForCommit(headStore.fs, headStore.dir, headOid);
+
+      if (baseTreeOid && headTreeOid) {
+        const changedFiles = await compareTreesRecursive(
+          headStore.fs,
+          headStore.dir,
+          baseTreeOid,
+          headTreeOid,
+          ""
+        );
+
+        for (const file of changedFiles) {
+          const hunks = await generateDiffHunks(headStore.fs, headStore.dir, file.oldOid, file.newOid, file.status);
+
+          let additionCount = 0;
+          let deletionCount = 0;
+          for (const hunk of hunks) {
+            for (const line of hunk.lines) {
+              if (line.type === "addition") additionCount++;
+              if (line.type === "deletion") deletionCount++;
+            }
+          }
+
+          stats.additions += additionCount;
+          stats.deletions += deletionCount;
+
+          files.push({
+            path: file.path,
+            status: file.status as "added" | "modified" | "deleted" | "renamed",
+            additions: additionCount,
+            deletions: deletionCount,
+            hunks,
+          });
+        }
+
+        stats.filesChanged = files.length;
+      }
+    } else if (headCommitOids.length > 0) {
+      const diff = await getCommitDiff(headStore.fs, headStore.dir, headOid);
+      if (diff) {
+        files = diff.files;
+        stats = diff.stats;
+      }
+    }
+
+    return {
+      commits,
+      files,
+      stats,
+      ahead: headCommitOids.length,
+      behind: baseCommitOids.length,
+      mergeBaseOid,
+    };
+  } catch (error) {
+    console.error("[Git] compareBranches error:", error);
+    return null;
+  }
+}
+
+async function getTreeOidForCommit(fs: S3Fs, dir: string, oid: string): Promise<string | null> {
+  try {
+    const { commit } = await git.readCommit({ fs, dir, oid });
+    return commit.tree;
+  } catch {
+    return null;
+  }
+}
+
+export async function canMerge(
+  baseStore: GitStore,
+  baseBranch: string,
+  headStore: GitStore,
+  headBranch: string
+): Promise<{ canMerge: boolean; conflictFiles?: string[] }> {
+  try {
+    const comparison = await compareBranches(baseStore, baseBranch, headStore, headBranch);
+    
+    if (!comparison) {
+      return { canMerge: false, conflictFiles: [] };
+    }
+
+    if (comparison.ahead === 0) {
+      return { canMerge: false, conflictFiles: [] };
+    }
+
+    return { canMerge: true };
+  } catch (error) {
+    console.error("[Git] canMerge error:", error);
+    return { canMerge: false, conflictFiles: [] };
+  }
+}
+
+async function copyGitObject(
+  sourceStore: GitStore,
+  targetStore: GitStore,
+  oid: string,
+  type: "blob" | "tree" | "commit"
+): Promise<boolean> {
+  try {
+    const prefix = oid.substring(0, 2);
+    const suffix = oid.substring(2);
+    const objectPath = `.git/objects/${prefix}/${suffix}`;
+
+    try {
+      await targetStore.fs.promises.stat(objectPath);
+      return true;
+    } catch {
+    }
+
+    const data = await sourceStore.fs.promises.readFile(objectPath);
+    
+    const dirPath = `.git/objects/${prefix}`;
+    try {
+      await targetStore.fs.promises.mkdir(dirPath);
+    } catch {
+    }
+
+    await targetStore.fs.promises.writeFile(objectPath, data);
+    return true;
+  } catch (error) {
+    console.error(`[Git] copyGitObject error for ${oid}:`, error);
+    return false;
+  }
+}
+
+async function copyTreeRecursive(
+  sourceStore: GitStore,
+  targetStore: GitStore,
+  treeOid: string
+): Promise<boolean> {
+  try {
+    if (!await copyGitObject(sourceStore, targetStore, treeOid, "tree")) {
+      return false;
+    }
+
+    const tree = await git.readTree({ fs: sourceStore.fs, dir: sourceStore.dir, oid: treeOid });
+    
+    for (const entry of tree.tree) {
+      if (entry.type === "blob") {
+        await copyGitObject(sourceStore, targetStore, entry.oid, "blob");
+      } else if (entry.type === "tree") {
+        await copyTreeRecursive(sourceStore, targetStore, entry.oid);
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error(`[Git] copyTreeRecursive error for ${treeOid}:`, error);
+    return false;
+  }
+}
+
+async function copyCommitAndAncestors(
+  sourceStore: GitStore,
+  targetStore: GitStore,
+  commitOid: string,
+  stopAtOid: string | null,
+  maxDepth: number = 100
+): Promise<boolean> {
+  try {
+    const visited = new Set<string>();
+    const toProcess = [commitOid];
+    let depth = 0;
+
+    while (toProcess.length > 0 && depth < maxDepth) {
+      const oid = toProcess.shift()!;
+      
+      if (visited.has(oid) || oid === stopAtOid) {
+        continue;
+      }
+      visited.add(oid);
+
+      await copyGitObject(sourceStore, targetStore, oid, "commit");
+      
+      const { commit } = await git.readCommit({ fs: sourceStore.fs, dir: sourceStore.dir, oid });
+      
+      await copyTreeRecursive(sourceStore, targetStore, commit.tree);
+      
+      for (const parentOid of commit.parent) {
+        if (!visited.has(parentOid) && parentOid !== stopAtOid) {
+          toProcess.push(parentOid);
+        }
+      }
+      
+      depth++;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error(`[Git] copyCommitAndAncestors error:`, error);
+    return false;
+  }
+}
+
+export async function performMerge(
+  baseStore: GitStore,
+  baseBranch: string,
+  headStore: GitStore,
+  headBranch: string,
+  mergeMessage: string,
+  authorName: string,
+  authorEmail: string
+): Promise<{ mergeCommitOid: string } | null> {
+  try {
+    console.log(`[Git] performMerge starting: base=${baseBranch}, head=${headBranch}`);
+    console.log(`[Git] baseStore: owner=${baseStore.ownerId}, repo=${baseStore.repoName}`);
+    console.log(`[Git] headStore: owner=${headStore.ownerId}, repo=${headStore.repoName}`);
+    
+    const baseOid = await git.resolveRef({ 
+      fs: baseStore.fs, 
+      dir: baseStore.dir, 
+      ref: normalizeRef(baseBranch) 
+    });
+    console.log(`[Git] Base OID: ${baseOid}`);
+    
+    const headOid = await git.resolveRef({ 
+      fs: headStore.fs, 
+      dir: headStore.dir, 
+      ref: normalizeRef(headBranch) 
+    });
+    console.log(`[Git] Head OID: ${headOid}`);
+
+    const isCrossRepo = baseStore.ownerId !== headStore.ownerId || baseStore.repoName !== headStore.repoName;
+    console.log(`[Git] Is cross-repo merge: ${isCrossRepo}`);
+    
+    if (isCrossRepo) {
+      const mergeBase = await findMergeBase(headStore.fs, headStore.dir, headOid, baseOid);
+      console.log(`[Git] Merge base for cross-repo: ${mergeBase}`);
+      
+      const copied = await copyCommitAndAncestors(headStore, baseStore, headOid, mergeBase);
+      if (!copied) {
+        console.error("[Git] Failed to copy git objects for cross-repo merge");
+        return null;
+      }
+      console.log("[Git] Successfully copied git objects for cross-repo merge");
+    }
+
+    const { commit: headCommit } = await git.readCommit({ 
+      fs: isCrossRepo ? baseStore.fs : headStore.fs, 
+      dir: isCrossRepo ? baseStore.dir : headStore.dir, 
+      oid: headOid 
+    });
+    const headTreeOid = headCommit.tree;
+    console.log(`[Git] Head tree OID: ${headTreeOid}`);
+
+    const timestamp = Math.floor(Date.now() / 1000);
+    const timezoneOffset = new Date().getTimezoneOffset();
+
+    console.log(`[Git] Creating merge commit with parents: [${baseOid}, ${headOid}]`);
+    const mergeCommitOid = await git.writeCommit({
+      fs: baseStore.fs,
+      dir: baseStore.dir,
+      commit: {
+        message: mergeMessage,
+        tree: headTreeOid,
+        parent: [baseOid, headOid],
+        author: {
+          name: authorName,
+          email: authorEmail,
+          timestamp,
+          timezoneOffset,
+        },
+        committer: {
+          name: authorName,
+          email: authorEmail,
+          timestamp,
+          timezoneOffset,
+        },
+      },
+    });
+    console.log(`[Git] Merge commit created: ${mergeCommitOid}`);
+
+    const refPath = `.git/refs/heads/${baseBranch}`;
+    console.log(`[Git] Updating ref at: ${refPath}`);
+    await baseStore.fs.promises.writeFile(refPath, mergeCommitOid + "\n");
+    console.log(`[Git] Ref updated successfully`);
+    
+    const verifyOid = await git.resolveRef({
+      fs: baseStore.fs,
+      dir: baseStore.dir,
+      ref: normalizeRef(baseBranch)
+    });
+    console.log(`[Git] Verified ref now points to: ${verifyOid}`);
+    
+    if (verifyOid !== mergeCommitOid) {
+      console.error(`[Git] WARNING: Ref verification failed! Expected ${mergeCommitOid} but got ${verifyOid}`);
+    }
+
+    return { mergeCommitOid };
+  } catch (error) {
+    console.error("[Git] performMerge error:", error);
+    return null;
+  }
+}
+
 export { repoCache };

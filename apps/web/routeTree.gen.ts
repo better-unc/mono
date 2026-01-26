@@ -24,8 +24,11 @@ import { Route as MainUsernameRepoIndexRouteImport } from './app/_main/$username
 import { Route as MainUsernameRepoSettingsRouteImport } from './app/_main/$username/$repo/settings'
 import { Route as MainUsernameRepoLabelsRouteImport } from './app/_main/$username/$repo/labels'
 import { Route as MainUsernameRepoCommitsRouteImport } from './app/_main/$username/$repo/commits'
+import { Route as MainUsernameRepoPullsIndexRouteImport } from './app/_main/$username/$repo/pulls/index'
 import { Route as MainUsernameRepoIssuesIndexRouteImport } from './app/_main/$username/$repo/issues/index'
 import { Route as MainUsernameRepoTreeSplatRouteImport } from './app/_main/$username/$repo/tree/$'
+import { Route as MainUsernameRepoPullsNewRouteImport } from './app/_main/$username/$repo/pulls/new'
+import { Route as MainUsernameRepoPullsNumberRouteImport } from './app/_main/$username/$repo/pulls/$number'
 import { Route as MainUsernameRepoIssuesNewRouteImport } from './app/_main/$username/$repo/issues/new'
 import { Route as MainUsernameRepoIssuesNumberRouteImport } from './app/_main/$username/$repo/issues/$number'
 import { Route as MainUsernameRepoCommitsBranchRouteImport } from './app/_main/$username/$repo/commits/$branch'
@@ -107,6 +110,12 @@ const MainUsernameRepoCommitsRoute = MainUsernameRepoCommitsRouteImport.update({
   path: '/commits',
   getParentRoute: () => MainUsernameRepoRoute,
 } as any)
+const MainUsernameRepoPullsIndexRoute =
+  MainUsernameRepoPullsIndexRouteImport.update({
+    id: '/pulls/',
+    path: '/pulls/',
+    getParentRoute: () => MainUsernameRepoRoute,
+  } as any)
 const MainUsernameRepoIssuesIndexRoute =
   MainUsernameRepoIssuesIndexRouteImport.update({
     id: '/issues/',
@@ -117,6 +126,18 @@ const MainUsernameRepoTreeSplatRoute =
   MainUsernameRepoTreeSplatRouteImport.update({
     id: '/tree/$',
     path: '/tree/$',
+    getParentRoute: () => MainUsernameRepoRoute,
+  } as any)
+const MainUsernameRepoPullsNewRoute =
+  MainUsernameRepoPullsNewRouteImport.update({
+    id: '/pulls/new',
+    path: '/pulls/new',
+    getParentRoute: () => MainUsernameRepoRoute,
+  } as any)
+const MainUsernameRepoPullsNumberRoute =
+  MainUsernameRepoPullsNumberRouteImport.update({
+    id: '/pulls/$number',
+    path: '/pulls/$number',
     getParentRoute: () => MainUsernameRepoRoute,
   } as any)
 const MainUsernameRepoIssuesNewRoute =
@@ -174,8 +195,11 @@ export interface FileRoutesByFullPath {
   '/$username/$repo/commits/$branch': typeof MainUsernameRepoCommitsBranchRouteWithChildren
   '/$username/$repo/issues/$number': typeof MainUsernameRepoIssuesNumberRoute
   '/$username/$repo/issues/new': typeof MainUsernameRepoIssuesNewRoute
+  '/$username/$repo/pulls/$number': typeof MainUsernameRepoPullsNumberRoute
+  '/$username/$repo/pulls/new': typeof MainUsernameRepoPullsNewRoute
   '/$username/$repo/tree/$': typeof MainUsernameRepoTreeSplatRoute
   '/$username/$repo/issues/': typeof MainUsernameRepoIssuesIndexRoute
+  '/$username/$repo/pulls/': typeof MainUsernameRepoPullsIndexRoute
   '/$username/$repo/commits/$branch/$oid': typeof MainUsernameRepoCommitsBranchOidRoute
   '/$username/$repo/commits/$branch/': typeof MainUsernameRepoCommitsBranchIndexRoute
 }
@@ -194,8 +218,11 @@ export interface FileRoutesByTo {
   '/$username/$repo/blob/$': typeof MainUsernameRepoBlobSplatRoute
   '/$username/$repo/issues/$number': typeof MainUsernameRepoIssuesNumberRoute
   '/$username/$repo/issues/new': typeof MainUsernameRepoIssuesNewRoute
+  '/$username/$repo/pulls/$number': typeof MainUsernameRepoPullsNumberRoute
+  '/$username/$repo/pulls/new': typeof MainUsernameRepoPullsNewRoute
   '/$username/$repo/tree/$': typeof MainUsernameRepoTreeSplatRoute
   '/$username/$repo/issues': typeof MainUsernameRepoIssuesIndexRoute
+  '/$username/$repo/pulls': typeof MainUsernameRepoPullsIndexRoute
   '/$username/$repo/commits/$branch/$oid': typeof MainUsernameRepoCommitsBranchOidRoute
   '/$username/$repo/commits/$branch': typeof MainUsernameRepoCommitsBranchIndexRoute
 }
@@ -220,8 +247,11 @@ export interface FileRoutesById {
   '/_main/$username/$repo/commits/$branch': typeof MainUsernameRepoCommitsBranchRouteWithChildren
   '/_main/$username/$repo/issues/$number': typeof MainUsernameRepoIssuesNumberRoute
   '/_main/$username/$repo/issues/new': typeof MainUsernameRepoIssuesNewRoute
+  '/_main/$username/$repo/pulls/$number': typeof MainUsernameRepoPullsNumberRoute
+  '/_main/$username/$repo/pulls/new': typeof MainUsernameRepoPullsNewRoute
   '/_main/$username/$repo/tree/$': typeof MainUsernameRepoTreeSplatRoute
   '/_main/$username/$repo/issues/': typeof MainUsernameRepoIssuesIndexRoute
+  '/_main/$username/$repo/pulls/': typeof MainUsernameRepoPullsIndexRoute
   '/_main/$username/$repo/commits/$branch/$oid': typeof MainUsernameRepoCommitsBranchOidRoute
   '/_main/$username/$repo/commits/$branch/': typeof MainUsernameRepoCommitsBranchIndexRoute
 }
@@ -245,8 +275,11 @@ export interface FileRouteTypes {
     | '/$username/$repo/commits/$branch'
     | '/$username/$repo/issues/$number'
     | '/$username/$repo/issues/new'
+    | '/$username/$repo/pulls/$number'
+    | '/$username/$repo/pulls/new'
     | '/$username/$repo/tree/$'
     | '/$username/$repo/issues/'
+    | '/$username/$repo/pulls/'
     | '/$username/$repo/commits/$branch/$oid'
     | '/$username/$repo/commits/$branch/'
   fileRoutesByTo: FileRoutesByTo
@@ -265,8 +298,11 @@ export interface FileRouteTypes {
     | '/$username/$repo/blob/$'
     | '/$username/$repo/issues/$number'
     | '/$username/$repo/issues/new'
+    | '/$username/$repo/pulls/$number'
+    | '/$username/$repo/pulls/new'
     | '/$username/$repo/tree/$'
     | '/$username/$repo/issues'
+    | '/$username/$repo/pulls'
     | '/$username/$repo/commits/$branch/$oid'
     | '/$username/$repo/commits/$branch'
   id:
@@ -290,8 +326,11 @@ export interface FileRouteTypes {
     | '/_main/$username/$repo/commits/$branch'
     | '/_main/$username/$repo/issues/$number'
     | '/_main/$username/$repo/issues/new'
+    | '/_main/$username/$repo/pulls/$number'
+    | '/_main/$username/$repo/pulls/new'
     | '/_main/$username/$repo/tree/$'
     | '/_main/$username/$repo/issues/'
+    | '/_main/$username/$repo/pulls/'
     | '/_main/$username/$repo/commits/$branch/$oid'
     | '/_main/$username/$repo/commits/$branch/'
   fileRoutesById: FileRoutesById
@@ -409,6 +448,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainUsernameRepoCommitsRouteImport
       parentRoute: typeof MainUsernameRepoRoute
     }
+    '/_main/$username/$repo/pulls/': {
+      id: '/_main/$username/$repo/pulls/'
+      path: '/pulls'
+      fullPath: '/$username/$repo/pulls/'
+      preLoaderRoute: typeof MainUsernameRepoPullsIndexRouteImport
+      parentRoute: typeof MainUsernameRepoRoute
+    }
     '/_main/$username/$repo/issues/': {
       id: '/_main/$username/$repo/issues/'
       path: '/issues'
@@ -421,6 +467,20 @@ declare module '@tanstack/react-router' {
       path: '/tree/$'
       fullPath: '/$username/$repo/tree/$'
       preLoaderRoute: typeof MainUsernameRepoTreeSplatRouteImport
+      parentRoute: typeof MainUsernameRepoRoute
+    }
+    '/_main/$username/$repo/pulls/new': {
+      id: '/_main/$username/$repo/pulls/new'
+      path: '/pulls/new'
+      fullPath: '/$username/$repo/pulls/new'
+      preLoaderRoute: typeof MainUsernameRepoPullsNewRouteImport
+      parentRoute: typeof MainUsernameRepoRoute
+    }
+    '/_main/$username/$repo/pulls/$number': {
+      id: '/_main/$username/$repo/pulls/$number'
+      path: '/pulls/$number'
+      fullPath: '/$username/$repo/pulls/$number'
+      preLoaderRoute: typeof MainUsernameRepoPullsNumberRouteImport
       parentRoute: typeof MainUsernameRepoRoute
     }
     '/_main/$username/$repo/issues/new': {
@@ -521,8 +581,11 @@ interface MainUsernameRepoRouteChildren {
   MainUsernameRepoBlobSplatRoute: typeof MainUsernameRepoBlobSplatRoute
   MainUsernameRepoIssuesNumberRoute: typeof MainUsernameRepoIssuesNumberRoute
   MainUsernameRepoIssuesNewRoute: typeof MainUsernameRepoIssuesNewRoute
+  MainUsernameRepoPullsNumberRoute: typeof MainUsernameRepoPullsNumberRoute
+  MainUsernameRepoPullsNewRoute: typeof MainUsernameRepoPullsNewRoute
   MainUsernameRepoTreeSplatRoute: typeof MainUsernameRepoTreeSplatRoute
   MainUsernameRepoIssuesIndexRoute: typeof MainUsernameRepoIssuesIndexRoute
+  MainUsernameRepoPullsIndexRoute: typeof MainUsernameRepoPullsIndexRoute
 }
 
 const MainUsernameRepoRouteChildren: MainUsernameRepoRouteChildren = {
@@ -533,8 +596,11 @@ const MainUsernameRepoRouteChildren: MainUsernameRepoRouteChildren = {
   MainUsernameRepoBlobSplatRoute: MainUsernameRepoBlobSplatRoute,
   MainUsernameRepoIssuesNumberRoute: MainUsernameRepoIssuesNumberRoute,
   MainUsernameRepoIssuesNewRoute: MainUsernameRepoIssuesNewRoute,
+  MainUsernameRepoPullsNumberRoute: MainUsernameRepoPullsNumberRoute,
+  MainUsernameRepoPullsNewRoute: MainUsernameRepoPullsNewRoute,
   MainUsernameRepoTreeSplatRoute: MainUsernameRepoTreeSplatRoute,
   MainUsernameRepoIssuesIndexRoute: MainUsernameRepoIssuesIndexRoute,
+  MainUsernameRepoPullsIndexRoute: MainUsernameRepoPullsIndexRoute,
 }
 
 const MainUsernameRepoRouteWithChildren =

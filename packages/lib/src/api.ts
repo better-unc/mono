@@ -7,7 +7,13 @@ import type {
   IssueComment,
   IssueFilters,
   Label,
+  PRComment,
+  PRCount,
+  PRDiff,
+  PRFilters,
+  PRReview,
   PublicUser,
+  PullRequest,
   RepoInfo,
   RepoPageData,
   Repository,
@@ -318,6 +324,143 @@ export function createApiClient(config: ApiClientConfig): Omit<ApiClient, "setti
 
       toggleCommentReaction: (commentId: string, emoji: string) =>
         apiFetch<{ added: boolean }>(`/api/issues/comments/${commentId}/reactions`, {
+          method: "POST",
+          body: JSON.stringify({ emoji }),
+        }),
+    },
+
+    pullRequests: {
+      list: (owner: string, repo: string, filters?: PRFilters) => {
+        const params = new URLSearchParams();
+        if (filters?.state) params.set("state", filters.state);
+        if (filters?.label) params.set("label", filters.label);
+        if (filters?.assignee) params.set("assignee", filters.assignee);
+        if (filters?.reviewer) params.set("reviewer", filters.reviewer);
+        if (filters?.author) params.set("author", filters.author);
+        if (filters?.limit) params.set("limit", String(filters.limit));
+        if (filters?.offset) params.set("offset", String(filters.offset));
+        const query = params.toString();
+        return apiFetch<{ pullRequests: PullRequest[]; hasMore: boolean }>(
+          `/api/repositories/${owner}/${repo}/pulls${query ? `?${query}` : ""}`
+        );
+      },
+
+      get: (owner: string, repo: string, number: number) =>
+        apiFetch<PullRequest>(`/api/repositories/${owner}/${repo}/pulls/${number}`),
+
+      create: (
+        owner: string,
+        repo: string,
+        data: {
+          title: string;
+          body?: string;
+          headRepoOwner?: string;
+          headRepoName?: string;
+          headBranch: string;
+          baseBranch?: string;
+          labels?: string[];
+          assignees?: string[];
+          reviewers?: string[];
+        }
+      ) =>
+        apiFetch<PullRequest>(`/api/repositories/${owner}/${repo}/pulls`, {
+          method: "POST",
+          body: JSON.stringify(data),
+        }),
+
+      update: (id: string, data: { title?: string; body?: string; state?: "open" | "closed" }) =>
+        apiFetch<{ success: boolean }>(`/api/pulls/${id}`, {
+          method: "PATCH",
+          body: JSON.stringify(data),
+        }),
+
+      delete: (id: string) =>
+        apiFetch<{ success: boolean }>(`/api/pulls/${id}`, {
+          method: "DELETE",
+        }),
+
+      getCount: (owner: string, repo: string) =>
+        apiFetch<PRCount>(`/api/repositories/${owner}/${repo}/pulls/count`),
+
+      getDiff: (id: string) => apiFetch<PRDiff>(`/api/pulls/${id}/diff`),
+
+      getCommits: (id: string, limit = 30, skip = 0) =>
+        apiFetch<{ commits: Commit[]; hasMore: boolean }>(`/api/pulls/${id}/commits?limit=${limit}&skip=${skip}`),
+
+      merge: (id: string, data?: { commitMessage?: string }) =>
+        apiFetch<{ success: boolean; mergeCommitOid: string }>(`/api/pulls/${id}/merge`, {
+          method: "POST",
+          body: JSON.stringify(data || {}),
+        }),
+
+      listReviews: (id: string) => apiFetch<{ reviews: PRReview[] }>(`/api/pulls/${id}/reviews`),
+
+      submitReview: (id: string, data: { body?: string; state: "approved" | "changes_requested" | "commented" }) =>
+        apiFetch<PRReview>(`/api/pulls/${id}/reviews`, {
+          method: "POST",
+          body: JSON.stringify(data),
+        }),
+
+      listComments: (id: string) => apiFetch<{ comments: PRComment[] }>(`/api/pulls/${id}/comments`),
+
+      createComment: (id: string, body: string) =>
+        apiFetch<PRComment>(`/api/pulls/${id}/comments`, {
+          method: "POST",
+          body: JSON.stringify({ body }),
+        }),
+
+      updateComment: (commentId: string, body: string) =>
+        apiFetch<{ success: boolean }>(`/api/pulls/comments/${commentId}`, {
+          method: "PATCH",
+          body: JSON.stringify({ body }),
+        }),
+
+      deleteComment: (commentId: string) =>
+        apiFetch<{ success: boolean }>(`/api/pulls/comments/${commentId}`, {
+          method: "DELETE",
+        }),
+
+      addLabels: (id: string, labels: string[]) =>
+        apiFetch<{ success: boolean }>(`/api/pulls/${id}/labels`, {
+          method: "POST",
+          body: JSON.stringify({ labels }),
+        }),
+
+      removeLabel: (id: string, labelId: string) =>
+        apiFetch<{ success: boolean }>(`/api/pulls/${id}/labels/${labelId}`, {
+          method: "DELETE",
+        }),
+
+      addAssignees: (id: string, assignees: string[]) =>
+        apiFetch<{ success: boolean }>(`/api/pulls/${id}/assignees`, {
+          method: "POST",
+          body: JSON.stringify({ assignees }),
+        }),
+
+      removeAssignee: (id: string, userId: string) =>
+        apiFetch<{ success: boolean }>(`/api/pulls/${id}/assignees/${userId}`, {
+          method: "DELETE",
+        }),
+
+      addReviewers: (id: string, reviewers: string[]) =>
+        apiFetch<{ success: boolean }>(`/api/pulls/${id}/reviewers`, {
+          method: "POST",
+          body: JSON.stringify({ reviewers }),
+        }),
+
+      removeReviewer: (id: string, userId: string) =>
+        apiFetch<{ success: boolean }>(`/api/pulls/${id}/reviewers/${userId}`, {
+          method: "DELETE",
+        }),
+
+      toggleReaction: (id: string, emoji: string) =>
+        apiFetch<{ added: boolean }>(`/api/pulls/${id}/reactions`, {
+          method: "POST",
+          body: JSON.stringify({ emoji }),
+        }),
+
+      toggleCommentReaction: (commentId: string, emoji: string) =>
+        apiFetch<{ added: boolean }>(`/api/pulls/comments/${commentId}/reactions`, {
           method: "POST",
           body: JSON.stringify({ emoji }),
         }),

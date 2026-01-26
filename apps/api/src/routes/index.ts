@@ -7,6 +7,7 @@ import git from "./git";
 import gitProtocol from "./git-protocol";
 import file from "./file";
 import issues from "./issues";
+import pullRequests from "./pull-requests";
 import settings from "./settings";
 
 export function mountRoutes(app: Hono) {
@@ -18,5 +19,6 @@ export function mountRoutes(app: Hono) {
   app.route("/", gitProtocol);
   app.route("/", file);
   app.route("/", issues);
+  app.route("/", pullRequests);
   app.route("/", settings);
 }

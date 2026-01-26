@@ -265,6 +265,141 @@ export const apiKeys = pgTable("api_key", {
   metadata: jsonb("metadata"),
 });
 
+export const pullRequests = pgTable(
+  "pull_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    number: integer("number").notNull(),
+    repositoryId: uuid("repository_id")
+      .notNull()
+      .references(() => repositories.id, { onDelete: "cascade" }),
+    authorId: text("author_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    body: text("body"),
+    state: text("state", { enum: ["open", "closed", "merged"] }).notNull().default("open"),
+    headRepoId: uuid("head_repo_id")
+      .notNull()
+      .references(() => repositories.id),
+    headBranch: text("head_branch").notNull(),
+    headOid: text("head_oid").notNull(),
+    baseRepoId: uuid("base_repo_id")
+      .notNull()
+      .references(() => repositories.id),
+    baseBranch: text("base_branch").notNull(),
+    baseOid: text("base_oid").notNull(),
+    merged: boolean("merged").notNull().default(false),
+    mergedAt: timestamp("merged_at"),
+    mergedById: text("merged_by_id").references(() => users.id),
+    mergeCommitOid: text("merge_commit_oid"),
+    closedAt: timestamp("closed_at"),
+    closedById: text("closed_by_id").references(() => users.id),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("pull_requests_repository_id_idx").on(table.repositoryId),
+    index("pull_requests_repository_number_idx").on(table.repositoryId, table.number),
+    index("pull_requests_head_repo_id_idx").on(table.headRepoId),
+    index("pull_requests_base_repo_id_idx").on(table.baseRepoId),
+  ]
+);
+
+export const prReviews = pgTable(
+  "pr_reviews",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    pullRequestId: uuid("pull_request_id")
+      .notNull()
+      .references(() => pullRequests.id, { onDelete: "cascade" }),
+    authorId: text("author_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    body: text("body"),
+    state: text("state", { enum: ["approved", "changes_requested", "commented"] }).notNull(),
+    commitOid: text("commit_oid").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [index("pr_reviews_pull_request_id_idx").on(table.pullRequestId)]
+);
+
+export const prComments = pgTable(
+  "pr_comments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    pullRequestId: uuid("pull_request_id")
+      .notNull()
+      .references(() => pullRequests.id, { onDelete: "cascade" }),
+    authorId: text("author_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [index("pr_comments_pull_request_id_idx").on(table.pullRequestId)]
+);
+
+export const prLabels = pgTable(
+  "pr_labels",
+  {
+    pullRequestId: uuid("pull_request_id")
+      .notNull()
+      .references(() => pullRequests.id, { onDelete: "cascade" }),
+    labelId: uuid("label_id")
+      .notNull()
+      .references(() => labels.id, { onDelete: "cascade" }),
+  },
+  (table) => [primaryKey({ columns: [table.pullRequestId, table.labelId] })]
+);
+
+export const prAssignees = pgTable(
+  "pr_assignees",
+  {
+    pullRequestId: uuid("pull_request_id")
+      .notNull()
+      .references(() => pullRequests.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    assignedAt: timestamp("assigned_at").notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.pullRequestId, table.userId] })]
+);
+
+export const prReviewers = pgTable(
+  "pr_reviewers",
+  {
+    pullRequestId: uuid("pull_request_id")
+      .notNull()
+      .references(() => pullRequests.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    requestedAt: timestamp("requested_at").notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.pullRequestId, table.userId] })]
+);
+
+export const prReactions = pgTable(
+  "pr_reactions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    pullRequestId: uuid("pull_request_id").references(() => pullRequests.id, { onDelete: "cascade" }),
+    commentId: uuid("comment_id").references(() => prComments.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    emoji: text("emoji").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("pr_reactions_pull_request_id_idx").on(table.pullRequestId),
+    index("pr_reactions_comment_id_idx").on(table.commentId),
+  ]
+);
+
 export const passkeys = pgTable(
   "passkey",
   {
@@ -352,6 +487,7 @@ export const labelRelations = relations(labels, ({ one, many }) => ({
     references: [repositories.id],
   }),
   issues: many(issueLabels),
+  pullRequests: many(prLabels),
 }));
 
 export const issueLabelRelations = relations(issueLabels, ({ one }) => ({
@@ -399,6 +535,116 @@ export const issueReactionRelations = relations(issueReactions, ({ one }) => ({
   }),
   user: one(users, {
     fields: [issueReactions.userId],
+    references: [users.id],
+  }),
+}));
+
+export const pullRequestRelations = relations(pullRequests, ({ one, many }) => ({
+  repository: one(repositories, {
+    fields: [pullRequests.repositoryId],
+    references: [repositories.id],
+    relationName: "pullRequestRepository",
+  }),
+  author: one(users, {
+    fields: [pullRequests.authorId],
+    references: [users.id],
+    relationName: "pullRequestAuthor",
+  }),
+  headRepo: one(repositories, {
+    fields: [pullRequests.headRepoId],
+    references: [repositories.id],
+    relationName: "pullRequestHeadRepo",
+  }),
+  baseRepo: one(repositories, {
+    fields: [pullRequests.baseRepoId],
+    references: [repositories.id],
+    relationName: "pullRequestBaseRepo",
+  }),
+  mergedBy: one(users, {
+    fields: [pullRequests.mergedById],
+    references: [users.id],
+    relationName: "pullRequestMergedBy",
+  }),
+  closedBy: one(users, {
+    fields: [pullRequests.closedById],
+    references: [users.id],
+    relationName: "pullRequestClosedBy",
+  }),
+  labels: many(prLabels),
+  assignees: many(prAssignees),
+  reviewers: many(prReviewers),
+  reviews: many(prReviews),
+  comments: many(prComments),
+  reactions: many(prReactions),
+}));
+
+export const prReviewRelations = relations(prReviews, ({ one }) => ({
+  pullRequest: one(pullRequests, {
+    fields: [prReviews.pullRequestId],
+    references: [pullRequests.id],
+  }),
+  author: one(users, {
+    fields: [prReviews.authorId],
+    references: [users.id],
+  }),
+}));
+
+export const prCommentRelations = relations(prComments, ({ one, many }) => ({
+  pullRequest: one(pullRequests, {
+    fields: [prComments.pullRequestId],
+    references: [pullRequests.id],
+  }),
+  author: one(users, {
+    fields: [prComments.authorId],
+    references: [users.id],
+  }),
+  reactions: many(prReactions),
+}));
+
+export const prLabelRelations = relations(prLabels, ({ one }) => ({
+  pullRequest: one(pullRequests, {
+    fields: [prLabels.pullRequestId],
+    references: [pullRequests.id],
+  }),
+  label: one(labels, {
+    fields: [prLabels.labelId],
+    references: [labels.id],
+  }),
+}));
+
+export const prAssigneeRelations = relations(prAssignees, ({ one }) => ({
+  pullRequest: one(pullRequests, {
+    fields: [prAssignees.pullRequestId],
+    references: [pullRequests.id],
+  }),
+  user: one(users, {
+    fields: [prAssignees.userId],
+    references: [users.id],
+  }),
+}));
+
+export const prReviewerRelations = relations(prReviewers, ({ one }) => ({
+  pullRequest: one(pullRequests, {
+    fields: [prReviewers.pullRequestId],
+    references: [pullRequests.id],
+  }),
+  user: one(users, {
+    fields: [prReviewers.userId],
+    references: [users.id],
+  }),
+}));
+
+export const prReactionRelations = relations(prReactions, ({ one }) => ({
+  pullRequest: one(pullRequests, {
+    fields: [prReactions.pullRequestId],
+    references: [pullRequests.id],
+  }),
+  comment: one(prComments, {
+    fields: [prReactions.commentId],
+    references: [prComments.id],
+  }),
+  user: one(users, {
+    fields: [prReactions.userId],
     references: [users.id],
   }),
 }));

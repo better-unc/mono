@@ -4,12 +4,13 @@ import { createFileRoute, Link, Outlet, useLocation, useNavigate, useParams } fr
 import {
   CodeIcon,
   GitForkIcon,
+  GitPullRequestIcon,
   Loading02Icon,
   RecordIcon,
   SettingsIcon,
   WorkHistoryIcon,
 } from "@hugeicons-pro/core-stroke-standard";
-import { useForkRepository, useIssueCount, useRepoBranches, useRepoCommitCount, useRepositoryInfo } from "@gitbruv/hooks";
+import { useForkRepository, useIssueCount, usePullRequestCount, useRepoBranches, useRepoCommitCount, useRepositoryInfo } from "@gitbruv/hooks";
 import { BranchSelector } from "@/components/branch-selector";
 import { CloneUrl } from "@/components/clone-url";
 import { StarButton } from "@/components/star-button";
@@ -54,6 +55,7 @@ function RepoLayoutContent() {
   const { data: repoInfo, isLoading: isLoadingInfo } = useRepositoryInfo(username, repoName);
   const { data: branchesData, isLoading: isLoadingBranches } = useRepoBranches(username, repoName);
   const { data: issueCountData } = useIssueCount(username, repoName);
+  const { data: prCountData } = usePullRequestCount(username, repoName);
   const forkMutation = useForkRepository(username, repoName);
 
   const repo = repoInfo?.repo;
@@ -62,16 +64,18 @@ function RepoLayoutContent() {
   const currentBranch = getBranchFromPath(location.pathname, defaultBranch);
   const branches = branchesData?.branches || [];
   const openIssueCount = issueCountData?.open || 0;
+  const openPRCount = prCountData?.open || 0;
 
   const { data: commitCountData } = useRepoCommitCount(username, repoName, currentBranch);
   const commitCount = commitCountData?.count || 0;
 
   const pathname = location.pathname;
   const isIssues = pathname.includes("/issues") || pathname.includes("/labels");
+  const isPulls = pathname.includes("/pulls");
   const isCommits = pathname.includes("/commits");
   const isSettings = pathname.includes("/settings");
 
-  const currentTab = isSettings ? "settings" : isCommits ? "commits" : isIssues ? "issues" : "code";
+  const currentTab = isSettings ? "settings" : isCommits ? "commits" : isPulls ? "pulls" : isIssues ? "issues" : "code";
   const forkCount = repo?.forkCount ?? 0;
   const [isForkDialogOpen, setIsForkDialogOpen] = useState(false);
   const [forkName, setForkName] = useState("");
@@ -159,6 +163,17 @@ function RepoLayoutContent() {
                   {openIssueCount > 0 && (
                     <span className="ml-0.5 px-1.5 py-0.5 text-[10px] font-medium bg-muted ">
                       {openIssueCount}
+                    </span>
+                  )}
+                </TabsTrigger>
+              </Link>
+              <Link to="/$username/$repo/pulls" params={{ username, repo: repoName }}>
+                <TabsTrigger value="pulls" className="gap-1.5 text-sm px-3 py-1.5 data-[state=active]:bg-secondary">
+                  <HugeiconsIcon icon={GitPullRequestIcon} strokeWidth={2} className="size-4" />
+                  <span>Pull Requests</span>
+                  {openPRCount > 0 && (
+                    <span className="ml-0.5 px-1.5 py-0.5 text-[10px] font-medium bg-muted ">
+                      {openPRCount}
                     </span>
                   )}
                 </TabsTrigger>

@@ -226,6 +226,80 @@ export type IssueFilters = {
   offset?: number;
 };
 
+export type PRRepoInfo = {
+  id: string;
+  name: string;
+  owner: Owner;
+};
+
+export type PRReview = {
+  id: string;
+  author: Owner;
+  body: string | null;
+  state: "approved" | "changes_requested" | "commented";
+  commitOid: string;
+  createdAt: string;
+};
+
+export type PullRequest = {
+  id: string;
+  number: number;
+  title: string;
+  body: string | null;
+  state: "open" | "closed" | "merged";
+  author: Owner;
+  headRepo: PRRepoInfo | null;
+  headBranch: string;
+  headOid: string;
+  baseRepo: PRRepoInfo | null;
+  baseBranch: string;
+  baseOid: string;
+  merged: boolean;
+  mergedAt: string | null;
+  mergedBy: Owner | null;
+  mergeCommitOid: string | null;
+  labels: Label[];
+  assignees: Owner[];
+  reviewers: Owner[];
+  reviews: PRReview[];
+  reactions: ReactionSummary[];
+  commentCount: number;
+  createdAt: string;
+  updatedAt: string;
+  closedAt: string | null;
+  closedBy: Owner | null;
+};
+
+export type PRComment = {
+  id: string;
+  body: string;
+  author: Owner;
+  reactions: ReactionSummary[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PRFilters = {
+  state?: "open" | "closed" | "merged" | "all";
+  author?: string;
+  assignee?: string;
+  reviewer?: string;
+  label?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export type PRDiff = {
+  files: FileDiff[];
+  stats: DiffStats;
+};
+
+export type PRCount = {
+  open: number;
+  closed: number;
+  merged: number;
+};
+
 export type ApiClient = {
   repositories: {
     create: (data: { name: string; description?: string; visibility: "public" | "private" }) => Promise<Repository>;
@@ -301,6 +375,41 @@ export type ApiClient = {
     updateComment: (commentId: string, body: string) => Promise<{ success: boolean }>;
     deleteComment: (commentId: string) => Promise<{ success: boolean }>;
     toggleIssueReaction: (issueId: string, emoji: string) => Promise<{ added: boolean }>;
+    toggleCommentReaction: (commentId: string, emoji: string) => Promise<{ added: boolean }>;
+  };
+  pullRequests: {
+    list: (owner: string, repo: string, filters?: PRFilters) => Promise<{ pullRequests: PullRequest[]; hasMore: boolean }>;
+    get: (owner: string, repo: string, number: number) => Promise<PullRequest>;
+    create: (owner: string, repo: string, data: {
+      title: string;
+      body?: string;
+      headRepoOwner?: string;
+      headRepoName?: string;
+      headBranch: string;
+      baseBranch?: string;
+      labels?: string[];
+      assignees?: string[];
+      reviewers?: string[];
+    }) => Promise<PullRequest>;
+    update: (id: string, data: { title?: string; body?: string; state?: "open" | "closed" }) => Promise<{ success: boolean }>;
+    delete: (id: string) => Promise<{ success: boolean }>;
+    getCount: (owner: string, repo: string) => Promise<PRCount>;
+    getDiff: (id: string) => Promise<PRDiff>;
+    getCommits: (id: string, limit?: number, skip?: number) => Promise<{ commits: Commit[]; hasMore: boolean }>;
+    merge: (id: string, data?: { commitMessage?: string }) => Promise<{ success: boolean; mergeCommitOid: string }>;
+    listReviews: (id: string) => Promise<{ reviews: PRReview[] }>;
+    submitReview: (id: string, data: { body?: string; state: "approved" | "changes_requested" | "commented" }) => Promise<PRReview>;
+    listComments: (id: string) => Promise<{ comments: PRComment[] }>;
+    createComment: (id: string, body: string) => Promise<PRComment>;
+    updateComment: (commentId: string, body: string) => Promise<{ success: boolean }>;
+    deleteComment: (commentId: string) => Promise<{ success: boolean }>;
+    addLabels: (id: string, labels: string[]) => Promise<{ success: boolean }>;
+    removeLabel: (id: string, labelId: string) => Promise<{ success: boolean }>;
+    addAssignees: (id: string, assignees: string[]) => Promise<{ success: boolean }>;
+    removeAssignee: (id: string, userId: string) => Promise<{ success: boolean }>;
+    addReviewers: (id: string, reviewers: string[]) => Promise<{ success: boolean }>;
+    removeReviewer: (id: string, userId: string) => Promise<{ success: boolean }>;
+    toggleReaction: (id: string, emoji: string) => Promise<{ added: boolean }>;
     toggleCommentReaction: (commentId: string, emoji: string) => Promise<{ added: boolean }>;
   };
 };
