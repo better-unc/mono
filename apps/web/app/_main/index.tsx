@@ -1,12 +1,12 @@
 import { useState } from "react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { GitBranchIcon, Loading02Icon, PlusSignIcon } from "@hugeicons-pro/core-stroke-standard";
+import { Link, createFileRoute } from "@tanstack/react-router";
+import { useCurrentUserSummary, useUserRepositories } from "@gitbruv/hooks";
 import RepositoryCard from "@/components/repository-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/auth-client";
-import { useCurrentUserSummary, useUserRepositories } from "@gitbruv/hooks";
-import { createFileRoute } from "@tanstack/react-router";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { GitBranchIcon, Loading02Icon, PlusSignIcon } from "@hugeicons-pro/core-stroke-standard";
 import { NewRepositoryModal } from "@/components/new-repository-modal";
 
 export const Route = createFileRoute("/_main/")({
@@ -31,10 +31,9 @@ function HomePage() {
   return <LoggedInHomePage session={session} />;
 }
 
-function LoggedInHomePage({ session }: { session: { user: { username?: string; [key: string]: any }; [key: string]: any } }) {
-  // @ts-ignore
-  const username = session?.user?.username || "";
-  const { data: user, isLoading: userLoading } = useCurrentUserSummary(!!session?.user);
+function LoggedInHomePage({ session }: { session: { user: { username?: string;[key: string]: any };[key: string]: any } }) {
+  const username = session.user.username || "";
+  const { data: user, isLoading: userLoading } = useCurrentUserSummary(!!session.user);
   const { data, isLoading: reposLoading } = useUserRepositories(username);
   const [newRepoModalOpen, setNewRepoModalOpen] = useState(false);
 
@@ -57,7 +56,7 @@ function LoggedInHomePage({ session }: { session: { user: { username?: string; [
               <Avatar className="size-12 rounded-none border-none after:border-none">
                 <AvatarImage src={user?.avatarUrl || undefined} className="rounded-none border-none" />
                 <AvatarFallback className="bg-muted text-muted-foreground font-semibold rounded-none">
-                  {user?.name?.charAt(0).toUpperCase() || "U"}
+                  {user?.name.charAt(0).toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0">

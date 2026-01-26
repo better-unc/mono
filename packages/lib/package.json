@@ -9,6 +9,7 @@
     ".": "./src/index.ts",
     "./language": "./src/language.ts",
     "./validation": "./src/validation.ts",
+    "./api": "./src/api.ts",
     "./query": "./src/query.ts",
     "./date": "./src/date.ts",
     "./string": "./src/string.ts"
@@ -19,6 +20,7 @@
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
+    "@gitbruv/hooks": "workspace:*",
     "typescript": "^5"
   }
 }
