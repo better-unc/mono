@@ -1,13 +1,13 @@
 import { useState } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Loading02Icon } from "@hugeicons-pro/core-stroke-standard";
+import { validateUsername } from "@gitbruv/lib";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { signUpWithUsername } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Loading02Icon } from "@hugeicons-pro/core-stroke-standard";
-import { validateUsername } from "@gitbruv/lib";
 
 export const Route = createFileRoute("/_auth/register")({
   component: RegisterPage,
@@ -71,6 +71,7 @@ function RegisterPage() {
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="John Doe"
+              autoComplete="name"
               required
               className="bg-input/50 h-11"
             />
@@ -83,6 +84,7 @@ function RegisterPage() {
               value={formData.username}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               placeholder="johndoe"
+              autoComplete="username"
               required
               className="bg-input/50 h-11"
             />
@@ -96,6 +98,7 @@ function RegisterPage() {
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               placeholder="you@example.com"
+              autoComplete="email"
               required
               className="bg-input/50 h-11"
             />
@@ -108,6 +111,7 @@ function RegisterPage() {
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               placeholder="••••••••"
+              autoComplete="new-password"
               required
               minLength={8}
               className="bg-input/50 h-11"

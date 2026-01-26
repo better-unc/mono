@@ -1,12 +1,12 @@
-import { useState, useEffect } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { signIn, authClient } from "@/lib/auth-client";
+import { useEffect, useState } from "react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { FingerPrintIcon, Loading02Icon } from "@hugeicons-pro/core-stroke-standard";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
+import { authClient, signIn } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { FingerPrintIcon, Loading02Icon } from "@hugeicons-pro/core-stroke-standard";
 
 export const Route = createFileRoute("/_auth/login")({
   component: LoginPage,
@@ -86,8 +86,8 @@ function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
+              autoComplete="email"
               required
-              autoComplete="username webauthn"
               className="bg-input/50 h-11"
             />
           </div>
@@ -99,8 +99,8 @@ function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
+              autoComplete="current-password"
               required
-              autoComplete="current-password webauthn"
               className="bg-input/50 h-11"
             />
           </div>
