@@ -19,6 +19,8 @@ import {
 } from "@hugeicons-pro/core-stroke-standard";
 import { useTheme } from "tanstack-theme-kit";
 import { NewRepositoryModal } from "@/components/new-repository-modal";
+import { SearchBar } from "@/components/search";
+import { NotificationDropdown } from "@/components/notifications";
 
 export function Header() {
   const navigate = useNavigate();
@@ -66,6 +68,8 @@ export function Header() {
               </>
             )}
           </div>
+
+          <SearchBar className="hidden md:block" />
         </div>
 
         <div className="flex items-center gap-1">
@@ -79,9 +83,7 @@ export function Header() {
             </Button>
             {session?.user ? (
               <>
-                <Button variant="ghost" size="icon">
-                  <HugeiconsIcon icon={Notification01Icon} strokeWidth={2} className="size-4" />
-                </Button>
+                <NotificationDropdown />
                 <Button variant="ghost" size="icon">
                   <HugeiconsIcon icon={InboxIcon} strokeWidth={2} className="size-4" />
                 </Button>

@@ -5,6 +5,8 @@ export function timeAgo(date: Date | string | number): string {
   return fnsFormatDistanceToNow(d, { addSuffix: true });
 }
 
+export const formatRelativeTime = timeAgo;
+
 export function formatDate(date: Date | string | number, formatStr: string = "MMMM yyyy"): string {
   const d = typeof date === "string" || typeof date === "number" ? new Date(date) : date;
   return fnsFormat(d, formatStr);

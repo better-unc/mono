@@ -9,6 +9,10 @@ import file from "./file";
 import issues from "./issues";
 import pullRequests from "./pull-requests";
 import settings from "./settings";
+import search from "./search";
+import notifications from "./notifications";
+import discussions from "./discussions";
+import projects from "./projects";
 
 export function mountRoutes(app: Hono) {
   app.route("/", health);
@@ -21,4 +25,8 @@ export function mountRoutes(app: Hono) {
   app.route("/", issues);
   app.route("/", pullRequests);
   app.route("/", settings);
+  app.route("/", search);
+  app.route("/", notifications);
+  app.route("/", discussions);
+  app.route("/", projects);
 }

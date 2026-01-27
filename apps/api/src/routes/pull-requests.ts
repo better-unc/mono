@@ -245,6 +245,7 @@ async function enrichPullRequest(pr: any, currentUserId?: string) {
     title: pr.title,
     body: pr.body,
     state: pr.state,
+    isDraft: pr.isDraft ?? false,
     author: author || { id: pr.authorId, username: "unknown", name: "Unknown", avatarUrl: null },
     headRepo,
     headBranch: pr.headBranch,
@@ -332,6 +333,7 @@ app.post("/api/repositories/:owner/:name/pulls", requireAuth, async (c) => {
     labels?: string[];
     assignees?: string[];
     reviewers?: string[];
+    isDraft?: boolean;
   }>();
 
   const repoAccess = await getRepoAndCheckAccess(owner, name, user.id);
@@ -408,6 +410,7 @@ app.post("/api/repositories/:owner/:name/pulls", requireAuth, async (c) => {
       baseRepoId: repoAccess.repoId,
       baseBranch,
       baseOid,
+      isDraft: body.isDraft ?? false,
     })
     .returning();
 
@@ -695,6 +698,10 @@ app.post("/api/pulls/:id/merge", requireAuth, async (c) => {
     return c.json({ error: "Pull request is already merged" }, 400);
   }
 
+  if (pr.isDraft) {
+    return c.json({ error: "Cannot merge a draft pull request. Mark it as ready for review first." }, 400);
+  }
+
   const baseRepo = await db.query.repositories.findFirst({
     where: eq(repositories.id, pr.baseRepoId),
   });
@@ -749,6 +756,74 @@ app.post("/api/pulls/:id/merge", requireAuth, async (c) => {
   await repoCache.invalidateBranch(baseRepo.ownerId, baseRepo.name, pr.baseBranch);
 
   return c.json({ success: true, mergeCommitOid: mergeResult.mergeCommitOid });
+});
+
+app.patch("/api/pulls/:id/ready", requireAuth, async (c) => {
+  const id = c.req.param("id");
+  const user = c.get("user")!;
+
+  const pr = await db.query.pullRequests.findFirst({
+    where: eq(pullRequests.id, id),
+  });
+
+  if (!pr) {
+    return c.json({ error: "Pull request not found" }, 404);
+  }
+
+  const repo = await db.query.repositories.findFirst({
+    where: eq(repositories.id, pr.repositoryId),
+  });
+
+  if (user.id !== pr.authorId && user.id !== repo?.ownerId) {
+    return c.json({ error: "Not authorized" }, 403);
+  }
+
+  if (!pr.isDraft) {
+    return c.json({ error: "Pull request is not a draft" }, 400);
+  }
+
+  await db
+    .update(pullRequests)
+    .set({ isDraft: false, updatedAt: new Date() })
+    .where(eq(pullRequests.id, id));
+
+  return c.json({ success: true });
+});
+
+app.patch("/api/pulls/:id/draft", requireAuth, async (c) => {
+  const id = c.req.param("id");
+  const user = c.get("user")!;
+
+  const pr = await db.query.pullRequests.findFirst({
+    where: eq(pullRequests.id, id),
+  });
+
+  if (!pr) {
+    return c.json({ error: "Pull request not found" }, 404);
+  }
+
+  const repo = await db.query.repositories.findFirst({
+    where: eq(repositories.id, pr.repositoryId),
+  });
+
+  if (user.id !== pr.authorId && user.id !== repo?.ownerId) {
+    return c.json({ error: "Not authorized" }, 403);
+  }
+
+  if (pr.isDraft) {
+    return c.json({ error: "Pull request is already a draft" }, 400);
+  }
+
+  if (pr.merged) {
+    return c.json({ error: "Cannot convert merged pull request to draft" }, 400);
+  }
+
+  await db
+    .update(pullRequests)
+    .set({ isDraft: true, updatedAt: new Date() })
+    .where(eq(pullRequests.id, id));
+
+  return c.json({ success: true });
 });
 
 app.post("/api/pulls/:id/reviews", requireAuth, async (c) => {
@@ -810,6 +885,8 @@ app.get("/api/pulls/:id/reviews", async (c) => {
 app.get("/api/pulls/:id/comments", async (c) => {
   const id = c.req.param("id");
   const currentUser = c.get("user");
+  const groupByFile = c.req.query("groupByFile") === "true";
+  const filePathFilter = c.req.query("filePath");
 
   const pr = await db.query.pullRequests.findFirst({
     where: eq(pullRequests.id, id),
@@ -819,17 +896,28 @@ app.get("/api/pulls/:id/comments", async (c) => {
     return c.json({ error: "Pull request not found" }, 404);
   }
 
-  const comments = await db
+  let commentsQuery = db
     .select({
       id: prComments.id,
       body: prComments.body,
+      filePath: prComments.filePath,
+      side: prComments.side,
+      lineNumber: prComments.lineNumber,
+      commitOid: prComments.commitOid,
+      replyToId: prComments.replyToId,
       createdAt: prComments.createdAt,
       updatedAt: prComments.updatedAt,
       authorId: prComments.authorId,
     })
     .from(prComments)
-    .where(eq(prComments.pullRequestId, id))
+    .where(
+      filePathFilter
+        ? and(eq(prComments.pullRequestId, id), eq(prComments.filePath, filePathFilter))
+        : eq(prComments.pullRequestId, id)
+    )
     .orderBy(prComments.createdAt);
+
+  const comments = await commentsQuery;
 
   const commentsList = await Promise.all(
     comments.map(async (comment) => {
@@ -843,6 +931,11 @@ app.get("/api/pulls/:id/comments", async (c) => {
       return {
         id: comment.id,
         body: comment.body,
+        filePath: comment.filePath,
+        side: comment.side,
+        lineNumber: comment.lineNumber,
+        commitOid: comment.commitOid,
+        replyToId: comment.replyToId,
         author: author || { id: comment.authorId, username: "unknown", name: "Unknown", avatarUrl: null },
         reactions,
         createdAt: comment.createdAt,
@@ -851,13 +944,36 @@ app.get("/api/pulls/:id/comments", async (c) => {
     })
   );
 
+  if (groupByFile) {
+    const generalComments = commentsList.filter((c) => !c.filePath);
+    const inlineComments = commentsList.filter((c) => c.filePath);
+
+    const byFile: Record<string, typeof commentsList> = {};
+    for (const comment of inlineComments) {
+      const path = comment.filePath!;
+      if (!byFile[path]) {
+        byFile[path] = [];
+      }
+      byFile[path].push(comment);
+    }
+
+    return c.json({ generalComments, inlineComments: byFile });
+  }
+
   return c.json({ comments: commentsList });
 });
 
 app.post("/api/pulls/:id/comments", requireAuth, async (c) => {
   const id = c.req.param("id");
   const user = c.get("user")!;
-  const body = await c.req.json<{ body: string }>();
+  const body = await c.req.json<{
+    body: string;
+    filePath?: string;
+    side?: "left" | "right";
+    lineNumber?: number;
+    commitOid?: string;
+    replyToId?: string;
+  }>();
 
   if (!body.body?.trim()) {
     return c.json({ error: "Comment cannot be empty" }, 400);
@@ -871,18 +987,42 @@ app.post("/api/pulls/:id/comments", requireAuth, async (c) => {
     return c.json({ error: "Pull request not found" }, 404);
   }
 
+  const isInline = body.filePath && body.lineNumber !== undefined;
+  if (isInline && !body.side) {
+    return c.json({ error: "Side is required for inline comments" }, 400);
+  }
+
+  if (body.replyToId) {
+    const parentComment = await db.query.prComments.findFirst({
+      where: eq(prComments.id, body.replyToId),
+    });
+    if (!parentComment) {
+      return c.json({ error: "Parent comment not found" }, 404);
+    }
+  }
+
   const [inserted] = await db
     .insert(prComments)
     .values({
       pullRequestId: id,
       authorId: user.id,
       body: body.body,
+      filePath: body.filePath || null,
+      side: isInline ? body.side : null,
+      lineNumber: isInline ? body.lineNumber : null,
+      commitOid: body.commitOid || pr.headOid,
+      replyToId: body.replyToId || null,
     })
     .returning();
 
   return c.json({
     id: inserted.id,
     body: inserted.body,
+    filePath: inserted.filePath,
+    side: inserted.side,
+    lineNumber: inserted.lineNumber,
+    commitOid: inserted.commitOid,
+    replyToId: inserted.replyToId,
     author: { id: user.id, username: user.username, name: user.name, avatarUrl: user.avatarUrl },
     reactions: [],
     createdAt: inserted.createdAt,

@@ -21,7 +21,8 @@
     "hono": "^4.6.11",
     "isomorphic-git": "^1.27.1",
     "postgres": "^3.4.8",
-    "redis": "^5.10.0"
+    "redis": "^5.10.0",
+    "resend": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^25",

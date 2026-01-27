@@ -401,13 +401,21 @@ export function createApiClient(config: ApiClientConfig): Omit<ApiClient, "setti
           body: JSON.stringify(data),
         }),
 
-      listComments: (id: string) => apiFetch<{ comments: PRComment[] }>(`/api/pulls/${id}/comments`),
+      listComments: (id: string, options?: { groupByFile?: boolean; filePath?: string }) => {
+        const params = new URLSearchParams();
+        if (options?.groupByFile) params.set("groupByFile", "true");
+        if (options?.filePath) params.set("filePath", options.filePath);
+        const query = params.toString();
+        return apiFetch<{ comments: PRComment[] }>(`/api/pulls/${id}/comments${query ? `?${query}` : ""}`);
+      },
 
-      createComment: (id: string, body: string) =>
-        apiFetch<PRComment>(`/api/pulls/${id}/comments`, {
+      createComment: (id: string, data: string | { body: string; filePath?: string; side?: "left" | "right"; lineNumber?: number; commitOid?: string; replyToId?: string }) => {
+        const payload = typeof data === "string" ? { body: data } : data;
+        return apiFetch<PRComment>(`/api/pulls/${id}/comments`, {
           method: "POST",
-          body: JSON.stringify({ body }),
-        }),
+          body: JSON.stringify(payload),
+        });
+      },
 
       updateComment: (commentId: string, body: string) =>
         apiFetch<{ success: boolean }>(`/api/pulls/comments/${commentId}`, {
@@ -463,6 +471,178 @@ export function createApiClient(config: ApiClientConfig): Omit<ApiClient, "setti
         apiFetch<{ added: boolean }>(`/api/pulls/comments/${commentId}/reactions`, {
           method: "POST",
           body: JSON.stringify({ emoji }),
+        }),
+
+      markReady: (id: string) =>
+        apiFetch<{ success: boolean }>(`/api/pulls/${id}/ready`, {
+          method: "PATCH",
+        }),
+
+      convertToDraft: (id: string) =>
+        apiFetch<{ success: boolean }>(`/api/pulls/${id}/draft`, {
+          method: "PATCH",
+        }),
+    },
+
+    search: {
+      query: (q: string, options?: { type?: string; limit?: number; offset?: number }) => {
+        const params = new URLSearchParams({ q });
+        if (options?.type) params.set("type", options.type);
+        if (options?.limit) params.set("limit", String(options.limit));
+        if (options?.offset) params.set("offset", String(options.offset));
+        return apiFetch<any>(`/api/search?${params}`);
+      },
+    },
+
+    notifications: {
+      list: (options?: { limit?: number; offset?: number; unreadOnly?: boolean }) => {
+        const params = new URLSearchParams();
+        if (options?.limit) params.set("limit", String(options.limit));
+        if (options?.offset) params.set("offset", String(options.offset));
+        if (options?.unreadOnly) params.set("unread", "true");
+        const query = params.toString();
+        return apiFetch<any>(`/api/notifications${query ? `?${query}` : ""}`);
+      },
+
+      getUnreadCount: () => apiFetch<{ count: number }>(`/api/notifications/unread-count`),
+
+      markRead: (id: string) =>
+        apiFetch<{ success: boolean }>(`/api/notifications/${id}/read`, {
+          method: "PATCH",
+        }),
+
+      markAllRead: () =>
+        apiFetch<{ success: boolean }>(`/api/notifications/mark-all-read`, {
+          method: "POST",
+        }),
+
+      delete: (id: string) =>
+        apiFetch<{ success: boolean }>(`/api/notifications/${id}`, {
+          method: "DELETE",
+        }),
+    },
+
+    discussions: {
+      list: (owner: string, repo: string, options?: { category?: string; limit?: number; offset?: number }) => {
+        const params = new URLSearchParams();
+        if (options?.category) params.set("category", options.category);
+        if (options?.limit) params.set("limit", String(options.limit));
+        if (options?.offset) params.set("offset", String(options.offset));
+        const query = params.toString();
+        return apiFetch<any>(`/api/repositories/${owner}/${repo}/discussions${query ? `?${query}` : ""}`);
+      },
+
+      get: (owner: string, repo: string, number: number) =>
+        apiFetch<any>(`/api/repositories/${owner}/${repo}/discussions/${number}`),
+
+      create: (owner: string, repo: string, data: { title: string; body: string; categoryId?: string }) =>
+        apiFetch<any>(`/api/repositories/${owner}/${repo}/discussions`, {
+          method: "POST",
+          body: JSON.stringify(data),
+        }),
+
+      update: (id: string, data: { title?: string; body?: string; categoryId?: string }) =>
+        apiFetch<{ success: boolean }>(`/api/discussions/${id}`, {
+          method: "PATCH",
+          body: JSON.stringify(data),
+        }),
+
+      delete: (id: string) =>
+        apiFetch<{ success: boolean }>(`/api/discussions/${id}`, {
+          method: "DELETE",
+        }),
+
+      getCategories: (owner: string, repo: string) =>
+        apiFetch<any>(`/api/repositories/${owner}/${repo}/discussions/categories`),
+
+      listComments: (discussionId: string) =>
+        apiFetch<any>(`/api/discussions/${discussionId}/comments`),
+
+      createComment: (discussionId: string, data: { body: string; parentId?: string }) =>
+        apiFetch<any>(`/api/discussions/${discussionId}/comments`, {
+          method: "POST",
+          body: JSON.stringify(data),
+        }),
+
+      markAnswer: (commentId: string) =>
+        apiFetch<{ success: boolean; isAnswer: boolean }>(`/api/discussions/comments/${commentId}/answer`, {
+          method: "PATCH",
+        }),
+
+      toggleReaction: (discussionId: string, emoji: string) =>
+        apiFetch<{ added: boolean }>(`/api/discussions/${discussionId}/reactions`, {
+          method: "POST",
+          body: JSON.stringify({ emoji }),
+        }),
+
+      toggleCommentReaction: (commentId: string, emoji: string) =>
+        apiFetch<{ added: boolean }>(`/api/discussions/comments/${commentId}/reactions`, {
+          method: "POST",
+          body: JSON.stringify({ emoji }),
+        }),
+    },
+
+    projects: {
+      list: (owner: string, repo: string) =>
+        apiFetch<any>(`/api/repositories/${owner}/${repo}/projects`),
+
+      get: (id: string) => apiFetch<any>(`/api/projects/${id}`),
+
+      create: (owner: string, repo: string, data: { name: string; description?: string }) =>
+        apiFetch<any>(`/api/repositories/${owner}/${repo}/projects`, {
+          method: "POST",
+          body: JSON.stringify(data),
+        }),
+
+      update: (id: string, data: { name?: string; description?: string }) =>
+        apiFetch<{ success: boolean }>(`/api/projects/${id}`, {
+          method: "PATCH",
+          body: JSON.stringify(data),
+        }),
+
+      delete: (id: string) =>
+        apiFetch<{ success: boolean }>(`/api/projects/${id}`, {
+          method: "DELETE",
+        }),
+
+      addColumn: (projectId: string, name: string) =>
+        apiFetch<any>(`/api/projects/${projectId}/columns`, {
+          method: "POST",
+          body: JSON.stringify({ name }),
+        }),
+
+      updateColumn: (columnId: string, data: { name?: string; position?: number }) =>
+        apiFetch<{ success: boolean }>(`/api/projects/columns/${columnId}`, {
+          method: "PATCH",
+          body: JSON.stringify(data),
+        }),
+
+      deleteColumn: (columnId: string) =>
+        apiFetch<{ success: boolean }>(`/api/projects/columns/${columnId}`, {
+          method: "DELETE",
+        }),
+
+      addItem: (projectId: string, data: { columnId: string; issueId?: string; pullRequestId?: string; noteContent?: string }) =>
+        apiFetch<any>(`/api/projects/${projectId}/items`, {
+          method: "POST",
+          body: JSON.stringify(data),
+        }),
+
+      updateItem: (itemId: string, data: { columnId?: string; position?: number; noteContent?: string }) =>
+        apiFetch<{ success: boolean }>(`/api/projects/items/${itemId}`, {
+          method: "PATCH",
+          body: JSON.stringify(data),
+        }),
+
+      reorderItems: (items: { id: string; columnId: string; position: number }[]) =>
+        apiFetch<{ success: boolean }>(`/api/projects/items/reorder`, {
+          method: "POST",
+          body: JSON.stringify({ items }),
+        }),
+
+      deleteItem: (itemId: string) =>
+        apiFetch<{ success: boolean }>(`/api/projects/items/${itemId}`, {
+          method: "DELETE",
         }),
     },
   };

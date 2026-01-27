@@ -20,6 +20,7 @@ interface PRFormProps {
     headBranch: string;
     baseBranch: string;
     toUpstream?: boolean;
+    isDraft?: boolean;
   }) => Promise<void>;
   onCancel: () => void;
   submitLabel: string;
@@ -46,6 +47,7 @@ export function PRForm({
   const [body, setBody] = useState(initialBody);
   const [headBranch, setHeadBranch] = useState(branches[0] || "");
   const [toUpstream, setToUpstream] = useState(!!forkedFrom);
+  const [isDraft, setIsDraft] = useState(false);
   const [baseBranch, setBaseBranch] = useState(
     toUpstream && upstreamBranches.length > 0 ? upstreamBranches[0] : defaultBranch
   );
@@ -62,6 +64,7 @@ export function PRForm({
       headBranch,
       baseBranch,
       toUpstream: toUpstream && !!forkedFrom,
+      isDraft,
     });
   };
 
@@ -165,20 +168,31 @@ export function PRForm({
         />
       </div>
 
-      <div className="flex items-center justify-end gap-3">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={isSubmitting || !title.trim() || !headBranch || !baseBranch}>
-          {isSubmitting ? (
-            <>
-              <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />
-              Creating...
-            </>
-          ) : (
-            submitLabel
-          )}
-        </Button>
+      <div className="flex items-center justify-between">
+        <label className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={isDraft}
+            onChange={(e) => setIsDraft(e.target.checked)}
+            className="rounded"
+          />
+          Create as draft
+        </label>
+        <div className="flex items-center gap-3">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isSubmitting || !title.trim() || !headBranch || !baseBranch}>
+            {isSubmitting ? (
+              <>
+                <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              isDraft ? "Create draft" : submitLabel
+            )}
+          </Button>
+        </div>
       </div>
     </form>
   );

@@ -1,5 +1,11 @@
-import { pgTable, text, timestamp, boolean, uuid, jsonb, primaryKey, integer, index, bigint } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { pgTable, text, timestamp, boolean, uuid, jsonb, primaryKey, integer, index, bigint, customType } from "drizzle-orm/pg-core";
+import { relations, sql } from "drizzle-orm";
+
+const tsvector = customType<{ data: string }>({
+  dataType() {
+    return "tsvector";
+  },
+});
 
 export type UserPreferences = {
   emailNotifications?: boolean;
@@ -91,10 +97,14 @@ export const repositories = pgTable(
       .notNull()
       .default("public"),
     defaultBranch: text("default_branch").notNull().default("main"),
+    searchVector: tsvector("search_vector"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
-  (table) => [index("repositories_forked_from_id_idx").on(table.forkedFromId)]
+  (table) => [
+    index("repositories_forked_from_id_idx").on(table.forkedFromId),
+    index("repositories_search_idx").using("gin", table.searchVector),
+  ]
 );
 
 export const repoBranchMetadata = pgTable(
@@ -153,12 +163,14 @@ export const issues = pgTable(
     locked: boolean("locked").notNull().default(false),
     closedAt: timestamp("closed_at"),
     closedById: text("closed_by_id").references(() => users.id),
+    searchVector: tsvector("search_vector"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [
     index("issues_repository_id_idx").on(table.repositoryId),
     index("issues_repository_number_idx").on(table.repositoryId, table.number),
+    index("issues_search_idx").using("gin", table.searchVector),
   ]
 );
 
@@ -279,6 +291,7 @@ export const pullRequests = pgTable(
     title: text("title").notNull(),
     body: text("body"),
     state: text("state", { enum: ["open", "closed", "merged"] }).notNull().default("open"),
+    isDraft: boolean("is_draft").notNull().default(false),
     headRepoId: uuid("head_repo_id")
       .notNull()
       .references(() => repositories.id),
@@ -295,6 +308,7 @@ export const pullRequests = pgTable(
     mergeCommitOid: text("merge_commit_oid"),
     closedAt: timestamp("closed_at"),
     closedById: text("closed_by_id").references(() => users.id),
+    searchVector: tsvector("search_vector"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -303,6 +317,7 @@ export const pullRequests = pgTable(
     index("pull_requests_repository_number_idx").on(table.repositoryId, table.number),
     index("pull_requests_head_repo_id_idx").on(table.headRepoId),
     index("pull_requests_base_repo_id_idx").on(table.baseRepoId),
+    index("pull_requests_search_idx").using("gin", table.searchVector),
   ]
 );
 
@@ -335,10 +350,18 @@ export const prComments = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     body: text("body").notNull(),
+    filePath: text("file_path"),
+    side: text("side", { enum: ["left", "right"] }),
+    lineNumber: integer("line_number"),
+    commitOid: text("commit_oid"),
+    replyToId: uuid("reply_to_id"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
-  (table) => [index("pr_comments_pull_request_id_idx").on(table.pullRequestId)]
+  (table) => [
+    index("pr_comments_pull_request_id_idx").on(table.pullRequestId),
+    index("pr_comments_file_path_idx").on(table.pullRequestId, table.filePath),
+  ]
 );
 
 export const prLabels = pgTable(
@@ -399,6 +422,272 @@ export const prReactions = pgTable(
     index("pr_reactions_comment_id_idx").on(table.commentId),
   ]
 );
+
+export const discussionCategories = pgTable(
+  "discussion_categories",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    repositoryId: uuid("repository_id")
+      .notNull()
+      .references(() => repositories.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    emoji: text("emoji"),
+    description: text("description"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [index("discussion_categories_repo_id_idx").on(table.repositoryId)]
+);
+
+export const discussions = pgTable(
+  "discussions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    number: integer("number").notNull(),
+    repositoryId: uuid("repository_id")
+      .notNull()
+      .references(() => repositories.id, { onDelete: "cascade" }),
+    categoryId: uuid("category_id").references(() => discussionCategories.id, { onDelete: "set null" }),
+    authorId: text("author_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    isPinned: boolean("is_pinned").notNull().default(false),
+    isLocked: boolean("is_locked").notNull().default(false),
+    isAnswered: boolean("is_answered").notNull().default(false),
+    answerId: uuid("answer_id"),
+    searchVector: tsvector("search_vector"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("discussions_repo_id_idx").on(table.repositoryId),
+    index("discussions_repo_number_idx").on(table.repositoryId, table.number),
+    index("discussions_search_idx").using("gin", table.searchVector),
+  ]
+);
+
+export const discussionComments = pgTable(
+  "discussion_comments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    discussionId: uuid("discussion_id")
+      .notNull()
+      .references(() => discussions.id, { onDelete: "cascade" }),
+    authorId: text("author_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    parentId: uuid("parent_id"),
+    body: text("body").notNull(),
+    isAnswer: boolean("is_answer").notNull().default(false),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("discussion_comments_discussion_id_idx").on(table.discussionId),
+    index("discussion_comments_parent_id_idx").on(table.parentId),
+  ]
+);
+
+export const discussionReactions = pgTable(
+  "discussion_reactions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    discussionId: uuid("discussion_id").references(() => discussions.id, { onDelete: "cascade" }),
+    commentId: uuid("comment_id").references(() => discussionComments.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    emoji: text("emoji").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("discussion_reactions_discussion_id_idx").on(table.discussionId),
+    index("discussion_reactions_comment_id_idx").on(table.commentId),
+  ]
+);
+
+export const discussionCategoryRelations = relations(discussionCategories, ({ one, many }) => ({
+  repository: one(repositories, {
+    fields: [discussionCategories.repositoryId],
+    references: [repositories.id],
+  }),
+  discussions: many(discussions),
+}));
+
+export const discussionRelations = relations(discussions, ({ one, many }) => ({
+  repository: one(repositories, {
+    fields: [discussions.repositoryId],
+    references: [repositories.id],
+  }),
+  category: one(discussionCategories, {
+    fields: [discussions.categoryId],
+    references: [discussionCategories.id],
+  }),
+  author: one(users, {
+    fields: [discussions.authorId],
+    references: [users.id],
+  }),
+  comments: many(discussionComments),
+  reactions: many(discussionReactions),
+}));
+
+export const discussionCommentRelations = relations(discussionComments, ({ one, many }) => ({
+  discussion: one(discussions, {
+    fields: [discussionComments.discussionId],
+    references: [discussions.id],
+  }),
+  author: one(users, {
+    fields: [discussionComments.authorId],
+    references: [users.id],
+  }),
+  parent: one(discussionComments, {
+    fields: [discussionComments.parentId],
+    references: [discussionComments.id],
+    relationName: "parentChild",
+  }),
+  replies: many(discussionComments, { relationName: "parentChild" }),
+  reactions: many(discussionReactions),
+}));
+
+export const discussionReactionRelations = relations(discussionReactions, ({ one }) => ({
+  discussion: one(discussions, {
+    fields: [discussionReactions.discussionId],
+    references: [discussions.id],
+  }),
+  comment: one(discussionComments, {
+    fields: [discussionReactions.commentId],
+    references: [discussionComments.id],
+  }),
+  user: one(users, {
+    fields: [discussionReactions.userId],
+    references: [users.id],
+  }),
+}));
+
+export const projects = pgTable(
+  "projects",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    repositoryId: uuid("repository_id")
+      .notNull()
+      .references(() => repositories.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [index("projects_repo_id_idx").on(table.repositoryId)]
+);
+
+export const projectColumns = pgTable(
+  "project_columns",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    position: integer("position").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [index("project_columns_project_id_idx").on(table.projectId)]
+);
+
+export const projectItems = pgTable(
+  "project_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    columnId: uuid("column_id")
+      .notNull()
+      .references(() => projectColumns.id, { onDelete: "cascade" }),
+    issueId: uuid("issue_id").references(() => issues.id, { onDelete: "cascade" }),
+    pullRequestId: uuid("pull_request_id").references(() => pullRequests.id, { onDelete: "cascade" }),
+    noteContent: text("note_content"),
+    position: integer("position").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("project_items_column_id_idx").on(table.columnId),
+    index("project_items_project_id_idx").on(table.projectId),
+  ]
+);
+
+export const projectRelations = relations(projects, ({ one, many }) => ({
+  repository: one(repositories, {
+    fields: [projects.repositoryId],
+    references: [repositories.id],
+  }),
+  columns: many(projectColumns),
+  items: many(projectItems),
+}));
+
+export const projectColumnRelations = relations(projectColumns, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [projectColumns.projectId],
+    references: [projects.id],
+  }),
+  items: many(projectItems),
+}));
+
+export const projectItemRelations = relations(projectItems, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectItems.projectId],
+    references: [projects.id],
+  }),
+  column: one(projectColumns, {
+    fields: [projectItems.columnId],
+    references: [projectColumns.id],
+  }),
+  issue: one(issues, {
+    fields: [projectItems.issueId],
+    references: [issues.id],
+  }),
+  pullRequest: one(pullRequests, {
+    fields: [projectItems.pullRequestId],
+    references: [pullRequests.id],
+  }),
+}));
+
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    title: text("title").notNull(),
+    body: text("body"),
+    resourceType: text("resource_type"),
+    resourceId: uuid("resource_id"),
+    actorId: text("actor_id").references(() => users.id, { onDelete: "set null" }),
+    repoOwner: text("repo_owner"),
+    repoName: text("repo_name"),
+    resourceNumber: integer("resource_number"),
+    read: boolean("read").notNull().default(false),
+    emailSent: boolean("email_sent").notNull().default(false),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("notifications_user_id_idx").on(table.userId),
+    index("notifications_user_read_idx").on(table.userId, table.read),
+  ]
+);
+
+export const notificationRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  actor: one(users, {
+    fields: [notifications.actorId],
+    references: [users.id],
+  }),
+}));
 
 export const passkeys = pgTable(
   "passkey",

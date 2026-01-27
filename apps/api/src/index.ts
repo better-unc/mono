@@ -4,6 +4,7 @@ import { createMiddleware } from "hono/factory";
 import { config, getAllowedOrigins } from "./config";
 import { initAuth } from "./auth";
 import { mountRoutes } from "./routes";
+import { handleWebSocketUpgrade, websocketHandlers } from "./websocket";
 
 const app = new Hono();
 
@@ -53,6 +54,14 @@ const port = config.port;
 
 export default {
   port,
-  fetch: app.fetch,
+  fetch: async (request: Request, server: any) => {
+    const wsResponse = await handleWebSocketUpgrade(request, server);
+    if (wsResponse !== undefined) {
+      return wsResponse;
+    }
+
+    return app.fetch(request);
+  },
+  websocket: websocketHandlers,
   idleTimeout: 255,
 };

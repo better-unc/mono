@@ -247,6 +247,7 @@ export type PullRequest = {
   title: string;
   body: string | null;
   state: "open" | "closed" | "merged";
+  isDraft: boolean;
   author: Owner;
   headRepo: PRRepoInfo | null;
   headBranch: string;
@@ -275,8 +276,27 @@ export type PRComment = {
   body: string;
   author: Owner;
   reactions: ReactionSummary[];
+  filePath?: string | null;
+  side?: "left" | "right" | null;
+  lineNumber?: number | null;
+  commitOid?: string | null;
+  replyToId?: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type InlineCommentData = {
+  body: string;
+  filePath: string;
+  side: "left" | "right";
+  lineNumber: number;
+  commitOid?: string;
+  replyToId?: string;
+};
+
+export type GroupedPRComments = {
+  generalComments: PRComment[];
+  inlineComments: Record<string, PRComment[]>;
 };
 
 export type PRFilters = {
@@ -399,8 +419,8 @@ export type ApiClient = {
     merge: (id: string, data?: { commitMessage?: string }) => Promise<{ success: boolean; mergeCommitOid: string }>;
     listReviews: (id: string) => Promise<{ reviews: PRReview[] }>;
     submitReview: (id: string, data: { body?: string; state: "approved" | "changes_requested" | "commented" }) => Promise<PRReview>;
-    listComments: (id: string) => Promise<{ comments: PRComment[] }>;
-    createComment: (id: string, body: string) => Promise<PRComment>;
+    listComments: (id: string, options?: { groupByFile?: boolean; filePath?: string }) => Promise<{ comments: PRComment[] } | GroupedPRComments>;
+    createComment: (id: string, data: string | InlineCommentData) => Promise<PRComment>;
     updateComment: (commentId: string, body: string) => Promise<{ success: boolean }>;
     deleteComment: (commentId: string) => Promise<{ success: boolean }>;
     addLabels: (id: string, labels: string[]) => Promise<{ success: boolean }>;
@@ -411,5 +431,167 @@ export type ApiClient = {
     removeReviewer: (id: string, userId: string) => Promise<{ success: boolean }>;
     toggleReaction: (id: string, emoji: string) => Promise<{ added: boolean }>;
     toggleCommentReaction: (commentId: string, emoji: string) => Promise<{ added: boolean }>;
+    markReady: (id: string) => Promise<{ success: boolean }>;
+    convertToDraft: (id: string) => Promise<{ success: boolean }>;
   };
+  search: {
+    query: (q: string, options?: { type?: string; limit?: number; offset?: number }) => Promise<SearchResponse>;
+  };
+  notifications: {
+    list: (options?: { limit?: number; offset?: number; unreadOnly?: boolean }) => Promise<{ notifications: Notification[]; hasMore: boolean }>;
+    getUnreadCount: () => Promise<{ count: number }>;
+    markRead: (id: string) => Promise<{ success: boolean }>;
+    markAllRead: () => Promise<{ success: boolean }>;
+    delete: (id: string) => Promise<{ success: boolean }>;
+  };
+  discussions: {
+    list: (owner: string, repo: string, options?: { category?: string; limit?: number; offset?: number }) => Promise<{ discussions: Discussion[]; hasMore: boolean }>;
+    get: (owner: string, repo: string, number: number) => Promise<Discussion>;
+    create: (owner: string, repo: string, data: { title: string; body: string; categoryId?: string }) => Promise<Discussion>;
+    update: (id: string, data: { title?: string; body?: string; categoryId?: string }) => Promise<{ success: boolean }>;
+    delete: (id: string) => Promise<{ success: boolean }>;
+    getCategories: (owner: string, repo: string) => Promise<{ categories: DiscussionCategory[] }>;
+    listComments: (discussionId: string) => Promise<{ comments: DiscussionComment[] }>;
+    createComment: (discussionId: string, data: { body: string; parentId?: string }) => Promise<DiscussionComment>;
+    markAnswer: (commentId: string) => Promise<{ success: boolean; isAnswer: boolean }>;
+    toggleReaction: (discussionId: string, emoji: string) => Promise<{ added: boolean }>;
+    toggleCommentReaction: (commentId: string, emoji: string) => Promise<{ added: boolean }>;
+  };
+  projects: {
+    list: (owner: string, repo: string) => Promise<{ projects: ProjectListItem[] }>;
+    get: (id: string) => Promise<Project>;
+    create: (owner: string, repo: string, data: { name: string; description?: string }) => Promise<ProjectListItem>;
+    update: (id: string, data: { name?: string; description?: string }) => Promise<{ success: boolean }>;
+    delete: (id: string) => Promise<{ success: boolean }>;
+    addColumn: (projectId: string, name: string) => Promise<ProjectColumn>;
+    updateColumn: (columnId: string, data: { name?: string; position?: number }) => Promise<{ success: boolean }>;
+    deleteColumn: (columnId: string) => Promise<{ success: boolean }>;
+    addItem: (projectId: string, data: { columnId: string; issueId?: string; pullRequestId?: string; noteContent?: string }) => Promise<ProjectItem>;
+    updateItem: (itemId: string, data: { columnId?: string; position?: number; noteContent?: string }) => Promise<{ success: boolean }>;
+    reorderItems: (items: { id: string; columnId: string; position: number }[]) => Promise<{ success: boolean }>;
+    deleteItem: (itemId: string) => Promise<{ success: boolean }>;
+  };
+};
+
+export type SearchResultType = "repository" | "issue" | "pull_request" | "user";
+
+export type SearchResult = {
+  type: SearchResultType;
+  id: string;
+  title: string;
+  description?: string | null;
+  url: string;
+  owner?: { username: string; avatarUrl: string | null };
+  repository?: { name: string; owner: string };
+  state?: string;
+  number?: number;
+  createdAt: string;
+};
+
+export type SearchResponse = {
+  results: SearchResult[];
+  hasMore: boolean;
+  query: string;
+};
+
+export type NotificationActor = {
+  id: string;
+  username: string;
+  name: string;
+  avatarUrl: string | null;
+};
+
+export type Notification = {
+  id: string;
+  type: string;
+  title: string;
+  body?: string | null;
+  resourceType?: string | null;
+  resourceId?: string | null;
+  repoOwner?: string | null;
+  repoName?: string | null;
+  resourceNumber?: number | null;
+  actor?: NotificationActor | null;
+  read: boolean;
+  createdAt: string;
+};
+
+export type DiscussionCategory = {
+  id: string;
+  name: string;
+  emoji?: string | null;
+  description?: string | null;
+};
+
+export type Discussion = {
+  id: string;
+  number: number;
+  title: string;
+  body: string;
+  author: Owner;
+  category: { id: string; name: string; emoji?: string | null } | null;
+  isPinned: boolean;
+  isLocked: boolean;
+  isAnswered: boolean;
+  answerId?: string | null;
+  reactions: ReactionSummary[];
+  commentCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type DiscussionComment = {
+  id: string;
+  body: string;
+  parentId?: string | null;
+  isAnswer: boolean;
+  author: Owner;
+  reactions: ReactionSummary[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ProjectItem = {
+  id: string;
+  type: "issue" | "pull_request" | "note";
+  position: number;
+  issue?: {
+    id: string;
+    number: number;
+    title: string;
+    state: string;
+    author: Owner | null;
+  };
+  pullRequest?: {
+    id: string;
+    number: number;
+    title: string;
+    state: string;
+    author: Owner | null;
+  };
+  noteContent?: string;
+};
+
+export type ProjectColumn = {
+  id: string;
+  name: string;
+  position: number;
+  items: ProjectItem[];
+};
+
+export type Project = {
+  id: string;
+  name: string;
+  description?: string | null;
+  columns: ProjectColumn[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ProjectListItem = {
+  id: string;
+  name: string;
+  description?: string | null;
+  createdAt: string;
+  updatedAt: string;
 };

@@ -5,3 +5,7 @@ export * from "./users";
 export * from "./settings";
 export * from "./issues";
 export * from "./pull-requests";
+export * from "./search";
+export * from "./notifications";
+export * from "./discussions";
+export * from "./projects";

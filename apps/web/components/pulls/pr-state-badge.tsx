@@ -1,14 +1,15 @@
 import { HugeiconsIcon } from "@hugeicons/react";
-import { GitMergeIcon, GitPullRequestIcon, GitPullRequestClosedIcon } from "@hugeicons-pro/core-stroke-standard";
+import { GitMergeIcon, GitPullRequestIcon, GitPullRequestClosedIcon, GitPullRequestDraftIcon } from "@hugeicons-pro/core-stroke-standard";
 import { cn } from "@/lib/utils";
 
 interface PRStateBadgeProps {
   state: "open" | "closed" | "merged";
   merged?: boolean;
+  isDraft?: boolean;
   className?: string;
 }
 
-export function PRStateBadge({ state, merged, className }: PRStateBadgeProps) {
+export function PRStateBadge({ state, merged, isDraft, className }: PRStateBadgeProps) {
   const isMerged = merged || state === "merged";
   const isClosed = state === "closed" && !isMerged;
   const isOpen = state === "open";
@@ -37,6 +38,20 @@ export function PRStateBadge({ state, merged, className }: PRStateBadgeProps) {
       >
         <HugeiconsIcon icon={GitPullRequestClosedIcon} strokeWidth={2} className="size-3.5" />
         Closed
+      </span>
+    );
+  }
+
+  if (isDraft) {
+    return (
+      <span
+        className={cn(
+          "inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-gray-500/10 text-gray-600 dark:text-gray-400",
+          className
+        )}
+      >
+        <HugeiconsIcon icon={GitPullRequestDraftIcon} strokeWidth={2} className="size-3.5" />
+        Draft
       </span>
     );
   }

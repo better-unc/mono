@@ -9,6 +9,7 @@ import {
   RecordIcon,
   SettingsIcon,
   WorkHistoryIcon,
+  KanbanIcon,
 } from "@hugeicons-pro/core-stroke-standard";
 import { useForkRepository, useIssueCount, usePullRequestCount, useRepoBranches, useRepoCommitCount, useRepositoryInfo } from "@gitbruv/hooks";
 import { BranchSelector } from "@/components/branch-selector";
@@ -190,6 +191,15 @@ function RepoLayoutContent() {
                       {commitCount}
                     </span>
                   )}
+                </TabsTrigger>
+              </Link>
+              <Link
+                to="/$username/$repo/projects"
+                params={{ username, repo: repoName }}
+              >
+                <TabsTrigger value="projects" className="gap-1.5 text-sm px-3 py-1.5 data-[state=active]:bg-secondary">
+                  <HugeiconsIcon icon={KanbanIcon} strokeWidth={2} className="size-4" />
+                  <span>Projects</span>
                 </TabsTrigger>
               </Link>
               {isOwner && (

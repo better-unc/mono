@@ -25,6 +25,10 @@ export const config = {
   apiUrl: process.env.RAILWAY_PUBLIC_DOMAIN || "localhost:3001",
   webUrl: process.env.WEB_URL || "localhost:3000",
   expoPublicApiUrl: process.env.EXPO_PUBLIC_API_URL!,
+  email: {
+    resendApiKey: process.env.RESEND_API_KEY,
+    fromAddress: process.env.EMAIL_FROM || "GitBruv <noreply@gitbruv.com>",
+  },
 };
 
 export const getApiUrl = (): string => {

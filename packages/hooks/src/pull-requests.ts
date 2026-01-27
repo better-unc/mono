@@ -56,11 +56,11 @@ export function usePullRequestReviews(prId: string) {
   });
 }
 
-export function usePullRequestComments(prId: string) {
+export function usePullRequestComments(prId: string, options?: { groupByFile?: boolean; filePath?: string }) {
   const api = useApi();
   return useQuery({
-    queryKey: ["pullRequest", prId, "comments"],
-    queryFn: () => api.pullRequests.listComments(prId),
+    queryKey: ["pullRequest", prId, "comments", options],
+    queryFn: () => api.pullRequests.listComments(prId, options),
     enabled: !!prId,
   });
 }
@@ -122,6 +122,30 @@ export function useMergePullRequest(id: string, owner: string, repo: string, prN
   });
 }
 
+export function useMarkPRReady(id: string, owner: string, repo: string, prNumber: number) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.pullRequests.markReady(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pullRequests", owner, repo] });
+      queryClient.invalidateQueries({ queryKey: ["pullRequest", owner, repo, prNumber] });
+    },
+  });
+}
+
+export function useConvertPRToDraft(id: string, owner: string, repo: string, prNumber: number) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.pullRequests.convertToDraft(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pullRequests", owner, repo] });
+      queryClient.invalidateQueries({ queryKey: ["pullRequest", owner, repo, prNumber] });
+    },
+  });
+}
+
 export function useSubmitReview(prId: string, owner: string, repo: string, prNumber: number) {
   const api = useApi();
   const queryClient = useQueryClient();
@@ -139,7 +163,8 @@ export function useCreatePRComment(prId: string) {
   const api = useApi();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: string) => api.pullRequests.createComment(prId, body),
+    mutationFn: (data: string | { body: string; filePath?: string; side?: "left" | "right"; lineNumber?: number; commitOid?: string; replyToId?: string }) =>
+      api.pullRequests.createComment(prId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pullRequest", prId, "comments"] });
       queryClient.invalidateQueries({ queryKey: ["pullRequest"] });
