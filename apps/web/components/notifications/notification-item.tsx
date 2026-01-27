@@ -77,7 +77,7 @@ export function NotificationItem({
             </AvatarFallback>
           </Avatar>
         ) : (
-          <div className="size-8 rounded-full bg-muted flex items-center justify-center">
+          <div className="size-8 bg-muted flex items-center justify-center">
             <HugeiconsIcon icon={Icon} strokeWidth={2} className="size-4 text-muted-foreground" />
           </div>
         )}
@@ -89,7 +89,7 @@ export function NotificationItem({
             {notification.title}
           </p>
           {!notification.read && (
-            <div className="size-2 rounded-full bg-primary shrink-0 mt-1.5" />
+            <div className="size-2 bg-primary shrink-0 mt-1.5" />
           )}
         </div>
 

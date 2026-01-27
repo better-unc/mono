@@ -31,7 +31,7 @@ export function InlineCommentForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-3 bg-card border border-border rounded-md space-y-3">
+    <form onSubmit={handleSubmit} className="p-3 bg-card border border-border space-y-3">
       {replyTo && (
         <div className="text-xs text-muted-foreground">
           Replying to comment

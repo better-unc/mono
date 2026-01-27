@@ -90,29 +90,29 @@ function DiscussionDetailPage() {
         Back to discussions
       </Link>
 
-      <div className="border border-border rounded-md mb-6">
+      <div className="border border-border mb-6">
         <div className="p-6">
           <div className="flex items-center gap-2 flex-wrap mb-3">
             {discussion.isPinned && (
-              <span className="inline-flex items-center gap-1 text-xs bg-yellow-500/10 text-yellow-600 px-2 py-0.5 rounded">
+              <span className="inline-flex items-center gap-1 text-xs bg-yellow-500/10 text-yellow-600 px-2 py-0.5">
                 <HugeiconsIcon icon={PinIcon} strokeWidth={2} className="size-3" />
                 Pinned
               </span>
             )}
             {discussion.isAnswered && (
-              <span className="inline-flex items-center gap-1 text-xs bg-green-500/10 text-green-600 px-2 py-0.5 rounded">
+              <span className="inline-flex items-center gap-1 text-xs bg-green-500/10 text-green-600 px-2 py-0.5">
                 <HugeiconsIcon icon={CheckmarkCircle02Icon} strokeWidth={2} className="size-3" />
                 Answered
               </span>
             )}
             {discussion.isLocked && (
-              <span className="inline-flex items-center gap-1 text-xs bg-red-500/10 text-red-600 px-2 py-0.5 rounded">
+              <span className="inline-flex items-center gap-1 text-xs bg-red-500/10 text-red-600 px-2 py-0.5">
                 <HugeiconsIcon icon={LockIcon} strokeWidth={2} className="size-3" />
                 Locked
               </span>
             )}
             {discussion.category && (
-              <span className="text-xs bg-muted px-2 py-0.5 rounded">
+              <span className="text-xs bg-muted px-2 py-0.5">
                 {discussion.category.emoji} {discussion.category.name}
               </span>
             )}
@@ -146,7 +146,7 @@ function DiscussionDetailPage() {
           <div
             key={comment.id}
             className={cn(
-              "border border-border rounded-md p-4",
+              "border border-border p-4",
               comment.isAnswer && "border-green-500 bg-green-500/5"
             )}
           >
@@ -195,7 +195,7 @@ function DiscussionDetailPage() {
       </div>
 
       {!discussion.isLocked && session?.user && (
-        <form onSubmit={handleSubmitComment} className="border border-border rounded-md p-4">
+        <form onSubmit={handleSubmitComment} className="border border-border p-4">
           <Textarea
             value={commentBody}
             onChange={(e) => setCommentBody(e.target.value)}
@@ -219,7 +219,7 @@ function DiscussionDetailPage() {
       )}
 
       {discussion.isLocked && (
-        <div className="text-center py-8 text-muted-foreground text-sm border border-border rounded-md">
+        <div className="text-center py-8 text-muted-foreground text-sm border border-border">
           <HugeiconsIcon icon={LockIcon} strokeWidth={2} className="size-6 mx-auto mb-2" />
           This discussion is locked. You cannot add new comments.
         </div>

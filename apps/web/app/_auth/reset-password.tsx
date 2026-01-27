@@ -69,7 +69,7 @@ function ResetPasswordPage() {
         <div className="border border-border bg-card/80 p-8">
           <div className="text-center">
             <div className="flex justify-center mb-4">
-              <div className="p-3 rounded-full bg-destructive/10">
+              <div className="p-3 bg-destructive/10">
                 <HugeiconsIcon icon={AlertCircleIcon} strokeWidth={2} className="size-8 text-destructive" />
               </div>
             </div>
@@ -92,7 +92,7 @@ function ResetPasswordPage() {
         <div className="border border-border bg-card/80 p-8">
           <div className="text-center">
             <div className="flex justify-center mb-4">
-              <div className="p-3 rounded-full bg-green-500/10">
+              <div className="p-3 bg-green-500/10">
                 <HugeiconsIcon icon={CheckmarkCircle02Icon} strokeWidth={2} className="size-8 text-green-500" />
               </div>
             </div>
@@ -115,7 +115,7 @@ function ResetPasswordPage() {
         <div className="border border-border bg-card/80 p-8">
           <div className="text-center">
             <div className="flex justify-center mb-4">
-              <div className="p-3 rounded-full bg-destructive/10">
+              <div className="p-3 bg-destructive/10">
                 <HugeiconsIcon icon={AlertCircleIcon} strokeWidth={2} className="size-8 text-destructive" />
               </div>
             </div>
@@ -135,7 +135,7 @@ function ResetPasswordPage() {
       <div className="border border-border bg-card/80 p-8">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <div className="p-3 rounded-full bg-muted">
+            <div className="p-3 bg-muted">
               <HugeiconsIcon icon={LockPasswordIcon} strokeWidth={2} className="size-6 text-muted-foreground" />
             </div>
           </div>

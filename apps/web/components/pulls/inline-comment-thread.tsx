@@ -67,7 +67,7 @@ function CommentItem({
             <textarea
               value={editBody}
               onChange={(e) => setEditBody(e.target.value)}
-              className="w-full p-2 text-sm border border-border rounded bg-background resize-none"
+              className="w-full p-2 text-sm border border-border bg-background resize-none"
               rows={3}
             />
             <div className="flex gap-2">
@@ -131,7 +131,7 @@ export function InlineCommentThread({
   }
 
   return (
-    <div className="border border-border rounded-md bg-card/50 overflow-hidden">
+    <div className="border border-border bg-card/50 overflow-hidden">
       {rootComments.map((comment) => (
         <div key={comment.id}>
           <CommentItem

@@ -95,7 +95,7 @@ function ProjectsListPage() {
           <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-8 mx-auto animate-spin text-muted-foreground" />
         </div>
       ) : projects.length === 0 ? (
-        <div className="text-center py-16 border border-border rounded-md">
+        <div className="text-center py-16 border border-border">
           <HugeiconsIcon icon={KanbanIcon} strokeWidth={2} className="size-12 mx-auto mb-4 text-muted-foreground" />
           <h2 className="text-lg font-medium mb-2">No projects yet</h2>
           <p className="text-muted-foreground text-sm mb-6">
@@ -110,10 +110,10 @@ function ProjectsListPage() {
               key={project.id}
               to="/$username/$repo/projects/$projectId"
               params={{ username, repo, projectId: project.id }}
-              className="block p-4 border border-border rounded-md hover:bg-muted/50 transition-colors"
+              className="block p-4 border border-border hover:bg-muted/50 transition-colors"
             >
               <div className="flex items-start gap-3">
-                <div className="p-2 bg-muted rounded">
+                <div className="p-2 bg-muted">
                   <HugeiconsIcon icon={KanbanIcon} strokeWidth={2} className="size-5" />
                 </div>
                 <div className="flex-1 min-w-0">

@@ -34,7 +34,7 @@ function DiscussionsListPage() {
           <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-8 mx-auto animate-spin text-muted-foreground" />
         </div>
       ) : discussions.length === 0 ? (
-        <div className="text-center py-16 border border-border rounded-md">
+        <div className="text-center py-16 border border-border">
           <HugeiconsIcon icon={Message01Icon} strokeWidth={2} className="size-12 mx-auto mb-4 text-muted-foreground" />
           <h2 className="text-lg font-medium mb-2">No discussions yet</h2>
           <p className="text-muted-foreground text-sm mb-6">
@@ -47,7 +47,7 @@ function DiscussionsListPage() {
           </Button>
         </div>
       ) : (
-        <div className="border border-border rounded-md divide-y divide-border">
+        <div className="border border-border divide-y divide-border">
           {discussions.map((discussion) => (
             <Link
               key={discussion.id}
@@ -72,7 +72,7 @@ function DiscussionsListPage() {
                   )}
                   <span className="font-medium hover:text-primary">{discussion.title}</span>
                   {discussion.category && (
-                    <span className="text-xs bg-muted px-2 py-0.5 rounded">
+                    <span className="text-xs bg-muted px-2 py-0.5">
                       {discussion.category.emoji} {discussion.category.name}
                     </span>
                   )}

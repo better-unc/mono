@@ -41,7 +41,7 @@ export function SearchResultItem({ result }: { result: SearchResult }) {
             <AvatarFallback>{result.title.charAt(0)}</AvatarFallback>
           </Avatar>
         ) : (
-          <div className="size-8 rounded-full bg-muted flex items-center justify-center">
+          <div className="size-8 bg-muted flex items-center justify-center">
             <HugeiconsIcon icon={Icon} strokeWidth={2} className="size-4 text-muted-foreground" />
           </div>
         )}

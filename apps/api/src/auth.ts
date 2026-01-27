@@ -1,28 +1,25 @@
-import { betterAuth } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { apiKey } from "better-auth/plugins";
-import { db, users, sessions, accounts, verifications, apiKeys, passkeys } from "@gitbruv/db";
-import { APIError } from "better-auth/api";
-import { expo } from "@better-auth/expo";
-import { passkey } from "@better-auth/passkey";
-import { getRedis } from "./redis";
-import { getApiUrl, getWebUrl, getTrustedOrigins, config } from "./config";
+import { db, users, sessions, accounts, verifications, apiKeys, passkeys } from '@gitbruv/db';
+import { getApiUrl, getWebUrl, getTrustedOrigins, config } from './config';
+import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { sendEmail, sendPasswordResetEmail } from './email';
+import { passkey } from '@better-auth/passkey';
+import { apiKey } from 'better-auth/plugins';
+import { APIError } from 'better-auth/api';
+import { expo } from '@better-auth/expo';
+import { betterAuth } from 'better-auth';
+import { getRedis } from './redis';
 
 function getCookieDomain(): string | undefined {
-
-
   try {
     const webUrl = getWebUrl();
     const hostname = new URL(webUrl).hostname;
 
-
-    const parts = hostname.split(".");
+    const parts = hostname.split('.');
     if (parts.length >= 2) {
-      const rootDomain = `.${parts.slice(-2).join(".")}`;
+      const rootDomain = `.${parts.slice(-2).join('.')}`;
 
       return rootDomain;
     }
-
 
     return undefined;
   } catch (error) {
@@ -32,26 +29,26 @@ function getCookieDomain(): string | undefined {
 }
 
 const BLOCKED_EMAIL_DOMAINS = [
-  "tempmail.com",
-  "temp-mail.org",
-  "guerrillamail.com",
-  "guerrillamail.org",
-  "10minutemail.com",
-  "mailinator.com",
-  "throwaway.email",
-  "fakeinbox.com",
-  "trashmail.com",
-  "maildrop.cc",
-  "yopmail.com",
-  "disposablemail.com",
-  "getnada.com",
-  "mohmal.com",
-  "sharklasers.com",
-  "spam4.me",
-  "grr.la",
-  "dispostable.com",
-  "mailnesia.com",
-  "spamgourmet.com",
+  'tempmail.com',
+  'temp-mail.org',
+  'guerrillamail.com',
+  'guerrillamail.org',
+  '10minutemail.com',
+  'mailinator.com',
+  'throwaway.email',
+  'fakeinbox.com',
+  'trashmail.com',
+  'maildrop.cc',
+  'yopmail.com',
+  'disposablemail.com',
+  'getnada.com',
+  'mohmal.com',
+  'sharklasers.com',
+  'spam4.me',
+  'grr.la',
+  'dispostable.com',
+  'mailnesia.com',
+  'spamgourmet.com',
 ];
 
 function containsEmoji(str: string): boolean {
@@ -60,39 +57,39 @@ function containsEmoji(str: string): boolean {
 
 function isValidUsername(username: string): { valid: boolean; error?: string } {
   if (username.length < 3) {
-    return { valid: false, error: "Username must be at least 3 characters" };
+    return { valid: false, error: 'Username must be at least 3 characters' };
   }
 
   if (username.length > 39) {
-    return { valid: false, error: "Username must be 39 characters or less" };
+    return { valid: false, error: 'Username must be 39 characters or less' };
   }
 
   if (containsEmoji(username)) {
-    return { valid: false, error: "Username cannot contain emojis" };
+    return { valid: false, error: 'Username cannot contain emojis' };
   }
 
   if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
     return {
       valid: false,
-      error: "Username can only contain letters, numbers, hyphens, and underscores",
+      error: 'Username can only contain letters, numbers, hyphens, and underscores',
     };
   }
 
   if (!/[a-zA-Z0-9]/.test(username)) {
     return {
       valid: false,
-      error: "Username must contain at least one letter or number",
+      error: 'Username must contain at least one letter or number',
     };
   }
 
-  if (username.startsWith("-") || username.endsWith("-")) {
-    return { valid: false, error: "Username cannot start or end with a hyphen" };
+  if (username.startsWith('-') || username.endsWith('-')) {
+    return { valid: false, error: 'Username cannot start or end with a hyphen' };
   }
 
-  if (username.includes("--")) {
+  if (username.includes('--')) {
     return {
       valid: false,
-      error: "Username cannot contain consecutive hyphens",
+      error: 'Username cannot contain consecutive hyphens',
     };
   }
 
@@ -100,7 +97,7 @@ function isValidUsername(username: string): { valid: boolean; error?: string } {
 }
 
 function isBlockedEmailDomain(email: string): boolean {
-  const domain = email.split("@")[1]?.toLowerCase();
+  const domain = email.split('@')[1]?.toLowerCase();
   if (!domain) return true;
   return BLOCKED_EMAIL_DOMAINS.includes(domain);
 }
@@ -121,11 +118,10 @@ export const initAuth = async () => {
     const redis = await getRedis();
     const apiUrl = getApiUrl();
 
-
     authInstance = betterAuth({
       baseURL: apiUrl,
       database: drizzleAdapter(db, {
-        provider: "pg",
+        provider: 'pg',
         schema: {
           user: users,
           session: sessions,
@@ -135,18 +131,20 @@ export const initAuth = async () => {
           passkey: passkeys,
         },
       }),
-      secondaryStorage: redis ? {
-        get: async (key) => {
-          return await redis.get(key);
-        },
-        set: async (key, value, ttl) => {
-          if (ttl) await redis.set(key, value, { EX: ttl });
-          else await redis.set(key, value);
-        },
-        delete: async (key) => {
-          await redis.del(key);
-        },
-      } : undefined,
+      secondaryStorage: redis
+        ? {
+            get: async (key) => {
+              return await redis.get(key);
+            },
+            set: async (key, value, ttl) => {
+              if (ttl) await redis.set(key, value, { EX: ttl });
+              else await redis.set(key, value);
+            },
+            delete: async (key) => {
+              await redis.del(key);
+            },
+          }
+        : undefined,
       session: {
         storeSessionInDatabase: true,
       },
@@ -154,27 +152,30 @@ export const initAuth = async () => {
       emailAndPassword: {
         enabled: true,
         requireEmailVerification: false,
+        sendResetPassword: async ({ user, url, token }, request) => {
+          sendPasswordResetEmail(user.email, token, user.name);
+        },
       },
       plugins: [
         apiKey({
-          defaultPrefix: "gitbruv_",
+          defaultPrefix: 'gitbruv_',
         }),
         expo(),
         passkey({
           rpID: new URL(getWebUrl()).hostname,
-          rpName: "gitbruv",
+          rpName: 'gitbruv',
           origin: getWebUrl(),
           authenticatorSelection: {
             authenticatorAttachment: undefined,
-            residentKey: "preferred",
-            userVerification: "preferred",
+            residentKey: 'preferred',
+            userVerification: 'preferred',
           },
         }),
       ],
       user: {
         additionalFields: {
           username: {
-            type: "string",
+            type: 'string',
             required: true,
             input: true,
           },
@@ -182,12 +183,12 @@ export const initAuth = async () => {
       },
       advanced: {
         disableOriginCheck: true,
-        cookiePrefix: config.nodeEnv === "production" ? "gitbruv" : "gitbruv_dev",
+        cookiePrefix: config.nodeEnv === 'production' ? 'gitbruv' : 'gitbruv_dev',
         defaultCookieAttributes: {
           domain: getCookieDomain(),
-          secure: config.nodeEnv === "production",
-          sameSite: "lax" as const,
-          path: "/",
+          secure: config.nodeEnv === 'production',
+          sameSite: 'lax' as const,
+          path: '/',
         },
       },
       databaseHooks: {
@@ -195,8 +196,9 @@ export const initAuth = async () => {
           create: {
             before: async (user) => {
               if (isBlockedEmailDomain(user.email)) {
-                throw new APIError("BAD_REQUEST", {
-                  message: "This email domain is not allowed. Please use a different email address.",
+                throw new APIError('BAD_REQUEST', {
+                  message:
+                    'This email domain is not allowed. Please use a different email address.',
                 });
               }
 
@@ -204,7 +206,7 @@ export const initAuth = async () => {
               if (username) {
                 const validation = isValidUsername(username);
                 if (!validation.valid) {
-                  throw new APIError("BAD_REQUEST", {
+                  throw new APIError('BAD_REQUEST', {
                     message: validation.error,
                   });
                 }
@@ -225,7 +227,7 @@ export const initAuth = async () => {
 
 export const getAuth = () => {
   if (!authInstance) {
-    throw new Error("Auth not initialized. Call initAuth() first.");
+    throw new Error('Auth not initialized. Call initAuth() first.');
   }
   return authInstance;
 };
@@ -233,45 +235,51 @@ export const getAuth = () => {
 export async function verifyCredentials(request: Request): Promise<Response> {
   const secret = config.betterAuthSecret;
   if (!secret) {
-    console.error("[API] verify-credentials: missing BETTER_AUTH_SECRET");
-    return new Response(JSON.stringify({ error: "Server misconfigured" }), {
+    console.error('[API] verify-credentials: missing BETTER_AUTH_SECRET');
+    return new Response(JSON.stringify({ error: 'Server misconfigured' }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: { 'Content-Type': 'application/json' },
     });
   }
 
-  const provided = request.headers.get("x-internal-auth");
+  const provided = request.headers.get('x-internal-auth');
   if (!provided || provided !== secret) {
-    console.warn("[API] verify-credentials: invalid internal auth header");
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    console.warn('[API] verify-credentials: invalid internal auth header');
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
-      headers: { "Content-Type": "application/json" },
+      headers: { 'Content-Type': 'application/json' },
     });
   }
 
   let body: { email?: string; password?: string } | null = null;
   try {
-    body = await request.json() as { email?: string; password?: string };
+    body = (await request.json()) as { email?: string; password?: string };
   } catch {
     body = null;
   }
 
   const email = body?.email;
   const password = body?.password;
-  const safeEmail = typeof email === "string" ? email.replace(/^(.).+(@.+)$/, "$1***$2") : "unknown";
+  const safeEmail =
+    typeof email === 'string' ? email.replace(/^(.).+(@.+)$/, '$1***$2') : 'unknown';
 
-  if (!email || !password || typeof email !== "string" || typeof password !== "string" || !email.includes("@")) {
-    console.warn("[API] verify-credentials: invalid body", { email: safeEmail });
-    return new Response(JSON.stringify({ error: "Invalid credentials" }), {
+  if (
+    !email ||
+    !password ||
+    typeof email !== 'string' ||
+    typeof password !== 'string' ||
+    !email.includes('@')
+  ) {
+    console.warn('[API] verify-credentials: invalid body', { email: safeEmail });
+    return new Response(JSON.stringify({ error: 'Invalid credentials' }), {
       status: 400,
-      headers: { "Content-Type": "application/json" },
+      headers: { 'Content-Type': 'application/json' },
     });
   }
 
   const auth = getAuth();
   let user: any = null;
   try {
-
     const result: any = await auth.api.signInEmail({
       body: {
         email,
@@ -282,22 +290,25 @@ export async function verifyCredentials(request: Request): Promise<Response> {
     });
     user = result?.user ?? result?.session?.user ?? null;
     if (user) {
-      console.info(`[API] verify-credentials: sign-in successful`, { userId: user.id, email: safeEmail });
+      console.info(`[API] verify-credentials: sign-in successful`, {
+        userId: user.id,
+        email: safeEmail,
+      });
     } else {
       console.warn(`[API] verify-credentials: sign-in ok but no user`, { email: safeEmail });
     }
   } catch (error) {
     console.warn(`[API] verify-credentials: sign-in failed`, {
       email: safeEmail,
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
     user = null;
   }
 
   if (!user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
-      headers: { "Content-Type": "application/json" },
+      headers: { 'Content-Type': 'application/json' },
     });
   }
 
@@ -307,9 +318,9 @@ export async function verifyCredentials(request: Request): Promise<Response> {
     }),
     {
       status: 200,
-      headers: { "Content-Type": "application/json" },
-    }
+      headers: { 'Content-Type': 'application/json' },
+    },
   );
 }
 
-export type Session = Awaited<ReturnType<ReturnType<typeof betterAuth>["api"]["getSession"]>>;
+export type Session = Awaited<ReturnType<ReturnType<typeof betterAuth>['api']['getSession']>>;

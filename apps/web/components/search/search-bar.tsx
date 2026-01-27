@@ -88,7 +88,7 @@ export function SearchBar({ className }: { className?: string }) {
       </form>
 
       {isOpen && query.length >= 2 && data?.results && data.results.length > 0 && (
-        <div className="absolute top-full mt-1 w-full bg-popover border border-border rounded-md shadow-lg max-h-96 overflow-y-auto z-50">
+        <div className="absolute top-full mt-1 w-full bg-popover border border-border shadow-lg max-h-96 overflow-y-auto z-50">
           {data.results.map((result) => (
             <button
               key={`${result.type}-${result.id}`}
@@ -117,7 +117,7 @@ export function SearchBar({ className }: { className?: string }) {
             </button>
           ))}
           <button
-            onClick={() => handleSubmit({ preventDefault: () => {} } as React.FormEvent)}
+            onClick={() => handleSubmit({ preventDefault: () => { } } as React.FormEvent)}
             className="w-full p-3 text-left hover:bg-muted/50 text-sm text-primary"
           >
             See all results for "{query}"
