@@ -1,21 +1,28 @@
-import { Outlet, createRootRoute, HeadContent, Scripts, Link } from "@tanstack/react-router";
-import { Toaster } from "@/components/ui/sonner";
-import { Databuddy } from "@databuddy/sdk/react";
-import { Button } from "@/components/ui/button";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { HomeIcon, GitBranchIcon } from "@hugeicons-pro/core-stroke-standard";
-import appCss from "./globals.css?url";
-import { ThemeProvider } from "tanstack-theme-kit";
+import { Outlet, createRootRoute, HeadContent, Scripts, Link } from '@tanstack/react-router';
+import { HomeIcon, GitBranchIcon } from '@hugeicons-pro/core-stroke-standard';
+import { ThemeProvider } from 'tanstack-theme-kit';
+import { Toaster } from '@/components/ui/sonner';
+import { Databuddy } from '@databuddy/sdk/react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { Button } from '@/components/ui/button';
+import appCss from './globals.css?url';
 
 function NotFound() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,var(--tw-gradient-stops))] from-destructive/10 via-transparent to-transparent" />
+    <div className="flex min-h-screen flex-col items-center justify-center px-4">
+      <div className="from-destructive/10 absolute inset-0 bg-[radial-gradient(ellipse_at_center,var(--tw-gradient-stops))] via-transparent to-transparent" />
       <div className="relative text-center">
-        <HugeiconsIcon icon={GitBranchIcon} strokeWidth={2} className="size-16 mx-auto mb-6 text-muted-foreground" />
-        <h1 className="text-7xl font-bold text-foreground mb-2">404</h1>
-        <h2 className="text-2xl font-semibold mb-4">Page not found</h2>
-        <p className="text-muted-foreground mb-8 max-w-md">The page you&apos;re looking for doesn&apos;t exist or you don&apos;t have permission to view it.</p>
+        <HugeiconsIcon
+          icon={GitBranchIcon}
+          strokeWidth={2}
+          className="text-muted-foreground mx-auto mb-6 size-16"
+        />
+        <h1 className="text-foreground mb-2 text-7xl font-bold">404</h1>
+        <h2 className="mb-4 text-2xl font-semibold">Page not found</h2>
+        <p className="text-muted-foreground mb-8 max-w-md">
+          The page you&apos;re looking for doesn&apos;t exist or you don&apos;t have permission to
+          view it.
+        </p>
         <Button
           render={() => (
             <Link to="/" className="gap-2">
@@ -32,22 +39,22 @@ function NotFound() {
 export const Route = createRootRoute({
   head: () => ({
     meta: [
-      { charSet: "utf-8" },
+      { charSet: 'utf-8' },
       {
-        name: "viewport",
-        content: "width=device-width, initial-scale=1",
+        name: 'viewport',
+        content: 'width=device-width, initial-scale=1',
       },
-      { title: "gitbruv" },
-      { name: "description", content: "Where code lives" },
+      { title: 'gitbruv' },
+      { name: 'description', content: 'Where code lives' },
     ],
     links: [
       {
-        rel: "stylesheet",
+        rel: 'stylesheet',
         href: appCss,
       },
       {
-        rel: "icon",
-        href: "/favicon.ico",
+        rel: 'icon',
+        href: '/favicon.ico',
       },
     ],
   }),

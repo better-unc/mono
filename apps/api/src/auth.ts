@@ -1,10 +1,23 @@
-import { db, users, sessions, accounts, verifications, apiKeys, passkeys } from '@gitbruv/db';
+import {
+  db,
+  users,
+  sessions,
+  accounts,
+  verifications,
+  passkeys,
+  jwks,
+  oauthClients,
+  oauthRefreshTokens,
+  oauthAccessTokens,
+  oauthConsents,
+} from '@gitbruv/db';
 import { getApiUrl, getWebUrl, getTrustedOrigins, config } from './config';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { sendEmail, sendPasswordResetEmail } from './email';
+import { oauthProvider } from '@better-auth/oauth-provider';
+import { sendPasswordResetEmail } from './email';
 import { passkey } from '@better-auth/passkey';
-import { apiKey } from 'better-auth/plugins';
 import { APIError } from 'better-auth/api';
+import { jwt } from 'better-auth/plugins';
 import { expo } from '@better-auth/expo';
 import { betterAuth } from 'better-auth';
 import { getRedis } from './redis';
@@ -105,6 +118,117 @@ function isBlockedEmailDomain(email: string): boolean {
 let authInstance: ReturnType<typeof betterAuth> | null = null;
 let authInitPromise: Promise<ReturnType<typeof betterAuth>> | null = null;
 
+const redis = await getRedis();
+const apiUrl = getApiUrl();
+
+export const auth = betterAuth({
+  baseURL: apiUrl,
+  database: drizzleAdapter(db, {
+    provider: 'pg',
+    schema: {
+      user: users,
+      session: sessions,
+      account: accounts,
+      verification: verifications,
+      passkey: passkeys,
+      jwks: jwks,
+      oauthClient: oauthClients,
+      oauthRefreshToken: oauthRefreshTokens,
+      oauthAccessToken: oauthAccessTokens,
+      oauthConsent: oauthConsents,
+    },
+  }),
+  secondaryStorage: redis
+    ? {
+        get: async (key) => {
+          return await redis.get(key);
+        },
+        set: async (key, value, ttl) => {
+          if (ttl) await redis.set(key, value, { EX: ttl });
+          else await redis.set(key, value);
+        },
+        delete: async (key) => {
+          await redis.del(key);
+        },
+      }
+    : undefined,
+  session: {
+    storeSessionInDatabase: true,
+  },
+  trustedOrigins: getTrustedOrigins(),
+  emailAndPassword: {
+    enabled: true,
+    requireEmailVerification: false,
+    sendResetPassword: async ({ user, url, token }, request) => {
+      sendPasswordResetEmail(user.email, token, user.name);
+    },
+  },
+  plugins: [
+    jwt(),
+    oauthProvider({
+      loginPage: '/login',
+      consentPage: '/oauth/consent',
+      scopes: ['openid', 'profile', 'email', 'offline_access'],
+      allowDynamicClientRegistration: true,
+    }),
+    expo(),
+    passkey({
+      rpID: new URL(getWebUrl()).hostname,
+      rpName: 'gitbruv',
+      origin: getWebUrl(),
+      authenticatorSelection: {
+        authenticatorAttachment: undefined,
+        residentKey: 'preferred',
+        userVerification: 'preferred',
+      },
+    }),
+  ],
+  user: {
+    additionalFields: {
+      username: {
+        type: 'string',
+        required: true,
+        input: true,
+      },
+    },
+  },
+  advanced: {
+    disableOriginCheck: true,
+    cookiePrefix: config.nodeEnv === 'production' ? 'gitbruv' : 'gitbruv_dev',
+    defaultCookieAttributes: {
+      domain: getCookieDomain(),
+      secure: config.nodeEnv === 'production',
+      sameSite: 'lax' as const,
+      path: '/',
+    },
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user) => {
+          if (isBlockedEmailDomain(user.email)) {
+            throw new APIError('BAD_REQUEST', {
+              message: 'This email domain is not allowed. Please use a different email address.',
+            });
+          }
+
+          const username = (user as { username?: string }).username;
+          if (username) {
+            const validation = isValidUsername(username);
+            if (!validation.valid) {
+              throw new APIError('BAD_REQUEST', {
+                message: validation.error,
+              });
+            }
+          }
+
+          return { data: user };
+        },
+      },
+    },
+  },
+});
+
 export const initAuth = async () => {
   if (authInstance) {
     return authInstance;
@@ -115,109 +239,7 @@ export const initAuth = async () => {
   }
 
   authInitPromise = (async () => {
-    const redis = await getRedis();
-    const apiUrl = getApiUrl();
-
-    authInstance = betterAuth({
-      baseURL: apiUrl,
-      database: drizzleAdapter(db, {
-        provider: 'pg',
-        schema: {
-          user: users,
-          session: sessions,
-          account: accounts,
-          verification: verifications,
-          apikey: apiKeys,
-          passkey: passkeys,
-        },
-      }),
-      secondaryStorage: redis
-        ? {
-            get: async (key) => {
-              return await redis.get(key);
-            },
-            set: async (key, value, ttl) => {
-              if (ttl) await redis.set(key, value, { EX: ttl });
-              else await redis.set(key, value);
-            },
-            delete: async (key) => {
-              await redis.del(key);
-            },
-          }
-        : undefined,
-      session: {
-        storeSessionInDatabase: true,
-      },
-      trustedOrigins: getTrustedOrigins(),
-      emailAndPassword: {
-        enabled: true,
-        requireEmailVerification: false,
-        sendResetPassword: async ({ user, url, token }, request) => {
-          sendPasswordResetEmail(user.email, token, user.name);
-        },
-      },
-      plugins: [
-        apiKey({
-          defaultPrefix: 'gitbruv_',
-        }),
-        expo(),
-        passkey({
-          rpID: new URL(getWebUrl()).hostname,
-          rpName: 'gitbruv',
-          origin: getWebUrl(),
-          authenticatorSelection: {
-            authenticatorAttachment: undefined,
-            residentKey: 'preferred',
-            userVerification: 'preferred',
-          },
-        }),
-      ],
-      user: {
-        additionalFields: {
-          username: {
-            type: 'string',
-            required: true,
-            input: true,
-          },
-        },
-      },
-      advanced: {
-        disableOriginCheck: true,
-        cookiePrefix: config.nodeEnv === 'production' ? 'gitbruv' : 'gitbruv_dev',
-        defaultCookieAttributes: {
-          domain: getCookieDomain(),
-          secure: config.nodeEnv === 'production',
-          sameSite: 'lax' as const,
-          path: '/',
-        },
-      },
-      databaseHooks: {
-        user: {
-          create: {
-            before: async (user) => {
-              if (isBlockedEmailDomain(user.email)) {
-                throw new APIError('BAD_REQUEST', {
-                  message:
-                    'This email domain is not allowed. Please use a different email address.',
-                });
-              }
-
-              const username = (user as { username?: string }).username;
-              if (username) {
-                const validation = isValidUsername(username);
-                if (!validation.valid) {
-                  throw new APIError('BAD_REQUEST', {
-                    message: validation.error,
-                  });
-                }
-              }
-
-              return { data: user };
-            },
-          },
-        },
-      },
-    });
+    authInstance = auth;
 
     return authInstance;
   })();

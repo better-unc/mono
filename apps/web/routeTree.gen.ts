@@ -23,6 +23,7 @@ import { Route as AuthRegisterRouteImport } from './app/_auth/register'
 import { Route as AuthLoginRouteImport } from './app/_auth/login'
 import { Route as AuthForgotPasswordRouteImport } from './app/_auth/forgot-password'
 import { Route as MainUsernameIndexRouteImport } from './app/_main/$username/index'
+import { Route as MainOauthConsentRouteImport } from './app/_main/oauth/consent'
 import { Route as MainUsernameRepoRouteImport } from './app/_main/$username/$repo'
 import { Route as MainUsernameRepoIndexRouteImport } from './app/_main/$username/$repo/index'
 import { Route as MainUsernameRepoSettingsRouteImport } from './app/_main/$username/$repo/settings'
@@ -112,6 +113,11 @@ const MainUsernameIndexRoute = MainUsernameIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => MainUsernameRoute,
+} as any)
+const MainOauthConsentRoute = MainOauthConsentRouteImport.update({
+  id: '/oauth/consent',
+  path: '/oauth/consent',
+  getParentRoute: () => MainRoute,
 } as any)
 const MainUsernameRepoRoute = MainUsernameRepoRouteImport.update({
   id: '/$repo',
@@ -249,6 +255,7 @@ export interface FileRoutesByFullPath {
   '/search': typeof MainSearchRoute
   '/settings': typeof MainSettingsRoute
   '/$username/$repo': typeof MainUsernameRepoRouteWithChildren
+  '/oauth/consent': typeof MainOauthConsentRoute
   '/$username/': typeof MainUsernameIndexRoute
   '/$username/$repo/commits': typeof MainUsernameRepoCommitsRouteWithChildren
   '/$username/$repo/labels': typeof MainUsernameRepoLabelsRoute
@@ -282,6 +289,7 @@ export interface FileRoutesByTo {
   '/explore': typeof MainExploreRoute
   '/search': typeof MainSearchRoute
   '/settings': typeof MainSettingsRoute
+  '/oauth/consent': typeof MainOauthConsentRoute
   '/$username': typeof MainUsernameIndexRoute
   '/$username/$repo/commits': typeof MainUsernameRepoCommitsRouteWithChildren
   '/$username/$repo/labels': typeof MainUsernameRepoLabelsRoute
@@ -319,6 +327,7 @@ export interface FileRoutesById {
   '/_main/settings': typeof MainSettingsRoute
   '/_main/': typeof MainIndexRoute
   '/_main/$username/$repo': typeof MainUsernameRepoRouteWithChildren
+  '/_main/oauth/consent': typeof MainOauthConsentRoute
   '/_main/$username/': typeof MainUsernameIndexRoute
   '/_main/$username/$repo/commits': typeof MainUsernameRepoCommitsRouteWithChildren
   '/_main/$username/$repo/labels': typeof MainUsernameRepoLabelsRoute
@@ -356,6 +365,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/settings'
     | '/$username/$repo'
+    | '/oauth/consent'
     | '/$username/'
     | '/$username/$repo/commits'
     | '/$username/$repo/labels'
@@ -389,6 +399,7 @@ export interface FileRouteTypes {
     | '/explore'
     | '/search'
     | '/settings'
+    | '/oauth/consent'
     | '/$username'
     | '/$username/$repo/commits'
     | '/$username/$repo/labels'
@@ -425,6 +436,7 @@ export interface FileRouteTypes {
     | '/_main/settings'
     | '/_main/'
     | '/_main/$username/$repo'
+    | '/_main/oauth/consent'
     | '/_main/$username/'
     | '/_main/$username/$repo/commits'
     | '/_main/$username/$repo/labels'
@@ -553,6 +565,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/$username/'
       preLoaderRoute: typeof MainUsernameIndexRouteImport
       parentRoute: typeof MainUsernameRoute
+    }
+    '/_main/oauth/consent': {
+      id: '/_main/oauth/consent'
+      path: '/oauth/consent'
+      fullPath: '/oauth/consent'
+      preLoaderRoute: typeof MainOauthConsentRouteImport
+      parentRoute: typeof MainRoute
     }
     '/_main/$username/$repo': {
       id: '/_main/$username/$repo'
@@ -820,6 +839,7 @@ interface MainRouteChildren {
   MainSearchRoute: typeof MainSearchRoute
   MainSettingsRoute: typeof MainSettingsRoute
   MainIndexRoute: typeof MainIndexRoute
+  MainOauthConsentRoute: typeof MainOauthConsentRoute
 }
 
 const MainRouteChildren: MainRouteChildren = {
@@ -828,6 +848,7 @@ const MainRouteChildren: MainRouteChildren = {
   MainSearchRoute: MainSearchRoute,
   MainSettingsRoute: MainSettingsRoute,
   MainIndexRoute: MainIndexRoute,
+  MainOauthConsentRoute: MainOauthConsentRoute,
 }
 
 const MainRouteWithChildren = MainRoute._addFileChildren(MainRouteChildren)

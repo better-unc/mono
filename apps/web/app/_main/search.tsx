@@ -1,26 +1,26 @@
-import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Search01Icon, Loading02Icon } from "@hugeicons-pro/core-stroke-standard";
-import { useSearch } from "@gitbruv/hooks";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { SearchResultsList } from "@/components/search";
+import { Search01Icon, Loading02Icon } from '@hugeicons-pro/core-stroke-standard';
+import { createFileRoute } from '@tanstack/react-router';
+import { SearchResultsList } from '@/components/search';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useSearch } from '@gitbruv/hooks';
+import { useState } from 'react';
 
-export const Route = createFileRoute("/_main/search")({
+export const Route = createFileRoute('/_main/search')({
   component: SearchPage,
   validateSearch: (search: Record<string, unknown>) => ({
-    q: (search.q as string) || "",
-    type: (search.type as string) || "all",
+    q: (search.q as string) || '',
+    type: (search.type as string) || 'all',
   }),
 });
 
 const SEARCH_TYPES = [
-  { value: "all", label: "All" },
-  { value: "repositories", label: "Repositories" },
-  { value: "issues", label: "Issues" },
-  { value: "pulls", label: "Pull Requests" },
-  { value: "users", label: "Users" },
+  { value: 'all', label: 'All' },
+  { value: 'repositories', label: 'Repositories' },
+  { value: 'issues', label: 'Issues' },
+  { value: 'pulls', label: 'Pull Requests' },
+  { value: 'users', label: 'Users' },
 ];
 
 function SearchPage() {
@@ -51,21 +51,21 @@ function SearchPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4">
+    <div className="mx-auto max-w-4xl px-4 py-8">
       <form onSubmit={handleSearch} className="mb-6">
         <div className="flex gap-2">
           <div className="relative flex-1">
             <HugeiconsIcon
               icon={Search01Icon}
               strokeWidth={2}
-              className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-muted-foreground"
+              className="text-muted-foreground absolute top-1/2 left-3 size-5 -translate-y-1/2"
             />
             <Input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search repositories, issues, pull requests, and users..."
-              className="pl-10 h-9 text-lg"
+              className="h-9 pl-10 text-lg"
               autoFocus
             />
           </div>
@@ -75,11 +75,11 @@ function SearchPage() {
         </div>
       </form>
 
-      <div className="flex gap-2 mb-6 flex-wrap">
+      <div className="mb-6 flex flex-wrap gap-2">
         {SEARCH_TYPES.map((t) => (
           <Button
             key={t.value}
-            variant={type === t.value ? "secondary" : "ghost"}
+            variant={type === t.value ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => handleTypeChange(t.value)}
           >
@@ -89,19 +89,27 @@ function SearchPage() {
       </div>
 
       {q.length < 2 ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <HugeiconsIcon icon={Search01Icon} strokeWidth={2} className="size-12 mx-auto mb-4 opacity-50" />
+        <div className="text-muted-foreground py-16 text-center">
+          <HugeiconsIcon
+            icon={Search01Icon}
+            strokeWidth={2}
+            className="mx-auto mb-4 size-12 opacity-50"
+          />
           <p>Enter at least 2 characters to search</p>
         </div>
       ) : isLoading || isFetching ? (
-        <div className="text-center py-16">
-          <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-8 mx-auto animate-spin text-muted-foreground" />
-          <p className="mt-4 text-muted-foreground">Searching...</p>
+        <div className="py-16 text-center">
+          <HugeiconsIcon
+            icon={Loading02Icon}
+            strokeWidth={2}
+            className="text-muted-foreground mx-auto size-8 animate-spin"
+          />
+          <p className="text-muted-foreground mt-4">Searching...</p>
         </div>
       ) : data?.results ? (
         <>
-          <div className="mb-4 text-sm text-muted-foreground">
-            {data.results.length} result{data.results.length !== 1 ? "s" : ""} for "{q}"
+          <div className="text-muted-foreground mb-4 text-sm">
+            {data.results.length} result{data.results.length !== 1 ? 's' : ''} for "{q}"
           </div>
           <SearchResultsList results={data.results} />
         </>

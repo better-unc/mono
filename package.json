@@ -6,8 +6,10 @@
     "typescript": "^5"
   },
   "overrides": {
-    "better-auth": "^1.4.12",
-    "@better-auth/expo": "^1.4.12",
+    "better-auth": "^1.4.17",
+    "@better-auth/expo": "^1.4.17",
+    "@better-auth/oauth-provider": "^1.4.17",
+    "@better-auth/passkey": "^1.4.17",
     "typescript": "^5",
     "@types/react": "19.1.10",
     "@types/react-dom": "19.1.10",
@@ -24,7 +26,7 @@
   "scripts": {
     "dev:web": "turbo dev --filter=@gitbruv/web --filter=@gitbruv/api",
     "dev:mobile": "turbo dev --filter=@gitbruv/mobile --filter=@gitbruv/api",
-    "build": "turbo build",
+    "build:web": "turbo build --filter=@gitbruv/web --filter=@gitbruv/api",
     "lint": "turbo lint"
   },
   "workspaces": [

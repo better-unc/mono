@@ -12,13 +12,13 @@
     "build:android": "eas build -p android --profile production"
   },
   "dependencies": {
-    "@better-auth/expo": "^1.4.12",
+    "@better-auth/expo": "^1.4.17",
     "@expo/vector-icons": "^15.0.3",
     "@gitbruv/hooks": "workspace:*",
     "@gitbruv/lib": "workspace:*",
     "@react-navigation/native": "^7.1.27",
     "@tanstack/react-query": "^5.90.16",
-    "better-auth": "^1.4.12",
+    "better-auth": "^1.4.17",
     "date-fns": "^4.1.0",
     "expo": "~54.0.31",
     "expo-blur": "~15.0.8",

@@ -16,11 +16,12 @@
       "dependencies": {
         "@aws-sdk/client-s3": "^3.750.0",
         "@aws-sdk/lib-storage": "^3.750.0",
-        "@better-auth/expo": "^1.4.10",
-        "@better-auth/passkey": "^1.4.12",
+        "@better-auth/expo": "^1.4.17",
+        "@better-auth/oauth-provider": "^1.4.17",
+        "@better-auth/passkey": "^1.4.17",
         "@gitbruv/db": "workspace:*",
         "@gitbruv/lib": "workspace:*",
-        "better-auth": "^1.4.10",
+        "better-auth": "^1.4.17",
         "drizzle-orm": "^0.45.1",
         "hono": "^4.6.11",
         "isomorphic-git": "^1.27.1",
@@ -38,13 +39,13 @@
       "name": "@gitbruv/mobile",
       "version": "0.1.0",
       "dependencies": {
-        "@better-auth/expo": "^1.4.12",
+        "@better-auth/expo": "^1.4.17",
         "@expo/vector-icons": "^15.0.3",
         "@gitbruv/hooks": "workspace:*",
         "@gitbruv/lib": "workspace:*",
         "@react-navigation/native": "^7.1.27",
         "@tanstack/react-query": "^5.90.16",
-        "better-auth": "^1.4.12",
+        "better-auth": "^1.4.17",
         "date-fns": "^4.1.0",
         "expo": "~54.0.31",
         "expo-blur": "~15.0.8",
@@ -88,7 +89,8 @@
       "dependencies": {
         "@aws-sdk/client-s3": "^3.966.0",
         "@base-ui/react": "^1.1.0",
-        "@better-auth/passkey": "^1.4.12",
+        "@better-auth/oauth-provider": "^1.4.17",
+        "@better-auth/passkey": "^1.4.17",
         "@databuddy/sdk": "^2.3.24",
         "@dnd-kit/core": "^6.1.0",
         "@dnd-kit/sortable": "^8.0.0",
@@ -108,7 +110,7 @@
         "@tanstack/react-query": "^5.90.16",
         "@tanstack/react-router": "^1.147.1",
         "@tanstack/react-start": "^1.147.1",
-        "better-auth": "^1.4.10",
+        "better-auth": "^1.4.17",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "date-fns": "^4.1.0",
@@ -189,13 +191,15 @@
     },
   },
   "overrides": {
-    "@better-auth/expo": "^1.4.12",
+    "@better-auth/expo": "^1.4.17",
+    "@better-auth/oauth-provider": "^1.4.17",
+    "@better-auth/passkey": "^1.4.17",
     "@tanstack/react-query": "^5.90.16",
     "@types/bcryptjs": "^3.0.0",
     "@types/react": "19.1.10",
     "@types/react-dom": "19.1.10",
     "bcryptjs": "^3.0.3",
-    "better-auth": "^1.4.12",
+    "better-auth": "^1.4.17",
     "drizzle-orm": "^0.45.1",
     "postgres": "^3.4.8",
     "react": "19.1.0",
@@ -488,6 +492,8 @@
     "@better-auth/core": ["@better-auth/core@1.4.17", "", { "dependencies": { "@standard-schema/spec": "^1.0.0", "zod": "^4.3.5" }, "peerDependencies": { "@better-auth/utils": "0.3.0", "@better-fetch/fetch": "1.1.21", "better-call": "1.1.8", "jose": "^6.1.0", "kysely": "^0.28.5", "nanostores": "^1.0.1" } }, "sha512-WSaEQDdUO6B1CzAmissN6j0lx9fM9lcslEYzlApB5UzFaBeAOHNUONTdglSyUs6/idiZBoRvt0t/qMXCgIU8ug=="],
 
     "@better-auth/expo": ["@better-auth/expo@1.4.17", "", { "dependencies": { "@better-fetch/fetch": "1.1.21", "better-call": "1.1.8", "zod": "^4.3.5" }, "peerDependencies": { "@better-auth/core": "1.4.17", "better-auth": "1.4.17", "expo-constants": ">=17.0.0", "expo-linking": ">=7.0.0", "expo-network": "^8.0.7", "expo-web-browser": ">=14.0.0" }, "optionalPeers": ["expo-constants", "expo-linking", "expo-web-browser"] }, "sha512-Yg39o9gVgBMu9/lClQmIjEFLhQ7wuE3RzmlNDnNarlmu1ckvjPBmWEqJNzid6PB/muq1qWcYD3FMd/5omd9/Bg=="],
+
+    "@better-auth/oauth-provider": ["@better-auth/oauth-provider@1.4.18", "", { "dependencies": { "jose": "^6.1.0", "zod": "^4.3.5" }, "peerDependencies": { "@better-auth/core": "1.4.18", "@better-auth/utils": "0.3.0", "@better-fetch/fetch": "1.1.21", "better-auth": "1.4.18", "better-call": "1.1.8" } }, "sha512-9Hexp9tVDEY3T7p+2Vj0JBX+IvinXt0MFCWTjJYrsuzhJyXCO8EoECP3Dq6Ja8Yp39ttmLH5friEykakpkwcMQ=="],
 
     "@better-auth/passkey": ["@better-auth/passkey@1.4.17", "", { "dependencies": { "@simplewebauthn/browser": "^13.1.2", "@simplewebauthn/server": "^13.1.2", "zod": "^4.3.5" }, "peerDependencies": { "@better-auth/core": "1.4.17", "@better-auth/utils": "0.3.0", "@better-fetch/fetch": "1.1.21", "better-auth": "1.4.17", "better-call": "1.1.8", "nanostores": "^1.0.1" } }, "sha512-SmS7a3UYi9A0muo4fWx1wEn59vtjoOLBFD5PnRo330BcXro6mHWxG/IXtnOnyeQKNGnEp4X7/QXcRrW/nDH0Iw=="],
 
@@ -1573,7 +1579,7 @@
 
     "buffer-from": ["buffer-from@1.1.2", "", {}, "sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ=="],
 
-    "bun-types": ["bun-types@1.3.6", "", { "dependencies": { "@types/node": "*" } }, "sha512-OlFwHcnNV99r//9v5IIOgQ9Uk37gZqrNMCcqEaExdkVq3Avwqok1bJFmvGMCkCE0FqzdY8VMOZpfpR3lwI+CsQ=="],
+    "bun-types": ["bun-types@1.3.8", "", { "dependencies": { "@types/node": "*" } }, "sha512-fL99nxdOWvV4LqjmC+8Q9kW3M4QTtTR1eePs94v5ctGqU8OeceWrSUaRw3JYb7tU3FkMIAjkueehrHPPPGKi5Q=="],
 
     "bundle-name": ["bundle-name@4.1.0", "", { "dependencies": { "run-applescript": "^7.0.0" } }, "sha512-tjwM5exMg6BGRI+kNmTntNsvdZS1X8BFYS6tnJ2hdH0kVxM6/eVZ2xy+FqStSWvYmtfFMDLIxurorHwDKfDz5Q=="],
 

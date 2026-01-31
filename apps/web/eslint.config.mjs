@@ -1,13 +1,5 @@
-import { defineConfig, globalIgnores } from "eslint/config";
-import { tanstackConfig } from '@tanstack/eslint-config'
+import { defineConfig, globalIgnores } from 'eslint/config';
 
-const eslintConfig = defineConfig([
-  ...tanstackConfig,
-  globalIgnores([
-    "out/**",
-    "build/**",
-    ".output/**",
-  ]),
-]);
+const eslintConfig = defineConfig([globalIgnores(['out/**', 'build/**', '.output/**'])]);
 
 export default eslintConfig;

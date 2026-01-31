@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { getApiUrl } from "@/lib/utils";
+import { createFileRoute } from '@tanstack/react-router';
+import { getApiUrl } from '@/lib/utils';
 
-export const Route = createFileRoute("/$" as any)({
+export const Route = createFileRoute('/$' as any)({
   server: {
     handlers: {
       GET: async ({ request }) => {
@@ -25,15 +25,15 @@ async function handleGitRequest(request: Request): Promise<Response> {
   if (!gitPattern.test(path)) {
     return new Response(null, {
       status: 404,
-      statusText: "Not Found",
+      statusText: 'Not Found',
     });
   }
 
   const apiUrl = getApiUrl();
   if (!apiUrl) {
-    return new Response(JSON.stringify({ error: "API URL not configured" }), {
+    return new Response(JSON.stringify({ error: 'API URL not configured' }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: { 'Content-Type': 'application/json' },
     });
   }
 
@@ -43,7 +43,7 @@ async function handleGitRequest(request: Request): Promise<Response> {
   const headers = new Headers();
   request.headers.forEach((value, key) => {
     const lowerKey = key.toLowerCase();
-    if (lowerKey !== "host" && lowerKey !== "connection" && lowerKey !== "content-length") {
+    if (lowerKey !== 'host' && lowerKey !== 'connection' && lowerKey !== 'content-length') {
       headers.set(key, value);
     }
   });
@@ -52,13 +52,16 @@ async function handleGitRequest(request: Request): Promise<Response> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-    const body = request.method !== "GET" && request.method !== "HEAD" ? await request.arrayBuffer() : undefined;
+    const body =
+      request.method !== 'GET' && request.method !== 'HEAD'
+        ? await request.arrayBuffer()
+        : undefined;
 
     const response = await fetch(backendUrl, {
       method: request.method,
       headers,
       body,
-      credentials: "include",
+      credentials: 'include',
       signal: controller.signal,
     });
 
@@ -80,13 +83,13 @@ async function handleGitRequest(request: Request): Promise<Response> {
     console.error(`[Git Proxy] Error for ${path}:`, error);
     return new Response(
       JSON.stringify({
-        error: "Failed to proxy git request",
-        message: error instanceof Error ? error.message : "Unknown error",
+        error: 'Failed to proxy git request',
+        message: error instanceof Error ? error.message : 'Unknown error',
       }),
       {
         status: 502,
-        headers: { "Content-Type": "application/json" },
-      }
+        headers: { 'Content-Type': 'application/json' },
+      },
     );
   }
 }

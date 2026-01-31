@@ -1,51 +1,74 @@
-import { AvatarUpload } from "@/components/settings/avatar-upload";
-import { DeleteAccount } from "@/components/settings/delete-account";
-import { EmailForm } from "@/components/settings/email-form";
-import { PasswordForm } from "@/components/settings/password-form";
-import { ProfileForm } from "@/components/settings/profile-form";
-import { SocialLinksForm } from "@/components/settings/social-links-form";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useSession } from "@/lib/auth-client";
-import { useApiKeys, useCreateApiKey, useDeleteApiKey } from "@/lib/hooks/use-api-keys";
-import { useAddPasskey, useDeletePasskey, usePasskeys } from "@/lib/hooks/use-passkeys";
-import { getApiUrl } from "@/lib/utils";
-import { useCurrentUser, useUpdatePreferences, useUpdateProfile, useUpdateWordWrapPreference, useWordWrapPreference } from "@gitbruv/hooks";
 import {
   Alert01Icon,
   CheckmarkCircleIcon,
+  CodeIcon,
   CopyIcon,
   DeleteIcon,
+  Edit02Icon,
   FingerPrintIcon,
-  KeyIcon,
   Loading02Icon,
   PlusSignIcon,
+  RefreshIcon,
   ShieldIcon,
-  UserIcon
-} from "@hugeicons-pro/core-stroke-standard";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { parseAsStringLiteral, useQueryState } from "@/lib/hooks";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
+  UserIcon,
+} from '@hugeicons-pro/core-stroke-standard';
+import {
+  useCurrentUser,
+  useUpdatePreferences,
+  useUpdateProfile,
+  useUpdateWordWrapPreference,
+  useWordWrapPreference,
+} from '@gitbruv/hooks';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
-export const Route = createFileRoute("/_main/settings")({
+import {
+  useCreateOAuthClient,
+  useDeleteOAuthClient,
+  useDeleteOAuthConsent,
+  useOAuthClients,
+  useOAuthConsents,
+  useRotateClientSecret,
+  useUpdateOAuthClient,
+} from '@/lib/hooks/use-oauth';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAddPasskey, useDeletePasskey, usePasskeys } from '@/lib/hooks/use-passkeys';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SocialLinksForm } from '@/components/settings/social-links-form';
+import type { OAuthClient, OAuthConsent } from '@/lib/hooks/use-oauth';
+import { DeleteAccount } from '@/components/settings/delete-account';
+import { PasswordForm } from '@/components/settings/password-form';
+import { AvatarUpload } from '@/components/settings/avatar-upload';
+import { parseAsStringLiteral, useQueryState } from '@/lib/hooks';
+import { ProfileForm } from '@/components/settings/profile-form';
+import { EmailForm } from '@/components/settings/email-form';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { useSession } from '@/lib/auth-client';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+
+export const Route = createFileRoute('/_main/settings')({
   component: SettingsPage,
 });
-
-type ApiKey = {
-  id: string;
-  name: string | null;
-  prefix: string | null;
-  start: string | null;
-  createdAt: string;
-  expiresAt: string | null;
-};
 
 type Passkey = {
   id: string;
@@ -62,7 +85,11 @@ function ProfileTab() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-8 animate-spin text-muted-foreground" />
+        <HugeiconsIcon
+          icon={Loading02Icon}
+          strokeWidth={2}
+          className="text-muted-foreground size-8 animate-spin"
+        />
       </div>
     );
   }
@@ -124,7 +151,11 @@ function AccountTab() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-8 animate-spin text-muted-foreground" />
+        <HugeiconsIcon
+          icon={Loading02Icon}
+          strokeWidth={2}
+          className="text-muted-foreground size-8 animate-spin"
+        />
       </div>
     );
   }
@@ -141,7 +172,7 @@ function AccountTab() {
           <CardDescription>Change the email associated with your account</CardDescription>
         </CardHeader>
         <CardContent>
-          <EmailForm currentEmail={user.email ?? ""} />
+          <EmailForm currentEmail={user.email ?? ''} />
         </CardContent>
       </Card>
 
@@ -188,12 +219,18 @@ function AccountTab() {
   );
 }
 
-function GitSettingsForm({ user }: { user: NonNullable<ReturnType<typeof useCurrentUser>["data"]>["user"] }) {
+function GitSettingsForm({
+  user,
+}: {
+  user: NonNullable<ReturnType<typeof useCurrentUser>['data']>['user'];
+}) {
   const { mutate, isPending } = useUpdateProfile();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [gitEmail, setGitEmail] = useState(user.gitEmail || "");
-  const [defaultVisibility, setDefaultVisibility] = useState<"public" | "private">(user.defaultRepositoryVisibility || "public");
+  const [gitEmail, setGitEmail] = useState(user.gitEmail || '');
+  const [defaultVisibility, setDefaultVisibility] = useState<'public' | 'private'>(
+    user.defaultRepositoryVisibility || 'public',
+  );
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -211,9 +248,9 @@ function GitSettingsForm({ user }: { user: NonNullable<ReturnType<typeof useCurr
           setTimeout(() => setSuccess(false), 3000);
         },
         onError: (err) => {
-          setError(err instanceof Error ? err.message : "Failed to update git settings");
+          setError(err instanceof Error ? err.message : 'Failed to update git settings');
         },
-      }
+      },
     );
   }
 
@@ -221,13 +258,26 @@ function GitSettingsForm({ user }: { user: NonNullable<ReturnType<typeof useCurr
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
         <Label htmlFor="gitEmail">Git Email</Label>
-        <Input id="gitEmail" type="email" value={gitEmail} onChange={(e) => setGitEmail(e.target.value)} placeholder="Email for git commits" />
-        <p className="text-xs text-muted-foreground">Email address used for git commits. Defaults to your account email if not set.</p>
+        <Input
+          id="gitEmail"
+          type="email"
+          value={gitEmail}
+          onChange={(e) => setGitEmail(e.target.value)}
+          placeholder="Email for git commits"
+        />
+        <p className="text-muted-foreground text-xs">
+          Email address used for git commits. Defaults to your account email if not set.
+        </p>
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="defaultVisibility">Default Repository Visibility</Label>
-        <Select value={defaultVisibility} onValueChange={(v: "public" | "private" | null) => setDefaultVisibility(v as "public" | "private")}>
+        <Select
+          value={defaultVisibility}
+          onValueChange={(v: 'public' | 'private' | null) =>
+            setDefaultVisibility(v as 'public' | 'private')
+          }
+        >
           <SelectTrigger id="defaultVisibility" className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -236,30 +286,52 @@ function GitSettingsForm({ user }: { user: NonNullable<ReturnType<typeof useCurr
             <SelectItem value="private">Private</SelectItem>
           </SelectContent>
         </Select>
-        <p className="text-xs text-muted-foreground">Default visibility for new repositories</p>
+        <p className="text-muted-foreground text-xs">Default visibility for new repositories</p>
       </div>
 
-      {error && <div className="text-sm text-red-500 bg-red-500/10 border border-red-500/20 px-3 py-2">{error}</div>}
-      {success && <div className="text-sm text-green-500 bg-green-500/10 border border-green-500/20 px-3 py-2">Settings updated successfully!</div>}
+      {error && (
+        <div className="border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-500">
+          {error}
+        </div>
+      )}
+      {success && (
+        <div className="border border-green-500/20 bg-green-500/10 px-3 py-2 text-sm text-green-500">
+          Settings updated successfully!
+        </div>
+      )}
 
       <Button type="submit" disabled={isPending}>
-        {isPending && <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />}
+        {isPending && (
+          <HugeiconsIcon
+            icon={Loading02Icon}
+            strokeWidth={2}
+            className="mr-2 size-4 animate-spin"
+          />
+        )}
         Save Changes
       </Button>
     </form>
   );
 }
 
-function PreferencesForm({ user }: { user: NonNullable<ReturnType<typeof useCurrentUser>["data"]>["user"] }) {
-  const { mutateAsync: updatePreferences, isPending: isUpdatingPreferences } = useUpdatePreferences();
+function PreferencesForm({
+  user,
+}: {
+  user: NonNullable<ReturnType<typeof useCurrentUser>['data']>['user'];
+}) {
+  const { mutateAsync: updatePreferences, isPending: isUpdatingPreferences } =
+    useUpdatePreferences();
   const { data: wordWrapData } = useWordWrapPreference();
-  const { mutateAsync: updateWordWrap, isPending: isUpdatingWordWrap } = useUpdateWordWrapPreference();
+  const { mutateAsync: updateWordWrap, isPending: isUpdatingWordWrap } =
+    useUpdateWordWrapPreference();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const preferences = user.preferences || {};
-  const [emailNotifications, setEmailNotifications] = useState(preferences.emailNotifications ?? true);
-  const [theme, setTheme] = useState<"light" | "dark" | "system">(preferences.theme || "system");
-  const [language, setLanguage] = useState(preferences.language || "");
+  const [emailNotifications, setEmailNotifications] = useState(
+    preferences.emailNotifications ?? true,
+  );
+  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(preferences.theme || 'system');
+  const [language, setLanguage] = useState(preferences.language || '');
   const [showEmail, setShowEmail] = useState(preferences.showEmail ?? false);
   const [wordWrap, setWordWrap] = useState(wordWrapData?.wordWrap ?? false);
 
@@ -287,7 +359,7 @@ function PreferencesForm({ user }: { user: NonNullable<ReturnType<typeof useCurr
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update preferences");
+      setError(err instanceof Error ? err.message : 'Failed to update preferences');
     }
   }
 
@@ -297,7 +369,9 @@ function PreferencesForm({ user }: { user: NonNullable<ReturnType<typeof useCurr
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <Label htmlFor="emailNotifications">Email Notifications</Label>
-            <p className="text-xs text-muted-foreground">Receive email notifications for important updates</p>
+            <p className="text-muted-foreground text-xs">
+              Receive email notifications for important updates
+            </p>
           </div>
           <input
             id="emailNotifications"
@@ -311,7 +385,12 @@ function PreferencesForm({ user }: { user: NonNullable<ReturnType<typeof useCurr
 
       <div className="space-y-2">
         <Label htmlFor="theme">Theme</Label>
-        <Select value={theme} onValueChange={(v: "light" | "dark" | "system" | null) => setTheme(v as "light" | "dark" | "system")}>
+        <Select
+          value={theme}
+          onValueChange={(v: 'light' | 'dark' | 'system' | null) =>
+            setTheme(v as 'light' | 'dark' | 'system')
+          }
+        >
           <SelectTrigger id="theme" className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -325,14 +404,21 @@ function PreferencesForm({ user }: { user: NonNullable<ReturnType<typeof useCurr
 
       <div className="space-y-2">
         <Label htmlFor="language">Language</Label>
-        <Input id="language" value={language} onChange={(e) => setLanguage(e.target.value)} placeholder="e.g., en, es, fr" />
+        <Input
+          id="language"
+          value={language}
+          onChange={(e) => setLanguage(e.target.value)}
+          placeholder="e.g., en, es, fr"
+        />
       </div>
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <Label htmlFor="showEmail">Show Email</Label>
-            <p className="text-xs text-muted-foreground">Display your email address on your public profile</p>
+            <p className="text-muted-foreground text-xs">
+              Display your email address on your public profile
+            </p>
           </div>
           <input
             id="showEmail"
@@ -348,17 +434,37 @@ function PreferencesForm({ user }: { user: NonNullable<ReturnType<typeof useCurr
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <Label htmlFor="wordWrap">Word Wrap</Label>
-            <p className="text-xs text-muted-foreground">Wrap long lines when viewing files</p>
+            <p className="text-muted-foreground text-xs">Wrap long lines when viewing files</p>
           </div>
-          <input id="wordWrap" type="checkbox" checked={wordWrap} onChange={(e) => setWordWrap(e.target.checked)} className="h-4 w-4 border-gray-300" />
+          <input
+            id="wordWrap"
+            type="checkbox"
+            checked={wordWrap}
+            onChange={(e) => setWordWrap(e.target.checked)}
+            className="h-4 w-4 border-gray-300"
+          />
         </div>
       </div>
 
-      {error && <div className="text-sm text-red-500 bg-red-500/10 border border-red-500/20 px-3 py-2">{error}</div>}
-      {success && <div className="text-sm text-green-500 bg-green-500/10 border border-green-500/20 px-3 py-2">Preferences updated successfully!</div>}
+      {error && (
+        <div className="border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-500">
+          {error}
+        </div>
+      )}
+      {success && (
+        <div className="border border-green-500/20 bg-green-500/10 px-3 py-2 text-sm text-green-500">
+          Preferences updated successfully!
+        </div>
+      )}
 
       <Button type="submit" disabled={isUpdatingPreferences || isUpdatingWordWrap}>
-        {(isUpdatingPreferences || isUpdatingWordWrap) && <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />}
+        {(isUpdatingPreferences || isUpdatingWordWrap) && (
+          <HugeiconsIcon
+            icon={Loading02Icon}
+            strokeWidth={2}
+            className="mr-2 size-4 animate-spin"
+          />
+        )}
         Save Changes
       </Button>
     </form>
@@ -372,14 +478,18 @@ function SecurityTab() {
   const { mutate: addPasskey, isPending: isAdding } = useAddPasskey();
   const { mutate: deletePasskey, isPending: isDeleting } = useDeletePasskey();
 
-  const [newPasskeyName, setNewPasskeyName] = useState("");
+  const [newPasskeyName, setNewPasskeyName] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [deletePasskeyId, setDeletePasskeyId] = useState<string | null>(null);
 
   if (userLoading || passkeysLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-8 animate-spin text-muted-foreground" />
+        <HugeiconsIcon
+          icon={Loading02Icon}
+          strokeWidth={2}
+          className="text-muted-foreground size-8 animate-spin"
+        />
       </div>
     );
   }
@@ -394,15 +504,15 @@ function SecurityTab() {
       {
         onSuccess: () => {
           setIsCreateOpen(false);
-          setNewPasskeyName("");
+          setNewPasskeyName('');
           refetchPasskeys();
-          toast.success("Passkey added successfully");
+          toast.success('Passkey added successfully');
         },
         onError: (err) => {
-          const message = err instanceof Error ? err.message : "Failed to add passkey";
+          const message = err instanceof Error ? err.message : 'Failed to add passkey';
           toast.error(message);
         },
-      }
+      },
     );
   }
 
@@ -413,19 +523,19 @@ function SecurityTab() {
         onSuccess: () => {
           setDeletePasskeyId(null);
           refetchPasskeys();
-          toast.success("Passkey deleted successfully");
+          toast.success('Passkey deleted successfully');
         },
         onError: (err) => {
-          const message = err instanceof Error ? err.message : "Failed to delete passkey";
+          const message = err instanceof Error ? err.message : 'Failed to delete passkey';
           toast.error(message);
         },
-      }
+      },
     );
   }
 
   function handleCloseCreate() {
     setIsCreateOpen(false);
-    setNewPasskeyName("");
+    setNewPasskeyName('');
   }
 
   return (
@@ -433,14 +543,18 @@ function SecurityTab() {
       <Card>
         <CardHeader>
           <CardTitle>Passkeys</CardTitle>
-          <CardDescription>Use passkeys for secure, passwordless authentication. Sign in with biometrics, PINs, or security keys.</CardDescription>
+          <CardDescription>
+            Use passkeys for secure, passwordless authentication. Sign in with biometrics, PINs, or
+            security keys.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="bg-muted/50 p-4 space-y-2">
+          <div className="bg-muted/50 space-y-2 p-4">
             <p className="text-sm font-medium">What are passkeys?</p>
-            <p className="text-sm text-muted-foreground">
-              Passkeys are a secure alternative to passwords. They use cryptographic keys stored on your device, allowing you to sign in with biometrics, PINs,
-              or security keys without entering a password.
+            <p className="text-muted-foreground text-sm">
+              Passkeys are a secure alternative to passwords. They use cryptographic keys stored on
+              your device, allowing you to sign in with biometrics, PINs, or security keys without
+              entering a password.
             </p>
           </div>
 
@@ -449,20 +563,30 @@ function SecurityTab() {
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
               <DialogTrigger>
                 <Button size="sm">
-                  <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} className="size-4 mr-2" />
+                  <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} className="mr-2 size-4" />
                   Add Passkey
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Add New Passkey</DialogTitle>
-                  <DialogDescription>Register a new passkey for your account. You'll be prompted to authenticate with your device.</DialogDescription>
+                  <DialogDescription>
+                    Register a new passkey for your account. You'll be prompted to authenticate with
+                    your device.
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="passkey-name">Passkey Name (Optional)</Label>
-                    <Input id="passkey-name" value={newPasskeyName} onChange={(e) => setNewPasskeyName(e.target.value)} placeholder="e.g., My Laptop, iPhone" />
-                    <p className="text-xs text-muted-foreground">Give your passkey a name to remember what device it's for.</p>
+                    <Input
+                      id="passkey-name"
+                      value={newPasskeyName}
+                      onChange={(e) => setNewPasskeyName(e.target.value)}
+                      placeholder="e.g., My Laptop, iPhone"
+                    />
+                    <p className="text-muted-foreground text-xs">
+                      Give your passkey a name to remember what device it's for.
+                    </p>
                   </div>
                 </div>
                 <DialogFooter>
@@ -470,7 +594,13 @@ function SecurityTab() {
                     Cancel
                   </Button>
                   <Button onClick={handleAddPasskey} disabled={isAdding}>
-                    {isAdding && <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />}
+                    {isAdding && (
+                      <HugeiconsIcon
+                        icon={Loading02Icon}
+                        strokeWidth={2}
+                        className="mr-2 size-4 animate-spin"
+                      />
+                    )}
                     Register Passkey
                   </Button>
                 </DialogFooter>
@@ -479,36 +609,65 @@ function SecurityTab() {
           </div>
 
           {passkeys && passkeys.length > 0 ? (
-            <div className="border divide-y">
+            <div className="divide-y border">
               {passkeys.map((passkey: Passkey) => (
                 <div key={passkey.id} className="flex items-center justify-between p-4">
                   <div className="flex items-center gap-3">
-                    <HugeiconsIcon icon={FingerPrintIcon} strokeWidth={2} className="size-4 text-muted-foreground" />
+                    <HugeiconsIcon
+                      icon={FingerPrintIcon}
+                      strokeWidth={2}
+                      className="text-muted-foreground size-4"
+                    />
                     <div>
-                      <p className="font-medium text-sm">{passkey.name || "Unnamed Passkey"}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {passkey.deviceType} · Created {new Date(passkey.createdAt).toLocaleDateString()}
-                        {passkey.backedUp && " · Backed up"}
+                      <p className="text-sm font-medium">{passkey.name || 'Unnamed Passkey'}</p>
+                      <p className="text-muted-foreground text-xs">
+                        {passkey.deviceType} · Created{' '}
+                        {new Date(passkey.createdAt).toLocaleDateString()}
+                        {passkey.backedUp && ' · Backed up'}
                       </p>
                     </div>
                   </div>
-                  <Dialog open={deletePasskeyId === passkey.id} onOpenChange={(open) => setDeletePasskeyId(open ? passkey.id : null)}>
+                  <Dialog
+                    open={deletePasskeyId === passkey.id}
+                    onOpenChange={(open) => setDeletePasskeyId(open ? passkey.id : null)}
+                  >
                     <DialogTrigger>
                       <Button variant="ghost" size="icon">
-                        <HugeiconsIcon icon={DeleteIcon} strokeWidth={2} className="size-4 text-muted-foreground hover:text-destructive" />
+                        <HugeiconsIcon
+                          icon={DeleteIcon}
+                          strokeWidth={2}
+                          className="text-muted-foreground hover:text-destructive size-4"
+                        />
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
                         <DialogTitle>Delete Passkey</DialogTitle>
-                        <DialogDescription>Are you sure you want to delete this passkey? You'll no longer be able to sign in with it.</DialogDescription>
+                        <DialogDescription>
+                          Are you sure you want to delete this passkey? You'll no longer be able to
+                          sign in with it.
+                        </DialogDescription>
                       </DialogHeader>
                       <DialogFooter>
-                        <Button variant="outline" onClick={() => setDeletePasskeyId(null)} disabled={isDeleting}>
+                        <Button
+                          variant="outline"
+                          onClick={() => setDeletePasskeyId(null)}
+                          disabled={isDeleting}
+                        >
                           Cancel
                         </Button>
-                        <Button variant="destructive" onClick={() => handleDelete(passkey.id)} disabled={isDeleting}>
-                          {isDeleting && <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />}
+                        <Button
+                          variant="destructive"
+                          onClick={() => handleDelete(passkey.id)}
+                          disabled={isDeleting}
+                        >
+                          {isDeleting && (
+                            <HugeiconsIcon
+                              icon={Loading02Icon}
+                              strokeWidth={2}
+                              className="mr-2 size-4 animate-spin"
+                            />
+                          )}
                           Delete Passkey
                         </Button>
                       </DialogFooter>
@@ -518,9 +677,15 @@ function SecurityTab() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 border border-dashed bg-muted/30">
-              <HugeiconsIcon icon={FingerPrintIcon} strokeWidth={2} className="size-8 mx-auto text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground">No passkeys yet. Add one to get started.</p>
+            <div className="bg-muted/30 border border-dashed py-8 text-center">
+              <HugeiconsIcon
+                icon={FingerPrintIcon}
+                strokeWidth={2}
+                className="text-muted-foreground mx-auto mb-2 size-8"
+              />
+              <p className="text-muted-foreground text-sm">
+                No passkeys yet. Add one to get started.
+              </p>
             </div>
           )}
         </CardContent>
@@ -529,23 +694,51 @@ function SecurityTab() {
   );
 }
 
-function TokensTab() {
+function OAuthTab() {
   const { data, isLoading: userLoading } = useCurrentUser();
   const user = data?.user;
-  const { data: apiKeys, isLoading: keysLoading, refetch: refetchKeys } = useApiKeys();
-  const { mutate: createKey, isPending: isCreating } = useCreateApiKey();
-  const { mutate: deleteKey, isPending: isDeleting } = useDeleteApiKey();
+  const { data: clients, isLoading: clientsLoading, refetch: refetchClients } = useOAuthClients();
+  const {
+    data: consents,
+    isLoading: consentsLoading,
+    refetch: refetchConsents,
+  } = useOAuthConsents();
+  const { mutate: createClient, isPending: isCreating } = useCreateOAuthClient();
+  const { mutate: updateClient, isPending: isUpdating } = useUpdateOAuthClient();
+  const { mutate: deleteClient, isPending: isDeletingClient } = useDeleteOAuthClient();
+  const { mutate: rotateSecret, isPending: isRotating } = useRotateClientSecret();
+  const { mutate: deleteConsent, isPending: isDeletingConsent } = useDeleteOAuthConsent();
 
-  const [newKeyName, setNewKeyName] = useState("");
-  const [createdKey, setCreatedKey] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [deleteKeyId, setDeleteKeyId] = useState<string | null>(null);
+  const [newAppName, setNewAppName] = useState('');
+  const [newAppRedirectUris, setNewAppRedirectUris] = useState('');
+  const [newAppUri, setNewAppUri] = useState('');
+  const [createdApp, setCreatedApp] = useState<{ clientId: string; clientSecret?: string } | null>(
+    null,
+  );
+  const [copiedId, setCopiedId] = useState(false);
+  const [copiedSecret, setCopiedSecret] = useState(false);
 
-  if (userLoading || keysLoading) {
+  const [editingClient, setEditingClient] = useState<OAuthClient | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editRedirectUris, setEditRedirectUris] = useState('');
+  const [editUri, setEditUri] = useState('');
+
+  const [deleteClientId, setDeleteClientId] = useState<string | null>(null);
+  const [rotateClientId, setRotateClientId] = useState<string | null>(null);
+  const [newSecret, setNewSecret] = useState<string | null>(null);
+  const [copiedNewSecret, setCopiedNewSecret] = useState(false);
+
+  const [deleteConsentId, setDeleteConsentId] = useState<string | null>(null);
+
+  if (userLoading || clientsLoading || consentsLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-8 animate-spin text-muted-foreground" />
+        <HugeiconsIcon
+          icon={Loading02Icon}
+          strokeWidth={2}
+          className="text-muted-foreground size-8 animate-spin"
+        />
       </div>
     );
   }
@@ -555,107 +748,261 @@ function TokensTab() {
   }
 
   function handleCreate() {
-    createKey(
-      { name: newKeyName || "Personal Access Token" },
+    const redirectUris = newAppRedirectUris
+      .split('\n')
+      .map((uri) => uri.trim())
+      .filter(Boolean);
+
+    if (redirectUris.length === 0) {
+      toast.error('At least one redirect URI is required');
+      return;
+    }
+
+    createClient(
+      {
+        name: newAppName || 'My Application',
+        redirectUris,
+        uri: newAppUri || undefined,
+      },
       {
         onSuccess: (result) => {
-          if (result?.key) {
-            setCreatedKey(result.key);
-            setNewKeyName("");
-            refetchKeys();
-          }
+          setCreatedApp({
+            clientId: result.client_id,
+            clientSecret: result.client_secret,
+          });
+          setNewAppName('');
+          setNewAppRedirectUris('');
+          setNewAppUri('');
+          refetchClients();
         },
         onError: (err) => {
-          console.error("Failed to create token:", err);
+          toast.error(err instanceof Error ? err.message : 'Failed to create application');
         },
-      }
+      },
     );
-  }
-
-  function handleDelete(keyId: string) {
-    deleteKey(
-      { keyId },
-      {
-        onSuccess: () => {
-          setDeleteKeyId(null);
-          refetchKeys();
-        },
-        onError: (err) => {
-          console.error("Failed to delete token:", err);
-        },
-      }
-    );
-  }
-
-  function handleCopy() {
-    if (createdKey) {
-      navigator.clipboard.writeText(createdKey);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
   }
 
   function handleCloseCreate() {
     setIsCreateOpen(false);
-    setCreatedKey(null);
-    setNewKeyName("");
+    setCreatedApp(null);
+    setNewAppName('');
+    setNewAppRedirectUris('');
+    setNewAppUri('');
+    setCopiedId(false);
+    setCopiedSecret(false);
   }
 
-  const gitUrl = getApiUrl();
+  function handleCopyId() {
+    if (createdApp?.clientId) {
+      navigator.clipboard.writeText(createdApp.clientId);
+      setCopiedId(true);
+      setTimeout(() => setCopiedId(false), 2000);
+    }
+  }
+
+  function handleCopySecret() {
+    if (createdApp?.clientSecret) {
+      navigator.clipboard.writeText(createdApp.clientSecret);
+      setCopiedSecret(true);
+      setTimeout(() => setCopiedSecret(false), 2000);
+    }
+  }
+
+  function handleEditOpen(client: OAuthClient) {
+    setEditingClient(client);
+    setEditName(client.client_name || '');
+    setEditRedirectUris(client.redirect_uris.join('\n'));
+    setEditUri(client.client_uri || '');
+  }
+
+  function handleEditClose() {
+    setEditingClient(null);
+    setEditName('');
+    setEditRedirectUris('');
+    setEditUri('');
+  }
+
+  function handleUpdate() {
+    if (!editingClient) return;
+
+    const redirectUris = editRedirectUris
+      .split('\n')
+      .map((uri) => uri.trim())
+      .filter(Boolean);
+
+    if (redirectUris.length === 0) {
+      toast.error('At least one redirect URI is required');
+      return;
+    }
+
+    updateClient(
+      {
+        clientId: editingClient.client_id,
+        update: {
+          name: editName || undefined,
+          redirect_uris: redirectUris,
+          client_uri: editUri || undefined,
+        },
+      },
+      {
+        onSuccess: () => {
+          handleEditClose();
+          refetchClients();
+          toast.success('Application updated');
+        },
+        onError: (err) => {
+          toast.error(err instanceof Error ? err.message : 'Failed to update application');
+        },
+      },
+    );
+  }
+
+  function handleDeleteClient(clientId: string) {
+    deleteClient(
+      { clientId },
+      {
+        onSuccess: () => {
+          setDeleteClientId(null);
+          refetchClients();
+          toast.success('Application deleted');
+        },
+        onError: (err) => {
+          toast.error(err instanceof Error ? err.message : 'Failed to delete application');
+        },
+      },
+    );
+  }
+
+  function handleRotateSecret(clientId: string) {
+    rotateSecret(
+      { clientId },
+      {
+        onSuccess: (result) => {
+          setNewSecret(result.client_secret);
+          refetchClients();
+        },
+        onError: (err) => {
+          toast.error(err instanceof Error ? err.message : 'Failed to rotate secret');
+        },
+      },
+    );
+  }
+
+  function handleCloseRotate() {
+    setRotateClientId(null);
+    setNewSecret(null);
+    setCopiedNewSecret(false);
+  }
+
+  function handleCopyNewSecret() {
+    if (newSecret) {
+      navigator.clipboard.writeText(newSecret);
+      setCopiedNewSecret(true);
+      setTimeout(() => setCopiedNewSecret(false), 2000);
+    }
+  }
+
+  function handleDeleteConsent(id: string) {
+    deleteConsent(
+      { id },
+      {
+        onSuccess: () => {
+          setDeleteConsentId(null);
+          refetchConsents();
+          toast.success('Access revoked');
+        },
+        onError: (err) => {
+          toast.error(err instanceof Error ? err.message : 'Failed to revoke access');
+        },
+      },
+    );
+  }
 
   return (
     <div className="space-y-8">
       <Card>
         <CardHeader>
-          <CardTitle>Personal Access Tokens</CardTitle>
-          <CardDescription>Generate tokens to authenticate Git operations over HTTPS. Use your token as the password when pushing or pulling.</CardDescription>
+          <CardTitle>OAuth Applications</CardTitle>
+          <CardDescription>
+            Create OAuth applications to allow third-party services to authenticate with your
+            account or on behalf of your users.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="bg-muted/50 p-4 space-y-2">
-            <p className="text-sm font-medium">How to use</p>
-            <p className="text-sm text-muted-foreground">
-              When Git prompts for credentials, enter your username and use your Personal Access Token as the password:
-            </p>
-            <pre className="mt-2 p-3 bg-background border text-sm overflow-x-auto">
-              <code>
-                {`$ git clone ${gitUrl}/${user.username}/your-repo.git
-Username: ${user.username}
-Password: <your-token>`}
-              </code>
-            </pre>
-          </div>
-
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium">Your Tokens</h3>
+            <h3 className="text-sm font-medium">Your Applications</h3>
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
               <DialogTrigger>
                 <Button size="sm">
-                  <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} className="size-4 mr-2" />
-                  Generate Token
+                  <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} className="mr-2 size-4" />
+                  New Application
                 </Button>
               </DialogTrigger>
               <DialogContent>
-                {createdKey ? (
+                {createdApp ? (
                   <>
                     <DialogHeader>
-                      <DialogTitle>Token Created</DialogTitle>
-                      <DialogDescription>Copy your token now. You won't be able to see it again!</DialogDescription>
+                      <DialogTitle>Application Created</DialogTitle>
+                      <DialogDescription>
+                        Save your client credentials now. The client secret will only be shown once.
+                      </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
-                      <div className="flex items-start gap-3 p-4 bg-amber-500/10 border border-amber-500/20">
-                        <HugeiconsIcon icon={Alert01Icon} strokeWidth={2} className="size-5 text-amber-500 shrink-0 mt-0.5" />
-                        <p className="text-sm text-muted-foreground">Make sure to copy your token now. For security reasons, we won't show it again.</p>
+                      <div className="flex items-start gap-3 border border-amber-500/20 bg-amber-500/10 p-4">
+                        <HugeiconsIcon
+                          icon={Alert01Icon}
+                          strokeWidth={2}
+                          className="mt-0.5 size-5 shrink-0 text-amber-500"
+                        />
+                        <p className="text-muted-foreground text-sm">
+                          Make sure to copy your client secret now. For security reasons, we won't
+                          show it again.
+                        </p>
                       </div>
-                      <div className="flex gap-2">
-                        <Input value={createdKey} readOnly className="font-mono text-sm" />
-                        <Button variant="outline" size="icon" onClick={handleCopy}>
-                          {copied ? (
-                            <HugeiconsIcon icon={CheckmarkCircleIcon} strokeWidth={2} className="size-4 text-green-500" />
-                          ) : (
-                            <HugeiconsIcon icon={CopyIcon} strokeWidth={2} className="size-4" />
-                          )}
-                        </Button>
+                      <div className="space-y-2">
+                        <Label>Client ID</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={createdApp.clientId}
+                            readOnly
+                            className="font-mono text-sm"
+                          />
+                          <Button variant="outline" size="icon" onClick={handleCopyId}>
+                            {copiedId ? (
+                              <HugeiconsIcon
+                                icon={CheckmarkCircleIcon}
+                                strokeWidth={2}
+                                className="size-4 text-green-500"
+                              />
+                            ) : (
+                              <HugeiconsIcon icon={CopyIcon} strokeWidth={2} className="size-4" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
+                      {createdApp.clientSecret && (
+                        <div className="space-y-2">
+                          <Label>Client Secret</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              value={createdApp.clientSecret}
+                              readOnly
+                              className="font-mono text-sm"
+                            />
+                            <Button variant="outline" size="icon" onClick={handleCopySecret}>
+                              {copiedSecret ? (
+                                <HugeiconsIcon
+                                  icon={CheckmarkCircleIcon}
+                                  strokeWidth={2}
+                                  className="size-4 text-green-500"
+                                />
+                              ) : (
+                                <HugeiconsIcon icon={CopyIcon} strokeWidth={2} className="size-4" />
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <DialogFooter>
                       <Button onClick={handleCloseCreate}>Done</Button>
@@ -664,23 +1011,58 @@ Password: <your-token>`}
                 ) : (
                   <>
                     <DialogHeader>
-                      <DialogTitle>Generate New Token</DialogTitle>
-                      <DialogDescription>Create a new Personal Access Token for Git authentication.</DialogDescription>
+                      <DialogTitle>Register New Application</DialogTitle>
+                      <DialogDescription>
+                        Create a new OAuth application to integrate with gitbruv.
+                      </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="token-name">Token Name</Label>
-                        <Input id="token-name" value={newKeyName} onChange={(e) => setNewKeyName(e.target.value)} placeholder="e.g., My Laptop" />
-                        <p className="text-xs text-muted-foreground">Give your token a name to remember what it's used for.</p>
+                        <Label htmlFor="app-name">Application Name</Label>
+                        <Input
+                          id="app-name"
+                          value={newAppName}
+                          onChange={(e) => setNewAppName(e.target.value)}
+                          placeholder="My Application"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="app-uri">Homepage URL (Optional)</Label>
+                        <Input
+                          id="app-uri"
+                          value={newAppUri}
+                          onChange={(e) => setNewAppUri(e.target.value)}
+                          placeholder="https://example.com"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="app-redirect-uris">Authorization Callback URLs</Label>
+                        <Textarea
+                          id="app-redirect-uris"
+                          value={newAppRedirectUris}
+                          onChange={(e) => setNewAppRedirectUris(e.target.value)}
+                          placeholder="https://example.com/callback&#10;https://example.com/auth/callback"
+                          rows={3}
+                        />
+                        <p className="text-muted-foreground text-xs">
+                          Enter one URL per line. These are the URLs where users will be redirected
+                          after authorization.
+                        </p>
                       </div>
                     </div>
                     <DialogFooter>
-                      <Button variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isCreating}>
+                      <Button variant="outline" onClick={handleCloseCreate} disabled={isCreating}>
                         Cancel
                       </Button>
                       <Button onClick={handleCreate} disabled={isCreating}>
-                        {isCreating && <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />}
-                        Generate
+                        {isCreating && (
+                          <HugeiconsIcon
+                            icon={Loading02Icon}
+                            strokeWidth={2}
+                            className="mr-2 size-4 animate-spin"
+                          />
+                        )}
+                        Register Application
                       </Button>
                     </DialogFooter>
                   </>
@@ -689,40 +1071,321 @@ Password: <your-token>`}
             </Dialog>
           </div>
 
-          {apiKeys && apiKeys.length > 0 ? (
-            <div className="border divide-y">
-              {apiKeys.map((key: ApiKey) => (
-                <div key={key.id} className="flex items-center justify-between p-4">
+          {clients && clients.length > 0 ? (
+            <div className="divide-y border">
+              {clients.map((client: OAuthClient) => (
+                <div key={client.id} className="flex items-center justify-between p-4">
                   <div className="flex items-center gap-3">
-                    <HugeiconsIcon icon={KeyIcon} strokeWidth={2} className="size-4 text-muted-foreground" />
+                    <div className="bg-muted flex size-8 items-center justify-center rounded">
+                      {client.icon ? (
+                        <img src={client.icon} alt="" className="size-6 rounded" />
+                      ) : (
+                        <HugeiconsIcon
+                          icon={CodeIcon}
+                          strokeWidth={2}
+                          className="text-muted-foreground size-4"
+                        />
+                      )}
+                    </div>
                     <div>
-                      <p className="font-medium text-sm">{key.name || "Personal Access Token"}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {key.start}•••••••• · Created {new Date(key.createdAt).toLocaleDateString()}
-                        {key.expiresAt && <> · Expires {new Date(key.expiresAt).toLocaleDateString()}</>}
+                      <p className="text-sm font-medium">
+                        {client.client_name || 'Unnamed Application'}
+                      </p>
+                      <p className="text-muted-foreground text-xs">
+                        {/* {client.clientId.slice(0, 8)}... · Created{' '} */}
+                        {new Date(client.client_id_issued_at).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
-                  <Dialog open={deleteKeyId === key.id} onOpenChange={(open) => setDeleteKeyId(open ? key.id : null)}>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => handleEditOpen(client)}>
+                      <HugeiconsIcon
+                        icon={Edit02Icon}
+                        strokeWidth={2}
+                        className="text-muted-foreground size-4"
+                      />
+                    </Button>
+                    <Dialog
+                      open={rotateClientId === client.client_id}
+                      onOpenChange={(open) => {
+                        if (open) {
+                          setRotateClientId(client.client_id);
+                        } else {
+                          handleCloseRotate();
+                        }
+                      }}
+                    >
+                      <DialogTrigger>
+                        <Button variant="ghost" size="icon">
+                          <HugeiconsIcon
+                            icon={RefreshIcon}
+                            strokeWidth={2}
+                            className="text-muted-foreground size-4"
+                          />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        {newSecret ? (
+                          <>
+                            <DialogHeader>
+                              <DialogTitle>New Client Secret</DialogTitle>
+                              <DialogDescription>
+                                Your new client secret has been generated. Copy it now.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div className="flex items-start gap-3 border border-amber-500/20 bg-amber-500/10 p-4">
+                                <HugeiconsIcon
+                                  icon={Alert01Icon}
+                                  strokeWidth={2}
+                                  className="mt-0.5 size-5 shrink-0 text-amber-500"
+                                />
+                                <p className="text-muted-foreground text-sm">
+                                  The previous secret has been invalidated. Update your application
+                                  with this new secret.
+                                </p>
+                              </div>
+                              <div className="flex gap-2">
+                                <Input value={newSecret} readOnly className="font-mono text-sm" />
+                                <Button variant="outline" size="icon" onClick={handleCopyNewSecret}>
+                                  {copiedNewSecret ? (
+                                    <HugeiconsIcon
+                                      icon={CheckmarkCircleIcon}
+                                      strokeWidth={2}
+                                      className="size-4 text-green-500"
+                                    />
+                                  ) : (
+                                    <HugeiconsIcon
+                                      icon={CopyIcon}
+                                      strokeWidth={2}
+                                      className="size-4"
+                                    />
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button onClick={handleCloseRotate}>Done</Button>
+                            </DialogFooter>
+                          </>
+                        ) : (
+                          <>
+                            <DialogHeader>
+                              <DialogTitle>Rotate Client Secret</DialogTitle>
+                              <DialogDescription>
+                                This will generate a new client secret and invalidate the current
+                                one. Any applications using the old secret will stop working.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <DialogFooter>
+                              <Button variant="outline" onClick={handleCloseRotate}>
+                                Cancel
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                onClick={() => handleRotateSecret(client.client_id)}
+                                disabled={isRotating}
+                              >
+                                {isRotating && (
+                                  <HugeiconsIcon
+                                    icon={Loading02Icon}
+                                    strokeWidth={2}
+                                    className="mr-2 size-4 animate-spin"
+                                  />
+                                )}
+                                Rotate Secret
+                              </Button>
+                            </DialogFooter>
+                          </>
+                        )}
+                      </DialogContent>
+                    </Dialog>
+                    <Dialog
+                      open={deleteClientId === client.client_id}
+                      onOpenChange={(open) => setDeleteClientId(open ? client.client_id : null)}
+                    >
+                      <DialogTrigger>
+                        <Button variant="ghost" size="icon">
+                          <HugeiconsIcon
+                            icon={DeleteIcon}
+                            strokeWidth={2}
+                            className="text-muted-foreground hover:text-destructive size-4"
+                          />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Delete Application</DialogTitle>
+                          <DialogDescription>
+                            Are you sure you want to delete this application? All users who have
+                            authorized this application will lose access.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                          <Button variant="outline" onClick={() => setDeleteClientId(null)}>
+                            Cancel
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            onClick={() => handleDeleteClient(client.client_id)}
+                            disabled={isDeletingClient}
+                          >
+                            {isDeletingClient && (
+                              <HugeiconsIcon
+                                icon={Loading02Icon}
+                                strokeWidth={2}
+                                className="mr-2 size-4 animate-spin"
+                              />
+                            )}
+                            Delete Application
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-muted/30 border border-dashed py-8 text-center">
+              <HugeiconsIcon
+                icon={CodeIcon}
+                strokeWidth={2}
+                className="text-muted-foreground mx-auto mb-2 size-8"
+              />
+              <p className="text-muted-foreground text-sm">
+                No OAuth applications yet. Create one to get started.
+              </p>
+            </div>
+          )}
+
+          <Dialog open={!!editingClient} onOpenChange={(open) => !open && handleEditClose()}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Application</DialogTitle>
+                <DialogDescription>Update your OAuth application settings.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-name">Application Name</Label>
+                  <Input
+                    id="edit-name"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    placeholder="My Application"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-uri">Homepage URL (Optional)</Label>
+                  <Input
+                    id="edit-uri"
+                    value={editUri}
+                    onChange={(e) => setEditUri(e.target.value)}
+                    placeholder="https://example.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-redirect-uris">Authorization Callback URLs</Label>
+                  <Textarea
+                    id="edit-redirect-uris"
+                    value={editRedirectUris}
+                    onChange={(e) => setEditRedirectUris(e.target.value)}
+                    placeholder="https://example.com/callback"
+                    rows={3}
+                  />
+                  <p className="text-muted-foreground text-xs">Enter one URL per line.</p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={handleEditClose} disabled={isUpdating}>
+                  Cancel
+                </Button>
+                <Button onClick={handleUpdate} disabled={isUpdating}>
+                  {isUpdating && (
+                    <HugeiconsIcon
+                      icon={Loading02Icon}
+                      strokeWidth={2}
+                      className="mr-2 size-4 animate-spin"
+                    />
+                  )}
+                  Save Changes
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Authorized Applications</CardTitle>
+          <CardDescription>
+            These are applications you have authorized to access your account. You can revoke access
+            at any time.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {consents && consents.length > 0 ? (
+            <div className="divide-y border">
+              {consents.map((consent: OAuthConsent) => (
+                <div key={consent.id} className="flex items-center justify-between p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-muted flex size-8 items-center justify-center rounded">
+                      {consent.client?.icon ? (
+                        <img src={consent.client.icon} alt="" className="size-6 rounded" />
+                      ) : (
+                        <HugeiconsIcon
+                          icon={CodeIcon}
+                          strokeWidth={2}
+                          className="text-muted-foreground size-4"
+                        />
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">
+                        {consent.client?.name || 'Unknown Application'}
+                      </p>
+                      <p className="text-muted-foreground text-xs">
+                        Scopes: {consent.scopes.split(' ').join(', ')} · Authorized{' '}
+                        {new Date(consent.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <Dialog
+                    open={deleteConsentId === consent.id}
+                    onOpenChange={(open) => setDeleteConsentId(open ? consent.id : null)}
+                  >
                     <DialogTrigger>
-                      <Button variant="ghost" size="icon">
-                        <HugeiconsIcon icon={DeleteIcon} strokeWidth={2} className="size-4 text-muted-foreground hover:text-destructive" />
+                      <Button variant="outline" size="sm">
+                        Revoke
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Delete Token</DialogTitle>
+                        <DialogTitle>Revoke Access</DialogTitle>
                         <DialogDescription>
-                          Are you sure you want to delete this token? Any applications using this token will no longer be able to access your account.
+                          Are you sure you want to revoke access for{' '}
+                          {consent.client?.name || 'this application'}? It will no longer be able to
+                          access your account.
                         </DialogDescription>
                       </DialogHeader>
                       <DialogFooter>
-                        <Button variant="outline" onClick={() => setDeleteKeyId(null)} disabled={isDeleting}>
+                        <Button variant="outline" onClick={() => setDeleteConsentId(null)}>
                           Cancel
                         </Button>
-                        <Button variant="destructive" onClick={() => handleDelete(key.id)} disabled={isDeleting}>
-                          {isDeleting && <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />}
-                          Delete Token
+                        <Button
+                          variant="destructive"
+                          onClick={() => handleDeleteConsent(consent.id)}
+                          disabled={isDeletingConsent}
+                        >
+                          {isDeletingConsent && (
+                            <HugeiconsIcon
+                              icon={Loading02Icon}
+                              strokeWidth={2}
+                              className="mr-2 size-4 animate-spin"
+                            />
+                          )}
+                          Revoke Access
                         </Button>
                       </DialogFooter>
                     </DialogContent>
@@ -731,9 +1394,15 @@ Password: <your-token>`}
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 border border-dashed bg-muted/30">
-              <HugeiconsIcon icon={KeyIcon} strokeWidth={2} className="size-8 mx-auto text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground">No tokens yet. Generate one to get started.</p>
+            <div className="bg-muted/30 border border-dashed py-8 text-center">
+              <HugeiconsIcon
+                icon={CheckmarkCircleIcon}
+                strokeWidth={2}
+                className="text-muted-foreground mx-auto mb-2 size-8"
+              />
+              <p className="text-muted-foreground text-sm">
+                No authorized applications. When you authorize an application, it will appear here.
+              </p>
             </div>
           )}
         </CardContent>
@@ -745,18 +1414,25 @@ Password: <your-token>`}
 function SettingsPage() {
   const { data: session, isPending } = useSession();
   const navigate = useNavigate();
-  const [tab, setTab] = useQueryState("tab", parseAsStringLiteral(["profile", "account", "security", "tokens"]).withDefault("profile"));
+  const [tab, setTab] = useQueryState(
+    'tab',
+    parseAsStringLiteral(['profile', 'account', 'security', 'oauth']).withDefault('profile'),
+  );
 
   useEffect(() => {
     if (!isPending && !session?.user) {
-      navigate({ to: "/login" });
+      navigate({ to: '/login' });
     }
   }, [isPending, session, navigate]);
 
   if (isPending) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-8 animate-spin text-muted-foreground" />
+      <div className="flex min-h-[400px] items-center justify-center">
+        <HugeiconsIcon
+          icon={Loading02Icon}
+          strokeWidth={2}
+          className="text-muted-foreground size-8 animate-spin"
+        />
       </div>
     );
   }
@@ -766,10 +1442,15 @@ function SettingsPage() {
   }
 
   return (
-    <div className="max-w-xl mx-auto py-8 px-4 sm:px-0!">
-      <h1 className="text-2xl font-semibold mb-8">Settings</h1>
-      <Tabs value={tab} onValueChange={(value) => setTab(value === "profile" ? null : (value as "account" | "security" | "tokens"))}>
-        <TabsList variant="default" className="w-full mb-6 h-12">
+    <div className="mx-auto max-w-xl px-4 py-8 sm:px-0!">
+      <h1 className="mb-8 text-2xl font-semibold">Settings</h1>
+      <Tabs
+        value={tab}
+        onValueChange={(value) =>
+          setTab(value === 'profile' ? null : (value as 'account' | 'security' | 'oauth'))
+        }
+      >
+        <TabsList variant="default" className="mb-6 h-12 w-full">
           <TabsTrigger value="profile">
             <HugeiconsIcon icon={UserIcon} strokeWidth={2} className="size-4" />
             Profile
@@ -782,9 +1463,9 @@ function SettingsPage() {
             <HugeiconsIcon icon={FingerPrintIcon} strokeWidth={2} className="size-4" />
             Security
           </TabsTrigger>
-          <TabsTrigger value="tokens">
-            <HugeiconsIcon icon={KeyIcon} strokeWidth={2} className="size-4" />
-            Access Tokens
+          <TabsTrigger value="oauth">
+            <HugeiconsIcon icon={CodeIcon} strokeWidth={2} className="size-4" />
+            OAuth
           </TabsTrigger>
         </TabsList>
 
@@ -800,8 +1481,8 @@ function SettingsPage() {
           <SecurityTab />
         </TabsContent>
 
-        <TabsContent value="tokens" className="mt-0">
-          <TokensTab />
+        <TabsContent value="oauth" className="mt-0">
+          <OAuthTab />
         </TabsContent>
       </Tabs>
     </div>
