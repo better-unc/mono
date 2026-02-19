@@ -27,7 +27,7 @@ export function LabelPicker({ labels, selectedIds, onToggle, isLoading }: LabelP
             variant="ghost"
             size="sm"
             className="h-6 px-2"
-            onClick={() => setIsOpen(!isOpen)}
+            onClick={() => setIsOpen((prev) => !prev)}
             disabled={isLoading}
           >
             <HugeiconsIcon icon={Add01Icon} strokeWidth={2} className="size-3.5" />

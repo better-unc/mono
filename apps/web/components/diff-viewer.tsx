@@ -187,7 +187,7 @@ function FileDiffView({ file, viewMode }: { file: FileDiff; viewMode: DiffViewMo
 
   return (
     <div className="border border-border overflow-hidden">
-      <FileHeader file={file} isExpanded={isExpanded} onToggle={() => setIsExpanded(!isExpanded)} />
+      <FileHeader file={file} isExpanded={isExpanded} onToggle={() => setIsExpanded((prev) => !prev)} />
       {isExpanded && (
         file.hunks.length === 0 ? (
           <div className="px-4 py-8 text-center text-muted-foreground text-sm">

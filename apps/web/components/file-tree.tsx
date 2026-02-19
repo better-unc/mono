@@ -68,9 +68,16 @@ function truncateMessage(message: string, maxLength = 50): string {
 }
 
 export function FileTree({ files, username, repoName, branch, basePath, commits, isLoadingCommits }: FileTreeProps) {
-  const folders = files.filter((f) => f.type === "tree").sort((a, b) => a.name.localeCompare(b.name));
-  const fileItems = files.filter((f) => f.type === "blob").sort((a, b) => a.name.localeCompare(b.name));
-  const sortedFiles = [...folders, ...fileItems];
+  const folders: FileEntry[] = [];
+  const fileItems: FileEntry[] = [];
+  for (const f of files) {
+    if (f.type === "tree") folders.push(f);
+    else fileItems.push(f);
+  }
+  const sortedFiles = [
+    ...folders.toSorted((a, b) => a.name.localeCompare(b.name)),
+    ...fileItems.toSorted((a, b) => a.name.localeCompare(b.name)),
+  ];
 
   const commitsByPath = commits?.reduce((acc, commit) => {
     acc[commit.path] = commit;

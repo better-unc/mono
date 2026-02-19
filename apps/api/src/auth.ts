@@ -168,8 +168,58 @@ export const auth = betterAuth({
     oauthProvider({
       loginPage: '/login',
       consentPage: '/oauth/consent',
-      scopes: ['openid', 'profile', 'email', 'offline_access'],
+      scopes: ['openid', 'profile', 'email', 'offline_access', 'read:user', 'write:user'],
       allowDynamicClientRegistration: true,
+      allowUnauthenticatedClientRegistration: false,
+      validAudiences: [apiUrl],
+      customIdTokenClaims: ({ user, scopes }) => {
+        const claims: Record<string, any> = {};
+        if (scopes.includes('profile')) {
+          claims.name = user.name;
+          claims.username = (user as any).username;
+          claims.picture = user.image;
+        }
+        return claims;
+      },
+      customUserInfoClaims: ({ user, scopes }) => {
+        const claims: Record<string, any> = {};
+        if (scopes.includes('profile')) {
+          claims.name = user.name;
+          claims.username = (user as any).username;
+          claims.picture = user.image;
+        }
+        if (scopes.includes('email')) {
+          claims.email = user.email;
+          claims.email_verified = user.emailVerified;
+        }
+        return claims;
+      },
+      accessTokenExpiresIn: 3600, // 1 hour
+      idTokenExpiresIn: 36000, // 10 hours
+      refreshTokenExpiresIn: 2592000, // 30 days
+      clientRegistrationDefaultScopes: ['openid', 'profile', 'email'],
+      advertisedMetadata: {
+        scopes_supported: [
+          'openid',
+          'profile',
+          'email',
+          'offline_access',
+          'read:user',
+          'write:user',
+        ],
+        claims_supported: [
+          'sub',
+          'iss',
+          'aud',
+          'exp',
+          'iat',
+          'name',
+          'username',
+          'picture',
+          'email',
+          'email_verified',
+        ],
+      },
     }),
     expo(),
     passkey({

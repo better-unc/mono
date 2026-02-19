@@ -2,10 +2,14 @@ import { Outlet, createRootRoute, HeadContent, Scripts, Link } from '@tanstack/r
 import { HomeIcon, GitBranchIcon } from '@hugeicons-pro/core-stroke-standard';
 import { ThemeProvider } from 'tanstack-theme-kit';
 import { Toaster } from '@/components/ui/sonner';
-import { Databuddy } from '@databuddy/sdk/react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Button } from '@/components/ui/button';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import appCss from './globals.css?url';
+
+const Databuddy = lazy(() =>
+  import('@databuddy/sdk/react').then((m) => ({ default: m.Databuddy })),
+);
 
 function NotFound() {
   return (
@@ -63,6 +67,9 @@ export const Route = createRootRoute({
 });
 
 function RootLayout() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -72,15 +79,19 @@ function RootLayout() {
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <Outlet />
           <Toaster richColors position="top-right" />
-          <Databuddy
-            clientId="f2d7ca37-ab52-4782-be5a-f88b59c8bac2"
-            trackErrors
-            trackPerformance
-            trackWebVitals
-            trackAttributes
-            trackHashChanges
-            trackOutgoingLinks
-          />
+          {mounted && (
+            <Suspense fallback={null}>
+              <Databuddy
+                clientId="f2d7ca37-ab52-4782-be5a-f88b59c8bac2"
+                trackErrors
+                trackPerformance
+                trackWebVitals
+                trackAttributes
+                trackHashChanges
+                trackOutgoingLinks
+              />
+            </Suspense>
+          )}
         </ThemeProvider>
         <Scripts />
       </body>

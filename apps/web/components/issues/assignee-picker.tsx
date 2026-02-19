@@ -49,7 +49,7 @@ export function AssigneePicker({
         variant="ghost"
         size="sm"
         className="h-6 px-2 text-xs text-muted-foreground"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setIsOpen((prev) => !prev)}
         disabled={isLoading}
       >
         <HugeiconsIcon icon={Add01Icon} strokeWidth={2} className="size-3.5 mr-1" />
