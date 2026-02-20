@@ -1,5 +1,5 @@
 import { handleWebSocketUpgrade, websocketHandlers } from './websocket';
-import { config, getAllowedOrigins } from './config';
+import { config, getAllowedOrigins, getOAuthClientOrigins } from './config';
 import { createMiddleware } from 'hono/factory';
 import { mountRoutes } from './routes';
 import { initAuth } from './auth';
@@ -17,7 +17,13 @@ app.use('*', loggingMiddleware);
 app.use(
   '*',
   cors({
-    origin: getAllowedOrigins(),
+    origin: (origin, c) => {
+      if (!origin) return null;
+      const allowed = c.req.path.startsWith('/api/auth')
+        ? getOAuthClientOrigins()
+        : getAllowedOrigins();
+      return allowed.includes(origin) ? origin : null;
+    },
     credentials: true,
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization', 'Cookie', 'x-internal-auth'],

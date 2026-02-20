@@ -4,15 +4,13 @@ import { Hono } from 'hono';
 
 const app = new Hono();
 
-app.get('/consent', async (c) => {
+app.get('/oauth/consent', async (c) => {
   try {
-    const clientId = c.req.query('client_id');
-    const scope = c.req.query('scope');
-    const redirectUri = c.req.query('redirect_uri');
-    const state = c.req.query('state');
-    const response_type = c.req.query('response_type');
-    const code_challenge = c.req.query('code_challenge');
-    const code_challenge_method = c.req.query('code_challenge_method');
+    const query = c.req.query();
+    const clientId = query['client_id'];
+    const scope = query['scope'];
+    const redirectUri = query['redirect_uri'];
+    const rawQueryString = new URL(c.req.url).search.slice(1);
 
     if (!clientId || !scope || !redirectUri) {
       return c.json({ error: 'Missing required parameters' }, 400);
@@ -120,30 +118,31 @@ app.get('/consent', async (c) => {
           </div>
 
           <div class="buttons">
-            <form method="POST" action="/api/auth/oauth2/consent" style="display: inline;">
-              <input type="hidden" name="accept" value="false">
-              <input type="hidden" name="client_id" value="${clientId}">
-              <input type="hidden" name="scope" value="${scope}">
-              <input type="hidden" name="redirect_uri" value="${redirectUri}">
-              <input type="hidden" name="state" value="${state || ''}">
-              <input type="hidden" name="response_type" value="${response_type || ''}">
-              <input type="hidden" name="code_challenge" value="${code_challenge || ''}">
-              <input type="hidden" name="code_challenge_method" value="${code_challenge_method || ''}">
-              <button type="submit" class="btn-deny">Deny</button>
-            </form>
-            <form method="POST" action="/api/auth/oauth2/consent" style="display: inline;">
-              <input type="hidden" name="accept" value="true">
-              <input type="hidden" name="client_id" value="${clientId}">
-              <input type="hidden" name="scope" value="${scope}">
-              <input type="hidden" name="redirect_uri" value="${redirectUri}">
-              <input type="hidden" name="state" value="${state || ''}">
-              <input type="hidden" name="response_type" value="${response_type || ''}">
-              <input type="hidden" name="code_challenge" value="${code_challenge || ''}">
-              <input type="hidden" name="code_challenge_method" value="${code_challenge_method || ''}">
-              <button type="submit" class="btn-approve">Approve</button>
-            </form>
+            <button type="button" class="btn-deny" onclick="submitConsent(false)">Deny</button>
+            <button type="button" class="btn-approve" onclick="submitConsent(true)">Approve</button>
           </div>
         </div>
+        <script>
+          async function submitConsent(accept) {
+            const res = await fetch('/api/auth/oauth2/consent', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({
+                oauth_query: ${JSON.stringify(rawQueryString)},
+                accept,
+              }),
+            });
+            if (res.redirected) {
+              window.location.href = res.url;
+            } else {
+              const data = await res.json().catch(() => null);
+              if (data?.uri) window.location.href = data.uri;
+              else if (data?.redirectTo) window.location.href = data.redirectTo;
+              else if (!res.ok) console.error('Consent error:', data);
+            }
+          }
+        </script>
       </body>
       </html>
     `;

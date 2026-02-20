@@ -16,6 +16,13 @@ export const Route = createFileRoute('/_main/oauth/consent')({
   validateSearch: (search: Record<string, unknown>) => ({
     client_id: (search.client_id as string) || '',
     scope: (search.scope as string) || '',
+    state: (search.state as string) || '',
+    redirect_uri: (search.redirect_uri as string) || '',
+    response_type: (search.response_type as string) || '',
+    code_challenge: (search.code_challenge as string) || '',
+    code_challenge_method: (search.code_challenge_method as string) || '',
+    exp: (search.exp as string) || '',
+    sig: (search.sig as string) || '',
   }),
 });
 
@@ -48,6 +55,30 @@ function ConsentPage() {
   const requestedScope = search.scope;
   const scopes = requestedScope.split(' ').filter(Boolean);
 
+  const oauthQuery = new URLSearchParams({
+    client_id: search.client_id,
+    scope: search.scope,
+    state: search.state,
+    redirect_uri: search.redirect_uri,
+    response_type: search.response_type,
+    code_challenge: search.code_challenge,
+    code_challenge_method: search.code_challenge_method,
+    exp: search.exp,
+    sig: search.sig,
+  }).toString();
+
+  useEffect(() => {
+    console.group('[OAuth] Consent page loaded');
+    console.log('client_id:    ', search.client_id);
+    console.log('scope:        ', search.scope);
+    console.log('redirect_uri: ', search.redirect_uri);
+    console.log('state:        ', search.state);
+    console.log('response_type:', search.response_type);
+    console.log('code_challenge_method:', search.code_challenge_method);
+    console.log('exp:          ', search.exp ? new Date(Number(search.exp) * 1000).toISOString() : '—');
+    console.groupEnd();
+  }, []);
+
   const {
     data: client,
     isLoading: clientLoading,
@@ -55,10 +86,15 @@ function ConsentPage() {
   } = useQuery({
     queryKey: ['oauth-public-client', clientId],
     queryFn: async () => {
+      console.log('[OAuth] Fetching public client info for:', clientId);
       const result = await authClient.oauth2.publicClient({
         query: { client_id: clientId },
       });
-      if (result.error) throw result.error;
+      if (result.error) {
+        console.error('[OAuth] Failed to fetch client:', result.error);
+        throw result.error;
+      }
+      console.log('[OAuth] Client info:', result.data);
       return result.data;
     },
     enabled: !!clientId,
@@ -66,11 +102,20 @@ function ConsentPage() {
 
   const consentMutation = useMutation({
     mutationFn: async (accept: boolean) => {
+      console.group(`[OAuth] Submitting consent — accept: ${accept}`);
+      console.log('oauth_query:', oauthQuery);
       const result = await authClient.oauth2.consent({
         accept,
         scope: accept ? requestedScope : undefined,
-      });
-      if (result.error) throw result.error;
+        oauth_query: oauthQuery,
+      } as any);
+      if (result.error) {
+        console.error('[OAuth] Consent error:', result.error);
+        console.groupEnd();
+        throw result.error;
+      }
+      console.log('[OAuth] Consent response:', result.data);
+      console.groupEnd();
       return result.data;
     },
   });
@@ -78,7 +123,11 @@ function ConsentPage() {
   async function handleAccept() {
     setIsAccepting(true);
     try {
-      await consentMutation.mutateAsync(true);
+      const data = await consentMutation.mutateAsync(true);
+      if (data?.uri) {
+        console.log('[OAuth] Redirecting to callback:', data.uri);
+        window.location.href = data.uri;
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to grant consent');
       setIsAccepting(false);
@@ -88,7 +137,11 @@ function ConsentPage() {
   async function handleDeny() {
     setIsDenying(true);
     try {
-      await consentMutation.mutateAsync(false);
+      const data = await consentMutation.mutateAsync(false);
+      if (data?.uri) {
+        console.log('[OAuth] Denied — redirecting to:', data.uri);
+        window.location.href = data.uri;
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to deny consent');
       setIsDenying(false);
@@ -97,6 +150,7 @@ function ConsentPage() {
 
   useEffect(() => {
     if (!clientId) {
+      console.warn('[OAuth] No client_id found, redirecting home');
       navigate({ to: '/' });
     }
   }, [clientId, navigate]);

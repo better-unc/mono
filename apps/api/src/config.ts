@@ -90,3 +90,14 @@ export const getAllowedOrigins = (): string[] => {
 
   return allowedOrigins;
 };
+
+export const getOAuthClientOrigins = (): string[] => {
+  const origins = getAllowedOrigins();
+
+  const envOrigins = process.env.OAUTH_CLIENT_ORIGINS;
+  if (envOrigins) {
+    origins.push(...envOrigins.split(',').map((o) => o.trim()).filter(Boolean));
+  }
+
+  return origins;
+};

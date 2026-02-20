@@ -166,8 +166,8 @@ export const auth = betterAuth({
   plugins: [
     jwt(),
     oauthProvider({
-      loginPage: '/login',
-      consentPage: '/oauth/consent',
+      loginPage: `${getWebUrl()}/login`,
+      consentPage: `${getWebUrl()}/oauth/consent`,
       scopes: ['openid', 'profile', 'email', 'offline_access', 'read:user', 'write:user'],
       allowDynamicClientRegistration: true,
       allowUnauthenticatedClientRegistration: false,
