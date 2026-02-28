@@ -6,7 +6,7 @@
   "main": "./src/index.ts",
   "scripts": {
     "dev": "bun run --watch --env-file ../../.env src/index.ts",
-    "build": "bun build src/index.ts --outdir dist --target bun --minify",
+    "build": "bun build src/index.ts --outdir dist --target bun --minify --external next-themes --external @databuddy/sdk --external sonner --external @tanstack/react-query --external @pierre/diffs --external @base-ui/react --external @base-ui/utils --external shiki",
     "start": "bun run --env-file ../../.env src/index.ts",
     "lint": "eslint ."
   },

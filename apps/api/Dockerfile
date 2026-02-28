@@ -19,7 +19,10 @@ COPY packages/hooks ./packages/hooks
 COPY apps/api ./apps/api
 
 WORKDIR /app/apps/api
-RUN bun build src/index.ts --outdir dist --target bun --minify
+RUN bun build src/index.ts --outdir dist --target bun --minify \
+    --external next-themes --external @databuddy/sdk --external sonner \
+    --external @tanstack/react-query --external @pierre/diffs \
+    --external @base-ui/react --external @base-ui/utils --external shiki
 
 FROM oven/bun:1.1-alpine AS runner
 
