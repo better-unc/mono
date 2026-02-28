@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   useRepoPageData,
@@ -269,8 +269,8 @@ function BranchProtectionSection({ username, repoName }: { username: string; rep
   const updateRule = useUpdateBranchProtectionRule(username, repoName);
   const deleteRule = useDeleteBranchProtectionRule(username, repoName);
 
-  const [activeUpdatingRuleId, setActiveUpdatingRuleId] = useState<string | null>(null);
-  const [activeDeletingRuleId, setActiveDeletingRuleId] = useState<string | null>(null);
+  const [updatingRuleIds, setUpdatingRuleIds] = useState<Set<string>>(new Set());
+  const [deletingRuleIds, setDeletingRuleIds] = useState<Set<string>>(new Set());
 
   const [newBranch, setNewBranch] = useState("");
   const [newRule, setNewRule] = useState({
@@ -327,24 +327,24 @@ function BranchProtectionSection({ username, repoName }: { username: string; rep
             key={rule.id}
             rule={rule}
             onUpdate={(data) => {
-              setActiveUpdatingRuleId(rule.id);
+              setUpdatingRuleIds((prev) => new Set(prev).add(rule.id));
               updateRule.mutate(
                 { ruleId: rule.id, data },
                 {
-                  onSuccess: () => { setActiveUpdatingRuleId(null); toast.success("Rule updated"); },
-                  onError: (err) => { setActiveUpdatingRuleId(null); toast.error(err instanceof Error ? err.message : "Failed to update"); },
+                  onSuccess: () => { setUpdatingRuleIds((prev) => { const next = new Set(prev); next.delete(rule.id); return next; }); toast.success("Rule updated"); },
+                  onError: (err) => { setUpdatingRuleIds((prev) => { const next = new Set(prev); next.delete(rule.id); return next; }); toast.error(err instanceof Error ? err.message : "Failed to update"); },
                 }
               );
             }}
             onDelete={() => {
-              setActiveDeletingRuleId(rule.id);
+              setDeletingRuleIds((prev) => new Set(prev).add(rule.id));
               deleteRule.mutate(rule.id, {
-                onSuccess: () => { setActiveDeletingRuleId(null); toast.success("Rule deleted"); },
-                onError: (err) => { setActiveDeletingRuleId(null); toast.error(err instanceof Error ? err.message : "Failed to delete"); },
+                onSuccess: () => { setDeletingRuleIds((prev) => { const next = new Set(prev); next.delete(rule.id); return next; }); toast.success("Rule deleted"); },
+                onError: (err) => { setDeletingRuleIds((prev) => { const next = new Set(prev); next.delete(rule.id); return next; }); toast.error(err instanceof Error ? err.message : "Failed to delete"); },
               });
             }}
-            saving={activeUpdatingRuleId === rule.id}
-            deleting={activeDeletingRuleId === rule.id}
+            saving={updatingRuleIds.has(rule.id)}
+            deleting={deletingRuleIds.has(rule.id)}
           />
         ))}
 
@@ -476,6 +476,7 @@ function ProtectionCheckboxes({
   };
   onChange: (updates: Partial<typeof values>) => void;
 }) {
+  const reviewCountId = useId();
   return (
     <div className="space-y-3">
       <label className="flex items-center gap-2 text-sm">
@@ -516,11 +517,11 @@ function ProtectionCheckboxes({
       </label>
       {values.requireReviews && (
         <div className="ml-6 flex items-center gap-2">
-          <Label htmlFor="review-count" className="text-sm whitespace-nowrap">
+          <Label htmlFor={reviewCountId} className="text-sm whitespace-nowrap">
             Required approvals:
           </Label>
           <Input
-            id="review-count"
+            id={reviewCountId}
             type="number"
             min={1}
             max={10}
