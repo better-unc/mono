@@ -21,6 +21,7 @@ COPY apps/oauth-test/package.json ./apps/oauth-test/
 COPY packages/lib/package.json ./packages/lib/
 COPY packages/hooks/package.json ./packages/hooks/
 COPY packages/db/package.json ./packages/db/
+COPY packages/eslint-config/package.json ./packages/eslint-config/
 
 RUN bun install --ignore-scripts
 

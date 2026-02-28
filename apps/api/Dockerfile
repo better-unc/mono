@@ -10,6 +10,7 @@ COPY apps/api/package.json ./apps/api/
 COPY packages/db/package.json ./packages/db/
 COPY packages/lib/package.json ./packages/lib/
 COPY packages/hooks/package.json ./packages/hooks/
+COPY packages/eslint-config/package.json ./packages/eslint-config/
 
 RUN bun install
 
