@@ -6,7 +6,6 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Loading02Icon } from "@hugeicons-pro/core-stroke-standard";
 import { getApiUrl } from "@/lib/utils";
 
-const CHUNK_SIZE = 64 * 1024;
 const LARGE_FILE_THRESHOLD = 100 * 1024;
 
 interface ChunkedCodeViewerProps {
@@ -20,7 +19,7 @@ interface ChunkedCodeViewerProps {
   wordWrap?: boolean;
 }
 
-export function ChunkedCodeViewer({ username, repoName, branch, filePath, language, initialContent, totalSize, wordWrap }: ChunkedCodeViewerProps) {
+export function ChunkedCodeViewer({ username, repoName, branch, filePath, language, initialContent, _totalSize, wordWrap }: ChunkedCodeViewerProps) {
   const [content, setContent] = useState(initialContent || "");
   const [loading, setLoading] = useState(!initialContent);
   const [progress, setProgress] = useState(initialContent ? 100 : 0);

@@ -1,6 +1,5 @@
 import { useSession } from "@/lib/auth-client";
 import { useRepoFile, useRepositoryWithStars, useWordWrapPreference } from "@gitbruv/hooks";
-import { getLanguage } from "@gitbruv/lib";
 import { ArrowRight01Icon, CodeIcon, HomeIcon } from "@hugeicons-pro/core-stroke-standard";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -59,7 +58,6 @@ function BlobPage() {
 
   const pathParts = filePath.split("/").filter(Boolean);
   const fileName = pathParts[pathParts.length - 1];
-  const language = getLanguage(fileName);
   const wordWrap = wordWrapData?.wordWrap ?? false;
 
   const { theme } = useTheme();

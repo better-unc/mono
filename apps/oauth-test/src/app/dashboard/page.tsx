@@ -31,7 +31,6 @@ export default async function DashboardPage() {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
             {user.image && (
-              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={user.image}
                 alt={user.name ?? ''}

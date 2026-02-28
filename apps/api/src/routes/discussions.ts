@@ -8,7 +8,7 @@ import {
   discussionComments,
   discussionReactions,
 } from "@gitbruv/db";
-import { eq, sql, and, desc, isNull } from "drizzle-orm";
+import { eq, sql, and, desc } from "drizzle-orm";
 import { authMiddleware, requireAuth, type AuthVariables } from "../middleware/auth";
 
 const app = new Hono<{ Variables: AuthVariables }>();

@@ -33,7 +33,7 @@ function DiscussionDetailPage() {
   const [commentBody, setCommentBody] = useState("");
 
   const { data: discussion, isLoading: discussionLoading } = useDiscussion(username, repo, discussionNumber);
-  const { data: commentsData, isLoading: commentsLoading } = useDiscussionComments(discussion?.id || "");
+  const { data: commentsData } = useDiscussionComments(discussion?.id || "");
   const createComment = useCreateDiscussionComment(discussion?.id || "", username, repo, discussionNumber);
   const markAnswer = useMarkDiscussionAnswer(discussion?.id || "", username, repo, discussionNumber);
 

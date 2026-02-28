@@ -48,7 +48,7 @@ app.patch("/api/settings/profile", requireAuth, async (c) => {
     defaultRepositoryVisibility?: string;
   }>();
 
-  let normalizedUsername = body.username?.toLowerCase().replace(/ /g, "-");
+  const normalizedUsername = body.username?.toLowerCase().replace(/ /g, "-");
 
   if (normalizedUsername) {
     if (!/^[a-zA-Z0-9_-]+$/.test(normalizedUsername)) {

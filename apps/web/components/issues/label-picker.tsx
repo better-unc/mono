@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { TagsIcon, Add01Icon, Tick02Icon } from "@hugeicons-pro/core-stroke-standard";
+import { Add01Icon, Tick02Icon } from "@hugeicons-pro/core-stroke-standard";
 import type { Label } from "@gitbruv/hooks";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { LabelBadge } from "./label-badge";
 
 interface LabelPickerProps {

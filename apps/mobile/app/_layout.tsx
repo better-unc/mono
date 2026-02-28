@@ -21,6 +21,7 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     GeistMono: require("../assets/fonts/GeistMono-Regular.ttf"),
     ...FontAwesome.font,
   });

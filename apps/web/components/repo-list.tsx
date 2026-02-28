@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { timeAgo } from "@gitbruv/lib";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { LockKeyIcon, GlobeIcon, StarIcon } from "@hugeicons-pro/core-stroke-standard";
+import { StarIcon } from "@hugeicons-pro/core-stroke-standard";
 import { Button } from "./ui/button";
 import { useStarRepository } from "@gitbruv/hooks";
 
@@ -18,7 +18,7 @@ type Repository = {
   };
 };
 
-export function RepoList({ repos, username }: { repos: Repository[]; username?: string }) {
+export function RepoList({ repos, _username }: { repos: Repository[]; username?: string }) {
   return (
     <div className="divide-y divide-border border-t border-border">
       {repos.map((repo) => {

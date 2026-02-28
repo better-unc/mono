@@ -12,12 +12,12 @@ type FileEntry = {
 };
 
 type FileTreeProps = {
-  files: Array<FileEntry>;
+  files: FileEntry[];
   username: string;
   repoName: string;
   branch: string;
   basePath?: string;
-  commits?: Array<FileLastCommit>;
+  commits?: FileLastCommit[];
   isLoadingCommits?: boolean;
 };
 
@@ -67,7 +67,7 @@ function truncateMessage(message: string, maxLength = 50): string {
   return message.slice(0, maxLength).trim() + "...";
 }
 
-export function FileTree({ files, username, repoName, branch, basePath, commits, isLoadingCommits }: FileTreeProps) {
+export function FileTree({ files, username, repoName, branch, _basePath, commits, isLoadingCommits }: FileTreeProps) {
   const folders: FileEntry[] = [];
   const fileItems: FileEntry[] = [];
   for (const f of files) {

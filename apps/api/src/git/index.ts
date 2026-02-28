@@ -93,7 +93,7 @@ export async function listBranches(fs: S3Fs, dir: string): Promise<string[]> {
     for (const entry of entries) {
       const refPath = `${refsDir}/${entry}`;
       try {
-        const refContent = await fs.promises.readFile(refPath, "utf8");
+        await fs.promises.readFile(refPath, "utf8");
 
         branches.push(entry);
       } catch (error) {
@@ -123,7 +123,7 @@ function normalizeRef(ref: string): string {
 export async function refExists(fs: S3Fs, dir: string, ref: string): Promise<boolean> {
   try {
     const normalizedRef = normalizeRef(ref);
-    const resolved = await git.resolveRef({ fs, dir, ref: normalizedRef });
+    await git.resolveRef({ fs, dir, ref: normalizedRef });
 
     return true;
   } catch (error) {
@@ -253,7 +253,7 @@ export async function getCommitCount(fs: S3Fs, dir: string, ref: string): Promis
     let commitOid: string;
     try {
       commitOid = await git.resolveRef({ fs, dir, ref: normalizedRef });
-    } catch (error) {
+    } catch {
       try {
         const refContent = await fs.promises.readFile(normalizedRef, "utf8");
         commitOid = refContent.toString().trim();
@@ -305,7 +305,7 @@ export async function getTree(
     let commitOid: string;
     try {
       commitOid = await git.resolveRef({ fs, dir, ref: normalizedRef });
-    } catch (error) {
+    } catch {
       try {
         const refContent = await fs.promises.readFile(normalizedRef, "utf8");
         commitOid = refContent.toString().trim();
@@ -372,7 +372,7 @@ export async function getFile(
     let commitOid: string;
     try {
       commitOid = await git.resolveRef({ fs, dir, ref: normalizedRef });
-    } catch (error) {
+    } catch {
       try {
         const refContent = await fs.promises.readFile(normalizedRef, "utf8");
         commitOid = refContent.toString().trim();
@@ -971,7 +971,7 @@ async function getCommitOidsUpTo(
   dir: string,
   startOid: string,
   stopOid: string | null,
-  maxCommits: number = 1000
+  maxCommits = 1000
 ): Promise<string[]> {
   const oids: string[] = [];
   let currentOid: string | null = startOid;
@@ -1205,7 +1205,7 @@ async function copyGitObject(
   sourceStore: GitStore,
   targetStore: GitStore,
   oid: string,
-  type: "blob" | "tree" | "commit"
+  _type: "blob" | "tree" | "commit"
 ): Promise<boolean> {
   try {
     const prefix = oid.substring(0, 2);
@@ -1266,7 +1266,7 @@ async function copyCommitAndAncestors(
   targetStore: GitStore,
   commitOid: string,
   stopAtOid: string | null,
-  maxDepth: number = 100
+  maxDepth = 100
 ): Promise<boolean> {
   try {
     const visited = new Set<string>();

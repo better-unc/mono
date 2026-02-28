@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { PropsWithChildren } from "react";
+import type { PropsWithChildren } from "react";
 import { ApiProvider } from "@gitbruv/hooks";
 import { DEFAULT_QUERY_OPTIONS } from "@gitbruv/lib";
 import { api } from "./api";

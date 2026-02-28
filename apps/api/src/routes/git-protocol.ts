@@ -3,7 +3,6 @@ import { db, users, repositories, branchProtectionRules } from "@gitbruv/db";
 import { eq, and } from "drizzle-orm";
 import { authMiddleware, type AuthUser, type AuthVariables } from "../middleware/auth";
 import { createGitStore, getRefsAdvertisement, repoCache, isAncestor } from "../git";
-import git from "isomorphic-git";
 import { getAuth } from "../auth";
 import { putObject, deleteObject, getObject } from "../s3";
 import { createHash } from "crypto";
@@ -193,7 +192,7 @@ app.post("/:owner/:name/git-upload-pack", async (c) => {
     return c.json({ error: "Repository not found" }, 404);
   }
 
-  const { repo, store } = result;
+  const { repo } = result;
 
   if (repo.visibility === "private") {
     if (!currentUser || currentUser.id !== repo.ownerId) {
@@ -234,7 +233,6 @@ function parsePktLines(data: Buffer): string[] {
     if (len === 0) break;
     if (len < 4) break;
 
-    const contentLen = len - 4;
     if (offset + len > data.length) break;
 
     const content = data.slice(offset + 4, offset + len).toString("utf8");
@@ -297,26 +295,26 @@ function readOfsOffset(buf: Buffer, offset: number): { value: number; bytesRead:
 function applyDelta(base: Buffer, delta: Buffer): Buffer {
   let offset = 0;
 
-  let baseSize = 0;
+  let _baseSize = 0;
   let shift = 0;
   while (offset < delta.length) {
     const byte = delta[offset++];
-    baseSize |= (byte & 0x7f) << shift;
+    _baseSize |= (byte & 0x7f) << shift;
     shift += 7;
     if (!(byte & 0x80)) break;
   }
 
-  let resultSize = 0;
+  let _resultSize = 0;
   shift = 0;
   while (offset < delta.length) {
     const byte = delta[offset++];
-    resultSize |= (byte & 0x7f) << shift;
+    _resultSize |= (byte & 0x7f) << shift;
     shift += 7;
     if (!(byte & 0x80)) break;
   }
 
   const result: Buffer[] = [];
-  let resultLen = 0;
+  let _resultLen = 0;
 
   while (offset < delta.length) {
     const cmd = delta[offset++];
@@ -337,11 +335,11 @@ function applyDelta(base: Buffer, delta: Buffer): Buffer {
       if (copySize === 0) copySize = 0x10000;
 
       result.push(base.subarray(copyOffset, copyOffset + copySize));
-      resultLen += copySize;
+      _resultLen += copySize;
     } else if (cmd > 0) {
       result.push(delta.subarray(offset, offset + cmd));
       offset += cmd;
-      resultLen += cmd;
+      _resultLen += cmd;
     }
   }
 
@@ -364,7 +362,7 @@ function hashObject(type: string, data: Buffer): string {
   return createHash("sha1").update(store).digest("hex");
 }
 
-function inflateObject(buf: Buffer, offset: number, expectedSize: number): { data: Buffer; bytesRead: number } {
+function inflateObject(buf: Buffer, offset: number, _expectedSize: number): { data: Buffer; bytesRead: number } {
   const remaining = buf.subarray(offset);
 
   try {
@@ -473,8 +471,8 @@ async function unpackPackFile(
 
     const numObjects = packData.readUInt32BE(8);
 
-    const objects: Map<number, PackObject> = new Map();
-    const refDeltas: Array<{ obj: PackObject; baseOid: string }> = [];
+    const objects = new Map<number, PackObject>();
+    const refDeltas: { obj: PackObject; baseOid: string }[] = [];
     let offset = 12;
 
     for (let i = 0; i < numObjects; i++) {
@@ -557,7 +555,7 @@ async function unpackPackFile(
       return { type: baseData.type, data: resolvedData };
     };
 
-    const objectsToStore: Array<{ oid: string; type: string; data: Buffer }> = [];
+    const objectsToStore: { oid: string; type: string; data: Buffer }[] = [];
     let failed = 0;
 
     for (const [objOffset, obj] of objects) {
@@ -658,7 +656,7 @@ app.post("/:owner/:name/git-receive-pack", async (c) => {
     const commands = parsePktLines(commandSection);
     console.log(`[API] receive-pack: parsed ${commands.length} commands`);
 
-    const updates: Array<{ oldOid: string; newOid: string; ref: string }> = [];
+    const updates: { oldOid: string; newOid: string; ref: string }[] = [];
 
     for (const line of commands) {
       const parts = line.trim().split(/\s+/);
@@ -796,7 +794,7 @@ app.post("/:owner/:name/git-receive-pack", async (c) => {
       const refKey = `repos/${result.userId}/${repo.name}/${refPath}`;
 
       if (update.newOid === "0".repeat(40)) {
-        await deleteObject(refKey).catch(() => {});
+        await deleteObject(refKey).catch(() => { /* intentional no-op */ });
       } else {
         await putObject(refKey, Buffer.from(update.newOid + "\n"));
 

@@ -1,7 +1,3 @@
-import {
-  oauthProviderOpenIdConfigMetadata,
-  oauthProviderAuthServerMetadata,
-} from '@better-auth/oauth-provider';
 import { sendPasswordResetEmail, sendVerificationEmail } from '../email';
 import { db, users, verifications, accounts } from '@gitbruv/db';
 import { getAuth, verifyCredentials } from '../auth';

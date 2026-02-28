@@ -20,12 +20,12 @@ export type InlineCommentThreadProps = {
 function CommentItem({
   comment,
   onEdit,
-  onDelete,
+  _onDelete,
   currentUserId,
 }: {
   comment: PRComment;
   onEdit?: (body: string) => Promise<void>;
-  onDelete?: () => Promise<void>;
+  _onDelete?: () => Promise<void>;
   currentUserId?: string;
 }) {
   const [isEditing, setIsEditing] = useState(false);

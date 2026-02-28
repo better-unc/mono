@@ -70,8 +70,8 @@ const KEYWORDS_SET = new Set([
   "never",
 ]);
 
-function tokenizeLine(line: string): Array<{ text: string; color: string }> {
-  const tokens: Array<{ text: string; color: string }> = [];
+function tokenizeLine(line: string): { text: string; color: string }[] {
+  const tokens: { text: string; color: string }[] = [];
   let i = 0;
 
   while (i < line.length) {

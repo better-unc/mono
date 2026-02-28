@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { StarIcon } from "@hugeicons-pro/core-stroke-standard";
 import { StarIcon as StarIconFill } from "@hugeicons-pro/core-solid-standard";

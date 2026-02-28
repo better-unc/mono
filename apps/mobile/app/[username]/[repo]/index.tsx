@@ -1,5 +1,6 @@
 import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator, StyleSheet, Alert, Modal, TextInput } from "react-native";
-import { useLocalSearchParams, Link, Stack, RelativePathString, router } from "expo-router";
+import type { RelativePathString} from "expo-router";
+import { useLocalSearchParams, Link, Stack, router } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { BlurView } from "expo-blur";
 import { type FileEntry, useRepositoryInfo, useRepoTree, useRepoReadmeOid, useRepoReadme, useToggleStar, useForkRepository } from "@gitbruv/hooks";
@@ -35,7 +36,7 @@ export default function RepositoryScreen() {
   const [isForkDialogOpen, setIsForkDialogOpen] = useState(false);
   const [forkName, setForkName] = useState("");
 
-  const isLoading = isLoadingInfo || isLoadingTree;
+  const _isLoading = isLoadingInfo || isLoadingTree;
   const error = infoError;
   const isRefetching = isRefetchingInfo || isRefetchingTree;
 

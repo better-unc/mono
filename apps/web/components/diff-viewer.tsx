@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 function fileDiffToUnifiedDiff(file: FileDiff): string {
-  const lines: Array<string> = [];
+  const lines: string[] = [];
 
   const isNewFile = file.status === "added";
   const isDeletedFile = file.status === "deleted";
@@ -214,7 +214,7 @@ export function DiffViewer({
   viewMode,
   fileRefs,
 }: {
-  files: Array<FileDiff>;
+  files: FileDiff[];
   viewMode: DiffViewMode;
   fileRefs?: React.MutableRefObject<Map<string, HTMLDivElement>>;
 }) {
@@ -263,7 +263,7 @@ export function FilePickerSidebar({
   selectedFile,
   onFileSelect,
 }: {
-  files: Array<FileDiff>;
+  files: FileDiff[];
   selectedFile: string | null;
   onFileSelect: (path: string) => void;
 }) {

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Loading02Icon, LockPasswordIcon, CheckmarkCircle02Icon, AlertCircleIcon } from "@hugeicons-pro/core-stroke-standard";
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { getApiUrl } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,6 @@ export const Route = createFileRoute("/_auth/reset-password")({
 });
 
 function ResetPasswordPage() {
-  const navigate = useNavigate();
   const { token } = Route.useSearch();
   const [loading, setLoading] = useState(false);
   const [password, setPassword] = useState("");

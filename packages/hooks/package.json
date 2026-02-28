@@ -13,8 +13,13 @@
   "dependencies": {
     "@tanstack/react-query": "^5.90.16"
   },
+  "scripts": {
+    "lint": "eslint ."
+  },
   "devDependencies": {
+    "@gitbruv/eslint-config": "workspace:*",
     "@types/react": "19.1.10",
+    "eslint": "^9",
     "typescript": "^5"
   },
   "peerDependencies": {

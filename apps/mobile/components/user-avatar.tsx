@@ -1,4 +1,5 @@
-import { View, Image, ImageStyle, ViewStyle } from "react-native";
+import type { ImageStyle, ViewStyle } from "react-native";
+import { View, Image } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 
 type UserAvatarProps = {

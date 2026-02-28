@@ -2,8 +2,8 @@ import { Stack } from "expo-router";
 import { useColorScheme } from "react-native";
 
 export default function ExploreLayout() {
-  const colorScheme = useColorScheme();
-  const titleColor = colorScheme === "dark" ? "#ffffff" : "#000000";
+  const _colorScheme = useColorScheme();
+  const _titleColor = _colorScheme === "dark" ? "#ffffff" : "#000000";
 
   return (
     <Stack

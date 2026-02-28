@@ -1,5 +1,5 @@
 import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator, Alert, StyleSheet } from "react-native";
-import { Link, router } from "expo-router";
+import { Link } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { BlurView } from "expo-blur";
 import { useSession, signOut } from "@/lib/auth-client";

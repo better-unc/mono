@@ -5,7 +5,6 @@ import { useDiscussions } from "@gitbruv/hooks";
 import { formatRelativeTime } from "@gitbruv/lib";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_main/$username/$repo/discussions/")({
   component: DiscussionsListPage,
