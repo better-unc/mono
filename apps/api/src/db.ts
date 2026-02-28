@@ -1,4 +1,4 @@
-import { db, createDatabase, type Database } from "@gitbruv/db";
+import { db, type Database } from "@gitbruv/db";
 import { config } from "./config";
 
 export { db };

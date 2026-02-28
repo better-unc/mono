@@ -13,7 +13,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "lint": "eslint ."
   },
   "dependencies": {
     "drizzle-orm": "^0.45.1",
@@ -22,7 +23,9 @@
   },
   "devDependencies": {
     "@types/node": "^25",
+    "@gitbruv/eslint-config": "workspace:*",
     "drizzle-kit": "^0.31.8",
+    "eslint": "^9",
     "tsx": "^4.21.0",
     "typescript": "^5"
   }

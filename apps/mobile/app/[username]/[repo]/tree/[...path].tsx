@@ -1,5 +1,6 @@
 import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator, StyleSheet } from "react-native";
-import { useLocalSearchParams, Link, Stack, RelativePathString } from "expo-router";
+import type { RelativePathString } from "expo-router";
+import { useLocalSearchParams, Link, Stack } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { BlurView } from "expo-blur";
 import { type FileEntry, useRepoTree, useRepositoryInfo } from "@gitbruv/hooks";

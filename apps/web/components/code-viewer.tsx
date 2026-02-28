@@ -50,7 +50,7 @@ export function CodeViewer({
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{
-            code({ node, className, children, ...props }) {
+            code({ _node, className, children, ...props }) {
               const match = /language-(\w+)/.exec(className || "");
               const lang = match ? match[1] : "";
               const codeString = String(children).replace(/\n$/, "");

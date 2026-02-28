@@ -7,8 +7,6 @@ import type { Issue, Label, IssueAuthor } from "@gitbruv/hooks";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { CodeViewer } from "@/components/code-viewer";
-import { StateBadge } from "./state-badge";
-import { LabelBadge } from "./label-badge";
 import { ReactionPicker } from "./reaction-picker";
 import { LabelPicker } from "./label-picker";
 import { AssigneePicker } from "./assignee-picker";

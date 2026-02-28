@@ -141,7 +141,7 @@ export const repoBranchMetadata = pgTable(
     lastCommitTimestamp: timestamp('last_commit_timestamp').notNull(),
     readmeOid: text('readme_oid'),
     rootTree:
-      jsonb('root_tree').$type<Array<{ name: string; type: string; oid: string; path: string }>>(),
+      jsonb('root_tree').$type<{ name: string; type: string; oid: string; path: string }[]>(),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },

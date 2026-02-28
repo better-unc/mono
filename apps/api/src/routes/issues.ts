@@ -133,8 +133,6 @@ app.get("/api/repositories/:owner/:name/issues", async (c) => {
   const currentUser = c.get("user");
   const stateParam = c.req.query("state") || "open";
   const state: "open" | "closed" = stateParam === "closed" ? "closed" : "open";
-  const labelFilter = c.req.query("label");
-  const assigneeFilter = c.req.query("assignee");
   const limit = parseInt(c.req.query("limit") || "30", 10);
   const offset = parseInt(c.req.query("offset") || "0", 10);
 
@@ -143,7 +141,7 @@ app.get("/api/repositories/:owner/:name/issues", async (c) => {
     return c.json({ error: "Repository not found" }, 404);
   }
 
-  let query = db
+  const query = db
     .select({
       id: issues.id,
       number: issues.number,

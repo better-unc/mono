@@ -117,7 +117,7 @@ export function SearchBar({ className }: { className?: string }) {
             </button>
           ))}
           <button
-            onClick={() => handleSubmit({ preventDefault: () => { } } as React.FormEvent)}
+            onClick={() => handleSubmit({ preventDefault: () => { /* intentional no-op */ } } as React.FormEvent)}
             className="w-full p-3 text-left hover:bg-muted/50 text-sm text-primary"
           >
             See all results for "{query}"

@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, RefreshControl, ActivityIndicator, StyleSheet, Pressable } from "react-native";
+import { StyleSheet } from "react-native";
 
 export const markdownStyles = StyleSheet.create({
   body: {

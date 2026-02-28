@@ -6,7 +6,7 @@
     "dev": "next dev -p 3002",
     "build": "next build",
     "start": "next start -p 3002",
-    "lint": "next lint",
+    "lint": "eslint .",
     "db:migrate": "npx @better-auth/cli migrate"
   },
   "dependencies": {
@@ -21,6 +21,8 @@
     "@types/node": "^22",
     "@types/react": "19.1.10",
     "@types/react-dom": "19.1.10",
+    "@gitbruv/eslint-config": "workspace:*",
+    "eslint": "^9",
     "typescript": "^5"
   }
 }

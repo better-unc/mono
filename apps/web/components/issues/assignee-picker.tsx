@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface AssigneePickerProps {
-  availableUsers?: Array<IssueAuthor>;
-  selectedIds?: Array<string>;
+  availableUsers?: IssueAuthor[];
+  selectedIds?: string[];
   onToggle?: (userId: string) => void;
-  availableAssignees?: Array<Owner>;
-  selectedAssignees?: Array<Owner>;
+  availableAssignees?: Owner[];
+  selectedAssignees?: Owner[];
   onAddAssignee?: (userId: string) => void;
   onRemoveAssignee?: (userId: string) => void;
   isLoading?: boolean;

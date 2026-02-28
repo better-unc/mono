@@ -11,7 +11,7 @@ import issues from './issues';
 import health from './health';
 import users from './users';
 import oauth from './oauth';
-import { Hono } from 'hono';
+import type { Hono } from 'hono';
 import file from './file';
 import auth from './auth';
 import git from './git';

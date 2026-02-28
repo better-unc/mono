@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useApi } from "./context";
-import type { SearchResponse } from "./types";
+
 
 export function useSearch(
   query: string,

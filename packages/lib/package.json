@@ -19,8 +19,13 @@
     "date-fns": "^4.1.0",
     "tailwind-merge": "^3.4.0"
   },
+  "scripts": {
+    "lint": "eslint ."
+  },
   "devDependencies": {
+    "@gitbruv/eslint-config": "workspace:*",
     "@gitbruv/hooks": "workspace:*",
+    "eslint": "^9",
     "typescript": "^5"
   }
 }

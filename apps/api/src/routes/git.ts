@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { db, users, repositories, stars, repoBranchMetadata } from "@gitbruv/db";
 import { eq, sql, and } from "drizzle-orm";
-import { authMiddleware, requireAuth, type AuthVariables } from "../middleware/auth";
+import { authMiddleware, type AuthVariables } from "../middleware/auth";
 import {
   createGitStore,
   listBranchesCached,
@@ -10,9 +10,7 @@ import {
   getTreeCached,
   getFileCached,
   getBlobByOid,
-  getCommitByOid,
   getCommitDiff,
-  type CommitInfo,
 } from "../git";
 
 const app = new Hono<{ Variables: AuthVariables }>();

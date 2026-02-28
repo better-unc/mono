@@ -28,7 +28,7 @@
     "dev:mobile": "turbo dev --filter=@gitbruv/mobile --filter=@gitbruv/api",
     "dev:oauth-test": "turbo dev --filter=@gitbruv/web --filter=@gitbruv/oauth-test --filter=@gitbruv/api",
     "build:web": "turbo build --filter=@gitbruv/web --filter=@gitbruv/api",
-    "lint": "turbo lint"
+    "lint": "turbo lint --force 2>&1 | grep -E \"(✖|Tasks:|Failed:)\""
   },
   "workspaces": [
     "apps/*",

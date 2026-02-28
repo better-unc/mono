@@ -16,9 +16,7 @@
       "cache": false,
       "persistent": true
     },
-    "lint": {
-      "dependsOn": ["^build"]
-    },
+    "lint": {},
     "db:generate": {
       "cache": false,
       "inputs": ["$TURBO_DEFAULT$", ".env"]

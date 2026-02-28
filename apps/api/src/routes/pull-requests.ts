@@ -13,9 +13,9 @@ import {
   labels,
   branchProtectionRules,
 } from "@gitbruv/db";
-import { eq, sql, and, desc, or } from "drizzle-orm";
+import { eq, sql, and, desc } from "drizzle-orm";
 import { authMiddleware, requireAuth, type AuthVariables } from "../middleware/auth";
-import { createGitStore, getCommits, getTree, getCommitDiff, performMerge, repoCache, resolveRefOid } from "../git";
+import { createGitStore, getCommits, getCommitDiff, performMerge, repoCache, resolveRefOid } from "../git";
 
 const app = new Hono<{ Variables: AuthVariables }>();
 
@@ -276,10 +276,6 @@ app.get("/api/repositories/:owner/:name/pulls", async (c) => {
   const name = c.req.param("name");
   const currentUser = c.get("user");
   const stateParam = c.req.query("state") || "open";
-  const labelFilter = c.req.query("label");
-  const assigneeFilter = c.req.query("assignee");
-  const reviewerFilter = c.req.query("reviewer");
-  const authorFilter = c.req.query("author");
   const limit = parseInt(c.req.query("limit") || "30", 10);
   const offset = parseInt(c.req.query("offset") || "0", 10);
 
@@ -949,7 +945,7 @@ app.get("/api/pulls/:id/comments", async (c) => {
     return c.json({ error: "Pull request not found" }, 404);
   }
 
-  let commentsQuery = db
+  const commentsQuery = db
     .select({
       id: prComments.id,
       body: prComments.body,

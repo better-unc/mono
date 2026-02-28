@@ -12,7 +12,7 @@ interface PRStateBadgeProps {
 export function PRStateBadge({ state, merged, isDraft, className }: PRStateBadgeProps) {
   const isMerged = merged || state === "merged";
   const isClosed = state === "closed" && !isMerged;
-  const isOpen = state === "open";
+  const _isOpen = state === "open";
 
   if (isMerged) {
     return (

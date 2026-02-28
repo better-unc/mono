@@ -255,7 +255,7 @@ function ProjectBoardPage() {
 
     try {
       await reorderItems.mutateAsync(newItems);
-    } catch (err) {
+    } catch {
       toast.error("Failed to reorder items");
     }
   }

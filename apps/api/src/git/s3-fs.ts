@@ -80,7 +80,7 @@ export function createS3Fs(basePath: string) {
         return Array.from(entries);
       },
 
-      async mkdir(filepath: string, _options?: { recursive?: boolean }): Promise<void> {
+      async mkdir(_filepath: string, _options?: { recursive?: boolean }): Promise<void> {
         return;
       },
 

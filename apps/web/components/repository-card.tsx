@@ -1,9 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ClockIcon, StarIcon } from "@hugeicons-pro/core-stroke-standard";
+import { ClockIcon } from "@hugeicons-pro/core-stroke-standard";
 import { cn, formatDate } from "@gitbruv/lib";
-import { useStarRepository, type RepositoryWithStars } from "@gitbruv/hooks";
-import { Button, buttonVariants } from "./ui/button";
+import { type RepositoryWithStars } from "@gitbruv/hooks";
+import { buttonVariants } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { StarButton } from "./star-button";
 

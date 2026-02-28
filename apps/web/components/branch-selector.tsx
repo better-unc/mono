@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 type BranchSelectorProps = {
-  branches: Array<string>;
+  branches: string[];
   currentBranch: string;
   defaultBranch: string;
   username: string;
