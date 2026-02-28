@@ -11,6 +11,7 @@ import {
   bigint,
   customType,
   uniqueIndex,
+  check,
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
@@ -169,6 +170,7 @@ export const branchProtectionRules = pgTable(
   (table) => [
     index('branch_protection_rules_repo_id_idx').on(table.repositoryId),
     uniqueIndex('branch_protection_rules_repo_branch_unique').on(table.repositoryId, table.branchName),
+    check('branch_protection_rules_required_review_count_check', sql`${table.requiredReviewCount} >= 1`),
   ],
 );
 
