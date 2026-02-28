@@ -269,6 +269,9 @@ function BranchProtectionSection({ username, repoName }: { username: string; rep
   const updateRule = useUpdateBranchProtectionRule(username, repoName);
   const deleteRule = useDeleteBranchProtectionRule(username, repoName);
 
+  const [activeUpdatingRuleId, setActiveUpdatingRuleId] = useState<string | null>(null);
+  const [activeDeletingRuleId, setActiveDeletingRuleId] = useState<string | null>(null);
+
   const [newBranch, setNewBranch] = useState("");
   const [newRule, setNewRule] = useState({
     preventDirectPush: true,
@@ -323,23 +326,25 @@ function BranchProtectionSection({ username, repoName }: { username: string; rep
           <BranchProtectionRuleRow
             key={rule.id}
             rule={rule}
-            onUpdate={(data) =>
+            onUpdate={(data) => {
+              setActiveUpdatingRuleId(rule.id);
               updateRule.mutate(
                 { ruleId: rule.id, data },
                 {
-                  onSuccess: () => toast.success("Rule updated"),
-                  onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to update"),
+                  onSuccess: () => { setActiveUpdatingRuleId(null); toast.success("Rule updated"); },
+                  onError: (err) => { setActiveUpdatingRuleId(null); toast.error(err instanceof Error ? err.message : "Failed to update"); },
                 }
-              )
-            }
-            onDelete={() =>
+              );
+            }}
+            onDelete={() => {
+              setActiveDeletingRuleId(rule.id);
               deleteRule.mutate(rule.id, {
-                onSuccess: () => toast.success("Rule deleted"),
-                onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to delete"),
-              })
-            }
-            saving={updateRule.isPending}
-            deleting={deleteRule.isPending}
+                onSuccess: () => { setActiveDeletingRuleId(null); toast.success("Rule deleted"); },
+                onError: (err) => { setActiveDeletingRuleId(null); toast.error(err instanceof Error ? err.message : "Failed to delete"); },
+              });
+            }}
+            saving={activeUpdatingRuleId === rule.id}
+            deleting={activeDeletingRuleId === rule.id}
           />
         ))}
 

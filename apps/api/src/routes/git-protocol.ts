@@ -674,15 +674,17 @@ app.post("/:owner/:name/git-receive-pack", async (c) => {
 
     console.log(`[API] receive-pack: processing ${updates.length} ref updates`);
 
-    // Branch protection enforcement
+    // Branch protection enforcement (pre-unpack: direct push & deletion)
     const protectionRules = await db
       .select()
       .from(branchProtectionRules)
       .where(eq(branchProtectionRules.repositoryId, repo.id));
 
+    const rejectedRefLines: string[] = [];
+    const rejectedRefSet = new Set<string>();
+
     if (protectionRules.length > 0) {
       const ruleMap = new Map(protectionRules.map(r => [r.branchName, r]));
-      const rejectedRefs: string[] = [];
 
       for (const update of updates) {
         const branchName = update.ref.startsWith("refs/heads/")
@@ -695,38 +697,45 @@ app.post("/:owner/:name/git-receive-pack", async (c) => {
         const isDelete = update.newOid === "0".repeat(40);
 
         if (isDelete && rule.preventDeletion) {
-          rejectedRefs.push(`ng ${update.ref} protected branch - deletion not allowed`);
+          rejectedRefLines.push(`ng ${update.ref} protected branch - deletion not allowed`);
+          rejectedRefSet.add(update.ref);
           continue;
         }
 
         if (!isDelete && rule.preventDirectPush) {
-          rejectedRefs.push(`ng ${update.ref} protected branch - direct push not allowed, use a pull request`);
+          rejectedRefLines.push(`ng ${update.ref} protected branch - direct push not allowed, use a pull request`);
+          rejectedRefSet.add(update.ref);
           continue;
         }
       }
 
-      if (rejectedRefs.length > 0) {
-        let response = "";
-        const unpackOk = "unpack ok\n";
-        const unpackOkLen = unpackOk.length + 4;
-        response += unpackOkLen.toString(16).padStart(4, "0") + unpackOk;
-
-        for (const errorLine of rejectedRefs) {
-          const line = errorLine + "\n";
-          const lineLen = line.length + 4;
-          response += lineLen.toString(16).padStart(4, "0") + line;
-        }
-        response += "0000";
-
-        console.log(`[API] receive-pack: rejected ${rejectedRefs.length} refs due to branch protection`);
-        return new Response(Buffer.from(response, "ascii"), {
-          status: 200,
-          headers: {
-            "Content-Type": "application/x-git-receive-pack-result",
-            "Cache-Control": "no-cache",
-          },
-        });
+      if (rejectedRefLines.length > 0) {
+        console.log(`[API] receive-pack: rejected ${rejectedRefLines.length} refs due to branch protection (pre-unpack)`);
       }
+    }
+
+    // Filter to only allowed updates for the rest of the flow
+    let allowedUpdates = updates.filter(u => !rejectedRefSet.has(u.ref));
+
+    // If all refs were rejected, skip unpacking entirely
+    if (allowedUpdates.length === 0 && rejectedRefLines.length > 0) {
+      let response = "";
+      const unpackOk = "unpack ok\n";
+      const unpackOkLen = unpackOk.length + 4;
+      response += unpackOkLen.toString(16).padStart(4, "0") + unpackOk;
+      for (const errorLine of rejectedRefLines) {
+        const line = errorLine + "\n";
+        const lineLen = line.length + 4;
+        response += lineLen.toString(16).padStart(4, "0") + line;
+      }
+      response += "0000";
+      return new Response(Buffer.from(response, "ascii"), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/x-git-receive-pack-result",
+          "Cache-Control": "no-cache",
+        },
+      });
     }
 
     const storeObject = async (oid: string, type: string, data: Buffer) => {
@@ -751,11 +760,10 @@ app.post("/:owner/:name/git-receive-pack", async (c) => {
     console.log(`[API] receive-pack: unpacked ${unpackResult.objectCount} objects`);
 
     // Force push detection (after unpack so objects are available for ancestry check)
-    if (protectionRules.length > 0) {
+    if (protectionRules.length > 0 && allowedUpdates.length > 0) {
       const ruleMap = new Map(protectionRules.map(r => [r.branchName, r]));
-      const forcePushRejections: string[] = [];
 
-      for (const update of updates) {
+      for (const update of allowedUpdates) {
         const branchName = update.ref.startsWith("refs/heads/")
           ? update.ref.replace("refs/heads/", "")
           : update.ref;
@@ -770,35 +778,20 @@ app.post("/:owner/:name/git-receive-pack", async (c) => {
 
         const ancestor = await isAncestor(store.fs, store.dir, update.oldOid, update.newOid);
         if (!ancestor) {
-          forcePushRejections.push(`ng ${update.ref} protected branch - force push not allowed`);
+          rejectedRefLines.push(`ng ${update.ref} protected branch - force push not allowed`);
+          rejectedRefSet.add(update.ref);
         }
       }
 
-      if (forcePushRejections.length > 0) {
-        let response = "";
-        const unpackOk = "unpack ok\n";
-        const unpackOkLen = unpackOk.length + 4;
-        response += unpackOkLen.toString(16).padStart(4, "0") + unpackOk;
+      // Re-filter after force push checks
+      allowedUpdates = allowedUpdates.filter(u => !rejectedRefSet.has(u.ref));
 
-        for (const errorLine of forcePushRejections) {
-          const line = errorLine + "\n";
-          const lineLen = line.length + 4;
-          response += lineLen.toString(16).padStart(4, "0") + line;
-        }
-        response += "0000";
-
-        console.log(`[API] receive-pack: rejected ${forcePushRejections.length} refs due to force push protection`);
-        return new Response(Buffer.from(response, "ascii"), {
-          status: 200,
-          headers: {
-            "Content-Type": "application/x-git-receive-pack-result",
-            "Cache-Control": "no-cache",
-          },
-        });
+      if (rejectedRefSet.size > 0) {
+        console.log(`[API] receive-pack: total rejected refs: ${rejectedRefSet.size}`);
       }
     }
 
-    for (const update of updates) {
+    for (const update of allowedUpdates) {
       const refPath = update.ref.startsWith("refs/") ? update.ref : `refs/heads/${update.ref}`;
       const refKey = `repos/${result.userId}/${repo.name}/${refPath}`;
 
@@ -810,16 +803,15 @@ app.post("/:owner/:name/git-receive-pack", async (c) => {
       }
     }
 
-    if (updates.length > 0) {
-      const defaultBranch = updates[0].ref.startsWith("refs/")
-        ? updates[0].ref.replace("refs/heads/", "")
-        : updates[0].ref;
+    if (allowedUpdates.length > 0) {
+      const defaultBranch = allowedUpdates[0].ref.startsWith("refs/")
+        ? allowedUpdates[0].ref.replace("refs/heads/", "")
+        : allowedUpdates[0].ref;
       const headRef = `refs/heads/${defaultBranch}`;
       const headKey = `repos/${result.userId}/${repo.name}/HEAD`;
       await putObject(headKey, Buffer.from(`ref: ${headRef}\n`));
 
-
-      for (const update of updates) {
+      for (const update of allowedUpdates) {
         const branch = update.ref.startsWith("refs/heads/")
           ? update.ref.replace("refs/heads/", "")
           : update.ref;
@@ -827,15 +819,21 @@ app.post("/:owner/:name/git-receive-pack", async (c) => {
       }
     }
 
-    console.log(`[API] receive-pack: building response for ${updates.length} updates`);
+    console.log(`[API] receive-pack: building response for ${allowedUpdates.length} allowed, ${rejectedRefLines.length} rejected`);
 
     let response = "";
     const unpackOk = "unpack ok\n";
     const unpackOkLen = unpackOk.length + 4;
     response += unpackOkLen.toString(16).padStart(4, "0") + unpackOk;
 
-    for (const update of updates) {
+    for (const update of allowedUpdates) {
       const line = `ok ${update.ref}\n`;
+      const lineLen = line.length + 4;
+      response += lineLen.toString(16).padStart(4, "0") + line;
+    }
+
+    for (const errorLine of rejectedRefLines) {
+      const line = errorLine + "\n";
       const lineLen = line.length + 4;
       response += lineLen.toString(16).padStart(4, "0") + line;
     }

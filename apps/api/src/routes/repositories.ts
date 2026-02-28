@@ -741,6 +741,12 @@ app.post("/api/repositories/:owner/:name/branch-protection", requireAuth, async 
     return c.json({ error: "Branch name is required" }, 400);
   }
 
+  if (body.requiredReviewCount !== undefined) {
+    if (!Number.isInteger(body.requiredReviewCount) || body.requiredReviewCount < 1 || body.requiredReviewCount > 10) {
+      return c.json({ error: "Required review count must be an integer between 1 and 10" }, 400);
+    }
+  }
+
   const existing = await db.query.branchProtectionRules.findFirst({
     where: and(
       eq(branchProtectionRules.repositoryId, repo.id),
@@ -794,6 +800,12 @@ app.patch("/api/repositories/:owner/:name/branch-protection/:ruleId", requireAut
     requireReviews?: boolean;
     requiredReviewCount?: number;
   }>();
+
+  if (body.requiredReviewCount !== undefined) {
+    if (!Number.isInteger(body.requiredReviewCount) || body.requiredReviewCount < 1 || body.requiredReviewCount > 10) {
+      return c.json({ error: "Required review count must be an integer between 1 and 10" }, 400);
+    }
+  }
 
   const [updated] = await db
     .update(branchProtectionRules)

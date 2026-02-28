@@ -10,6 +10,7 @@ import {
   index,
   bigint,
   customType,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
@@ -167,7 +168,7 @@ export const branchProtectionRules = pgTable(
   },
   (table) => [
     index('branch_protection_rules_repo_id_idx').on(table.repositoryId),
-    index('branch_protection_rules_repo_branch_unique').on(table.repositoryId, table.branchName),
+    uniqueIndex('branch_protection_rules_repo_branch_unique').on(table.repositoryId, table.branchName),
   ],
 );
 
