@@ -15,7 +15,7 @@ import {
 } from "@gitbruv/db";
 import { eq, sql, and, desc, or } from "drizzle-orm";
 import { authMiddleware, requireAuth, type AuthVariables } from "../middleware/auth";
-import { createGitStore, getCommits, getTree, getCommitDiff, performMerge, repoCache } from "../git";
+import { createGitStore, getCommits, getTree, getCommitDiff, performMerge, repoCache, resolveRefOid } from "../git";
 
 const app = new Hono<{ Variables: AuthVariables }>();
 
@@ -715,6 +715,17 @@ app.post("/api/pulls/:id/merge", requireAuth, async (c) => {
     return c.json({ error: "Not authorized to merge" }, 403);
   }
 
+  const headRepo = await db.query.repositories.findFirst({
+    where: eq(repositories.id, pr.headRepoId),
+  });
+
+  if (!headRepo) {
+    return c.json({ error: "Head repository not found" }, 404);
+  }
+
+  const baseStore = createGitStore(baseRepo.ownerId, baseRepo.name);
+  const headStore = createGitStore(headRepo.ownerId, headRepo.name);
+
   // Check branch protection: required reviews
   const protectionRule = await db.query.branchProtectionRules.findFirst({
     where: and(
@@ -722,6 +733,14 @@ app.post("/api/pulls/:id/merge", requireAuth, async (c) => {
       eq(branchProtectionRules.branchName, pr.baseBranch)
     ),
   });
+
+  // Resolve the live head commit OID for the PR branch
+  let currentHeadOid: string;
+  try {
+    currentHeadOid = await resolveRefOid(headStore, pr.headBranch);
+  } catch {
+    return c.json({ error: "Could not resolve head branch ref" }, 500);
+  }
 
   if (protectionRule?.requireReviews && protectionRule.requiredReviewCount > 0) {
     const reviews = await db.query.prReviews.findMany({
@@ -737,28 +756,27 @@ app.post("/api/pulls/:id/merge", requireAuth, async (c) => {
       }
     }
 
-    // Count approvals (exclude PR author's self-reviews)
+    // Count approvals only for the current head commit, excluding PR author
     const approvalCount = Array.from(latestByAuthor.values())
-      .filter(r => r.state === "approved" && r.authorId !== pr.authorId)
+      .filter(r => r.state === "approved" && r.commitOid === currentHeadOid && r.authorId !== pr.authorId)
       .length;
 
     if (approvalCount < protectionRule.requiredReviewCount) {
       return c.json({
-        error: `This pull request requires at least ${protectionRule.requiredReviewCount} approving review(s) before merging. Currently has ${approvalCount}.`
+        error: `This pull request requires at least ${protectionRule.requiredReviewCount} approving review(s) for the current commit before merging. Currently has ${approvalCount}.`
       }, 403);
     }
   }
 
-  const headRepo = await db.query.repositories.findFirst({
-    where: eq(repositories.id, pr.headRepoId),
-  });
-
-  if (!headRepo) {
-    return c.json({ error: "Head repository not found" }, 404);
+  // TOCTOU check: re-read head OID immediately before merge and fail if it changed
+  try {
+    const recheckHeadOid = await resolveRefOid(headStore, pr.headBranch);
+    if (recheckHeadOid !== currentHeadOid) {
+      return c.json({ error: "The head branch was updated during merge validation. Please retry." }, 409);
+    }
+  } catch {
+    return c.json({ error: "Could not resolve head branch ref" }, 500);
   }
-
-  const baseStore = createGitStore(baseRepo.ownerId, baseRepo.name);
-  const headStore = createGitStore(headRepo.ownerId, headRepo.name);
 
   const mergeMessage = body.commitMessage || `Merge pull request #${pr.number} from ${pr.headBranch}\n\n${pr.title}`;
 

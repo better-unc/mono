@@ -140,6 +140,10 @@ export async function refExists(fs: S3Fs, dir: string, ref: string): Promise<boo
   }
 }
 
+export async function resolveRefOid(store: GitStore, ref: string): Promise<string> {
+  return git.resolveRef({ fs: store.fs, dir: store.dir, ref: normalizeRef(ref) });
+}
+
 async function objectExists(fs: S3Fs, oid: string): Promise<boolean> {
   try {
     const prefix = oid.substring(0, 2);
