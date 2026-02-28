@@ -803,14 +803,12 @@ app.post("/:owner/:name/git-receive-pack", async (c) => {
       }
     }
 
-    if (allowedUpdates.length > 0) {
-      const defaultBranch = allowedUpdates[0].ref.startsWith("refs/")
-        ? allowedUpdates[0].ref.replace("refs/heads/", "")
-        : allowedUpdates[0].ref;
-      const headRef = `refs/heads/${defaultBranch}`;
-      const headKey = `repos/${result.userId}/${repo.name}/HEAD`;
-      await putObject(headKey, Buffer.from(`ref: ${headRef}\n`));
-
+    for (const update of allowedUpdates) {
+      const branch = update.ref.startsWith("refs/heads/")
+        ? update.ref.replace("refs/heads/", "")
+        : update.ref;
+      await repoCache.invalidateBranch(result.userId, repo.name, branch);
+    }
       for (const update of allowedUpdates) {
         const branch = update.ref.startsWith("refs/heads/")
           ? update.ref.replace("refs/heads/", "")
