@@ -15,8 +15,12 @@ ENV PROD=true
 COPY package.json bun.lock ./
 COPY .npmrc ./
 COPY apps/web/package.json ./apps/web/
+COPY apps/api/package.json ./apps/api/
+COPY apps/mobile/package.json ./apps/mobile/
+COPY apps/oauth-test/package.json ./apps/oauth-test/
 COPY packages/lib/package.json ./packages/lib/
 COPY packages/hooks/package.json ./packages/hooks/
+COPY packages/db/package.json ./packages/db/
 
 RUN bun install
 
