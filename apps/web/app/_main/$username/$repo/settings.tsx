@@ -404,6 +404,23 @@ function BranchProtectionRuleRow({
     requiredReviewCount: rule.requiredReviewCount,
   });
 
+  useEffect(() => {
+    setValues({
+      preventDirectPush: rule.preventDirectPush,
+      preventForcePush: rule.preventForcePush,
+      preventDeletion: rule.preventDeletion,
+      requireReviews: rule.requireReviews,
+      requiredReviewCount: rule.requiredReviewCount,
+    });
+  }, [
+    rule.id,
+    rule.preventDirectPush,
+    rule.preventForcePush,
+    rule.preventDeletion,
+    rule.requireReviews,
+    rule.requiredReviewCount,
+  ]);
+
   const hasChanges =
     values.preventDirectPush !== rule.preventDirectPush ||
     values.preventForcePush !== rule.preventForcePush ||
