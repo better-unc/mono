@@ -320,6 +320,19 @@ export type PRCount = {
   merged: number;
 };
 
+export type BranchProtectionRule = {
+  id: string;
+  repositoryId: string;
+  branchName: string;
+  preventDirectPush: boolean;
+  preventForcePush: boolean;
+  preventDeletion: boolean;
+  requireReviews: boolean;
+  requiredReviewCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type ApiClient = {
   repositories: {
     create: (data: { name: string; description?: string; visibility: "public" | "private" }) => Promise<Repository>;
@@ -344,6 +357,23 @@ export type ApiClient = {
     getCommitDiff: (owner: string, name: string, oid: string) => Promise<CommitDiff>;
     getReadme: (owner: string, name: string, oid: string) => Promise<{ content: string }>;
     getReadmeOid: (owner: string, name: string, branch: string) => Promise<{ readmeOid: string | null }>;
+    getBranchProtection: (owner: string, name: string) => Promise<{ rules: BranchProtectionRule[] }>;
+    createBranchProtection: (owner: string, name: string, data: {
+      branchName: string;
+      preventDirectPush?: boolean;
+      preventForcePush?: boolean;
+      preventDeletion?: boolean;
+      requireReviews?: boolean;
+      requiredReviewCount?: number;
+    }) => Promise<BranchProtectionRule>;
+    updateBranchProtection: (owner: string, name: string, ruleId: string, data: {
+      preventDirectPush?: boolean;
+      preventForcePush?: boolean;
+      preventDeletion?: boolean;
+      requireReviews?: boolean;
+      requiredReviewCount?: number;
+    }) => Promise<BranchProtectionRule>;
+    deleteBranchProtection: (owner: string, name: string, ruleId: string) => Promise<{ success: boolean }>;
   };
   users: {
     getProfile: (username: string) => Promise<UserProfile>;

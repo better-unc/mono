@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { db, users, repositories, stars, repoBranchMetadata } from "@gitbruv/db";
+import { db, users, repositories, stars, repoBranchMetadata, branchProtectionRules } from "@gitbruv/db";
 import { eq, sql, desc, and } from "drizzle-orm";
 import { authMiddleware, requireAuth, type AuthVariables } from "../middleware/auth";
 import { putObject, deletePrefix, getRepoPrefix, copyPrefix, listObjects } from "../s3";
@@ -685,6 +685,181 @@ app.patch("/api/repositories/:id", requireAuth, async (c) => {
     .returning();
 
   return c.json(updated);
+});
+
+// Branch protection rules
+
+async function getRepoByOwnerName(owner: string, name: string) {
+  const result = await db
+    .select({
+      id: repositories.id,
+      ownerId: repositories.ownerId,
+    })
+    .from(repositories)
+    .innerJoin(users, eq(users.id, repositories.ownerId))
+    .where(and(eq(users.username, owner), eq(repositories.name, name)))
+    .limit(1);
+  return result[0] ?? null;
+}
+
+app.get("/api/repositories/:owner/:name/branch-protection", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const owner = c.req.param("owner");
+  const name = c.req.param("name");
+
+  const repo = await getRepoByOwnerName(owner, name);
+  if (!repo) return c.json({ error: "Repository not found" }, 404);
+  if (repo.ownerId !== user.id) return c.json({ error: "Unauthorized" }, 403);
+
+  const rules = await db
+    .select()
+    .from(branchProtectionRules)
+    .where(eq(branchProtectionRules.repositoryId, repo.id));
+
+  return c.json({ rules });
+});
+
+app.post("/api/repositories/:owner/:name/branch-protection", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const owner = c.req.param("owner");
+  const name = c.req.param("name");
+
+  const repo = await getRepoByOwnerName(owner, name);
+  if (!repo) return c.json({ error: "Repository not found" }, 404);
+  if (repo.ownerId !== user.id) return c.json({ error: "Unauthorized" }, 403);
+
+  const body = await c.req.json<{
+    branchName: string;
+    preventDirectPush?: boolean;
+    preventForcePush?: boolean;
+    preventDeletion?: boolean;
+    requireReviews?: boolean;
+    requiredReviewCount?: number;
+  }>();
+
+  const normalizedBranchName =
+    typeof body.branchName === "string"
+      ? body.branchName.trim().replace(/^refs\/heads\//, "")
+      : "";
+
+  if (!normalizedBranchName) {
+    return c.json({ error: "Branch name is required" }, 400);
+  }
+
+  const booleanFlags = ["preventDirectPush", "preventForcePush", "preventDeletion", "requireReviews"] as const;
+  for (const flag of booleanFlags) {
+    if (body[flag] !== undefined && typeof body[flag] !== "boolean") {
+      return c.json({ error: `${flag} must be a boolean` }, 400);
+    }
+  }
+
+  if (body.requiredReviewCount !== undefined) {
+    if (!Number.isFinite(body.requiredReviewCount) || !Number.isInteger(body.requiredReviewCount) || body.requiredReviewCount < 1 || body.requiredReviewCount > 10) {
+      return c.json({ error: "Required review count must be an integer between 1 and 10" }, 400);
+    }
+  }
+
+  try {
+    const [rule] = await db
+      .insert(branchProtectionRules)
+      .values({
+        repositoryId: repo.id,
+        branchName: normalizedBranchName,
+        preventDirectPush: body.preventDirectPush ?? false,
+        preventForcePush: body.preventForcePush ?? false,
+        preventDeletion: body.preventDeletion ?? false,
+        requireReviews: body.requireReviews ?? false,
+        requiredReviewCount: body.requiredReviewCount ?? 1,
+      })
+      .returning();
+
+    return c.json(rule);
+  } catch (err: any) {
+    if (err?.code === "23505" || err?.constraint?.includes("branch_protection_rules_repo_branch_unique")) {
+      return c.json({ error: "A protection rule for this branch already exists" }, 400);
+    }
+    throw err;
+  }
+});
+
+app.patch("/api/repositories/:owner/:name/branch-protection/:ruleId", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const owner = c.req.param("owner");
+  const name = c.req.param("name");
+  const ruleId = c.req.param("ruleId");
+
+  const repo = await getRepoByOwnerName(owner, name);
+  if (!repo) return c.json({ error: "Repository not found" }, 404);
+  if (repo.ownerId !== user.id) return c.json({ error: "Unauthorized" }, 403);
+
+  const rule = await db.query.branchProtectionRules.findFirst({
+    where: and(
+      eq(branchProtectionRules.id, ruleId),
+      eq(branchProtectionRules.repositoryId, repo.id)
+    ),
+  });
+
+  if (!rule) return c.json({ error: "Protection rule not found" }, 404);
+
+  const body = await c.req.json<{
+    preventDirectPush?: boolean;
+    preventForcePush?: boolean;
+    preventDeletion?: boolean;
+    requireReviews?: boolean;
+    requiredReviewCount?: number;
+  }>();
+
+  const booleanFlags = ["preventDirectPush", "preventForcePush", "preventDeletion", "requireReviews"] as const;
+  for (const flag of booleanFlags) {
+    if (body[flag] !== undefined && typeof body[flag] !== "boolean") {
+      return c.json({ error: `${flag} must be a boolean` }, 400);
+    }
+  }
+
+  if (body.requiredReviewCount !== undefined) {
+    if (!Number.isFinite(body.requiredReviewCount) || !Number.isInteger(body.requiredReviewCount) || body.requiredReviewCount < 1 || body.requiredReviewCount > 10) {
+      return c.json({ error: "Required review count must be an integer between 1 and 10" }, 400);
+    }
+  }
+
+  const [updated] = await db
+    .update(branchProtectionRules)
+    .set({
+      preventDirectPush: body.preventDirectPush ?? rule.preventDirectPush,
+      preventForcePush: body.preventForcePush ?? rule.preventForcePush,
+      preventDeletion: body.preventDeletion ?? rule.preventDeletion,
+      requireReviews: body.requireReviews ?? rule.requireReviews,
+      requiredReviewCount: body.requiredReviewCount ?? rule.requiredReviewCount,
+      updatedAt: new Date(),
+    })
+    .where(eq(branchProtectionRules.id, ruleId))
+    .returning();
+
+  return c.json(updated);
+});
+
+app.delete("/api/repositories/:owner/:name/branch-protection/:ruleId", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const owner = c.req.param("owner");
+  const name = c.req.param("name");
+  const ruleId = c.req.param("ruleId");
+
+  const repo = await getRepoByOwnerName(owner, name);
+  if (!repo) return c.json({ error: "Repository not found" }, 404);
+  if (repo.ownerId !== user.id) return c.json({ error: "Unauthorized" }, 403);
+
+  const rule = await db.query.branchProtectionRules.findFirst({
+    where: and(
+      eq(branchProtectionRules.id, ruleId),
+      eq(branchProtectionRules.repositoryId, repo.id)
+    ),
+  });
+
+  if (!rule) return c.json({ error: "Protection rule not found" }, 404);
+
+  await db.delete(branchProtectionRules).where(eq(branchProtectionRules.id, ruleId));
+
+  return c.json({ success: true });
 });
 
 export default app;

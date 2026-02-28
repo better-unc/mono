@@ -1,5 +1,6 @@
 import type {
   ApiClient,
+  BranchProtectionRule,
   Commit,
   CommitDiff,
   FileLastCommit,
@@ -146,6 +147,39 @@ export function createApiClient(config: ApiClientConfig): Omit<ApiClient, "setti
 
       getReadmeOid: (owner: string, name: string, branch: string) =>
         apiFetch<{ readmeOid: string | null }>(`/api/repositories/${owner}/${name}/readme-oid?branch=${branch}`),
+
+      getBranchProtection: (owner: string, name: string) =>
+        apiFetch<{ rules: BranchProtectionRule[] }>(`/api/repositories/${owner}/${name}/branch-protection`),
+
+      createBranchProtection: (owner: string, name: string, data: {
+        branchName: string;
+        preventDirectPush?: boolean;
+        preventForcePush?: boolean;
+        preventDeletion?: boolean;
+        requireReviews?: boolean;
+        requiredReviewCount?: number;
+      }) =>
+        apiFetch<BranchProtectionRule>(`/api/repositories/${owner}/${name}/branch-protection`, {
+          method: "POST",
+          body: JSON.stringify(data),
+        }),
+
+      updateBranchProtection: (owner: string, name: string, ruleId: string, data: {
+        preventDirectPush?: boolean;
+        preventForcePush?: boolean;
+        preventDeletion?: boolean;
+        requireReviews?: boolean;
+        requiredReviewCount?: number;
+      }) =>
+        apiFetch<BranchProtectionRule>(`/api/repositories/${owner}/${name}/branch-protection/${ruleId}`, {
+          method: "PATCH",
+          body: JSON.stringify(data),
+        }),
+
+      deleteBranchProtection: (owner: string, name: string, ruleId: string) =>
+        apiFetch<{ success: boolean }>(`/api/repositories/${owner}/${name}/branch-protection/${ruleId}`, {
+          method: "DELETE",
+        }),
     },
 
     users: {

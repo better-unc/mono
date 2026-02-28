@@ -198,6 +198,71 @@ export function useDeleteRepository(id: string) {
   });
 }
 
+export function useBranchProtectionRules(owner: string, name: string) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ["repository", owner, name, "branchProtection"],
+    queryFn: () => api.repositories.getBranchProtection(owner, name),
+    enabled: !!owner && !!name,
+  });
+}
+
+export function useCreateBranchProtectionRule(owner: string, name: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      branchName: string;
+      preventDirectPush?: boolean;
+      preventForcePush?: boolean;
+      preventDeletion?: boolean;
+      requireReviews?: boolean;
+      requiredReviewCount?: number;
+    }) => api.repositories.createBranchProtection(owner, name, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["repository", owner, name, "branchProtection"],
+      });
+    },
+  });
+}
+
+export function useUpdateBranchProtectionRule(owner: string, name: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ruleId, data }: {
+      ruleId: string;
+      data: {
+        preventDirectPush?: boolean;
+        preventForcePush?: boolean;
+        preventDeletion?: boolean;
+        requireReviews?: boolean;
+        requiredReviewCount?: number;
+      };
+    }) => api.repositories.updateBranchProtection(owner, name, ruleId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["repository", owner, name, "branchProtection"],
+      });
+    },
+  });
+}
+
+export function useDeleteBranchProtectionRule(owner: string, name: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ruleId: string) =>
+      api.repositories.deleteBranchProtection(owner, name, ruleId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["repository", owner, name, "branchProtection"],
+      });
+    },
+  });
+}
+
 export function useIsStarredByUser(repoId: string) {
   const api = useApi();
   return useQuery({

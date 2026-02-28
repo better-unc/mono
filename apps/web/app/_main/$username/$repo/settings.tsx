@@ -1,6 +1,16 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useRepoPageData, useUpdateRepository, useDeleteRepository, useRepositoryInfo } from "@gitbruv/hooks";
+import {
+  useRepoPageData,
+  useUpdateRepository,
+  useDeleteRepository,
+  useRepositoryInfo,
+  useBranchProtectionRules,
+  useCreateBranchProtectionRule,
+  useUpdateBranchProtectionRule,
+  useDeleteBranchProtectionRule,
+} from "@gitbruv/hooks";
+import type { BranchProtectionRule } from "@gitbruv/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -198,6 +208,8 @@ function RepoSettingsPage() {
         </Card>
       </form>
 
+      <BranchProtectionSection username={username} repoName={repoName} />
+
       <Card className="border-destructive/50">
         <CardHeader>
           <CardTitle className="text-destructive">Danger Zone</CardTitle>
@@ -247,6 +259,278 @@ function RepoSettingsPage() {
           </div>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function BranchProtectionSection({ username, repoName }: { username: string; repoName: string }) {
+  const { data, isLoading } = useBranchProtectionRules(username, repoName);
+  const createRule = useCreateBranchProtectionRule(username, repoName);
+  const updateRule = useUpdateBranchProtectionRule(username, repoName);
+  const deleteRule = useDeleteBranchProtectionRule(username, repoName);
+
+  const [updatingRuleIds, setUpdatingRuleIds] = useState<Set<string>>(new Set());
+  const [deletingRuleIds, setDeletingRuleIds] = useState<Set<string>>(new Set());
+
+  const [newBranch, setNewBranch] = useState("");
+  const [newRule, setNewRule] = useState({
+    preventDirectPush: true,
+    preventForcePush: true,
+    preventDeletion: true,
+    requireReviews: false,
+    requiredReviewCount: 1,
+  });
+
+  function handleCreate() {
+    if (!newBranch.trim()) return;
+    createRule.mutate(
+      { branchName: newBranch.trim(), ...newRule },
+      {
+        onSuccess: () => {
+          toast.success("Branch protection rule created");
+          setNewBranch("");
+          setNewRule({
+            preventDirectPush: true,
+            preventForcePush: true,
+            preventDeletion: true,
+            requireReviews: false,
+            requiredReviewCount: 1,
+          });
+        },
+        onError: (err) => {
+          toast.error(err instanceof Error ? err.message : "Failed to create rule");
+        },
+      }
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <HugeiconsIcon icon={LockKeyIcon} strokeWidth={2} className="size-5" />
+          Branch Protection
+        </CardTitle>
+        <CardDescription>
+          Configure protection rules for specific branches
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {isLoading && (
+          <div className="flex justify-center py-4">
+            <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
+
+        {data?.rules?.map((rule) => (
+          <BranchProtectionRuleRow
+            key={rule.id}
+            rule={rule}
+            onUpdate={(data) => {
+              setUpdatingRuleIds((prev) => new Set(prev).add(rule.id));
+              updateRule.mutate(
+                { ruleId: rule.id, data },
+                {
+                  onSuccess: () => { setUpdatingRuleIds((prev) => { const next = new Set(prev); next.delete(rule.id); return next; }); toast.success("Rule updated"); },
+                  onError: (err) => { setUpdatingRuleIds((prev) => { const next = new Set(prev); next.delete(rule.id); return next; }); toast.error(err instanceof Error ? err.message : "Failed to update"); },
+                }
+              );
+            }}
+            onDelete={() => {
+              setDeletingRuleIds((prev) => new Set(prev).add(rule.id));
+              deleteRule.mutate(rule.id, {
+                onSuccess: () => { setDeletingRuleIds((prev) => { const next = new Set(prev); next.delete(rule.id); return next; }); toast.success("Rule deleted"); },
+                onError: (err) => { setDeletingRuleIds((prev) => { const next = new Set(prev); next.delete(rule.id); return next; }); toast.error(err instanceof Error ? err.message : "Failed to delete"); },
+              });
+            }}
+            saving={updatingRuleIds.has(rule.id)}
+            deleting={deletingRuleIds.has(rule.id)}
+          />
+        ))}
+
+        {data?.rules?.length === 0 && !isLoading && (
+          <p className="text-sm text-muted-foreground">No branch protection rules configured.</p>
+        )}
+
+        <div className="border-t pt-6 space-y-4">
+          <h4 className="text-sm font-medium">Add new rule</h4>
+          <div className="space-y-2">
+            <Label htmlFor="new-branch">Branch name</Label>
+            <Input
+              id="new-branch"
+              value={newBranch}
+              onChange={(e) => setNewBranch(e.target.value)}
+              placeholder="e.g. main"
+            />
+          </div>
+          <ProtectionCheckboxes
+            values={newRule}
+            onChange={(updates) => setNewRule({ ...newRule, ...updates })}
+          />
+          <Button onClick={handleCreate} disabled={!newBranch.trim() || createRule.isPending}>
+            {createRule.isPending && <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />}
+            Add rule
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function BranchProtectionRuleRow({
+  rule,
+  onUpdate,
+  onDelete,
+  saving,
+  deleting,
+}: {
+  rule: BranchProtectionRule;
+  onUpdate: (data: {
+    preventDirectPush?: boolean;
+    preventForcePush?: boolean;
+    preventDeletion?: boolean;
+    requireReviews?: boolean;
+    requiredReviewCount?: number;
+  }) => void;
+  onDelete: () => void;
+  saving: boolean;
+  deleting: boolean;
+}) {
+  const [values, setValues] = useState({
+    preventDirectPush: rule.preventDirectPush,
+    preventForcePush: rule.preventForcePush,
+    preventDeletion: rule.preventDeletion,
+    requireReviews: rule.requireReviews,
+    requiredReviewCount: rule.requiredReviewCount,
+  });
+
+  useEffect(() => {
+    setValues({
+      preventDirectPush: rule.preventDirectPush,
+      preventForcePush: rule.preventForcePush,
+      preventDeletion: rule.preventDeletion,
+      requireReviews: rule.requireReviews,
+      requiredReviewCount: rule.requiredReviewCount,
+    });
+  }, [
+    rule.id,
+    rule.preventDirectPush,
+    rule.preventForcePush,
+    rule.preventDeletion,
+    rule.requireReviews,
+    rule.requiredReviewCount,
+  ]);
+
+  const hasChanges =
+    values.preventDirectPush !== rule.preventDirectPush ||
+    values.preventForcePush !== rule.preventForcePush ||
+    values.preventDeletion !== rule.preventDeletion ||
+    values.requireReviews !== rule.requireReviews ||
+    values.requiredReviewCount !== rule.requiredReviewCount;
+
+  return (
+    <div className="border p-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <HugeiconsIcon icon={LockKeyIcon} strokeWidth={2} className="size-4 text-muted-foreground" />
+          <span className="font-mono font-medium text-sm">{rule.branchName}</span>
+        </div>
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={onDelete}
+          disabled={deleting}
+          aria-label={`Delete protection rule for ${rule.branchName}`}
+        >
+          {deleting ? (
+            <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 animate-spin" />
+          ) : (
+            <HugeiconsIcon icon={Delete01Icon} strokeWidth={2} className="size-4" />
+          )}
+        </Button>
+      </div>
+      <ProtectionCheckboxes
+        values={values}
+        onChange={(updates) => setValues({ ...values, ...updates })}
+      />
+      {hasChanges && (
+        <Button size="sm" onClick={() => onUpdate(values)} disabled={saving}>
+          {saving && <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 mr-2 animate-spin" />}
+          Save changes
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function ProtectionCheckboxes({
+  values,
+  onChange,
+}: {
+  values: {
+    preventDirectPush: boolean;
+    preventForcePush: boolean;
+    preventDeletion: boolean;
+    requireReviews: boolean;
+    requiredReviewCount: number;
+  };
+  onChange: (updates: Partial<typeof values>) => void;
+}) {
+  const reviewCountId = useId();
+  return (
+    <div className="space-y-3">
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={values.preventDirectPush}
+          onChange={(e) => onChange({ preventDirectPush: e.target.checked })}
+          className="rounded"
+        />
+        Prevent direct pushes (require pull requests)
+      </label>
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={values.preventForcePush}
+          onChange={(e) => onChange({ preventForcePush: e.target.checked })}
+          className="rounded"
+        />
+        Prevent force pushes
+      </label>
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={values.preventDeletion}
+          onChange={(e) => onChange({ preventDeletion: e.target.checked })}
+          className="rounded"
+        />
+        Prevent branch deletion
+      </label>
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={values.requireReviews}
+          onChange={(e) => onChange({ requireReviews: e.target.checked })}
+          className="rounded"
+        />
+        Require pull request reviews before merging
+      </label>
+      {values.requireReviews && (
+        <div className="ml-6 flex items-center gap-2">
+          <Label htmlFor={reviewCountId} className="text-sm whitespace-nowrap">
+            Required approvals:
+          </Label>
+          <Input
+            id={reviewCountId}
+            type="number"
+            min={1}
+            max={10}
+            value={values.requiredReviewCount}
+            onChange={(e) => onChange({ requiredReviewCount: parseInt(e.target.value) || 1 })}
+            className="w-20"
+          />
+        </div>
+      )}
     </div>
   );
 }
