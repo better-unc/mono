@@ -809,13 +809,6 @@ app.post("/:owner/:name/git-receive-pack", async (c) => {
         : update.ref;
       await repoCache.invalidateBranch(result.userId, repo.name, branch);
     }
-      for (const update of allowedUpdates) {
-        const branch = update.ref.startsWith("refs/heads/")
-          ? update.ref.replace("refs/heads/", "")
-          : update.ref;
-        await repoCache.invalidateBranch(result.userId, repo.name, branch);
-      }
-    }
 
     console.log(`[API] receive-pack: building response for ${allowedUpdates.length} allowed, ${rejectedRefLines.length} rejected`);
 
