@@ -746,37 +746,40 @@ app.post("/api/repositories/:owner/:name/branch-protection", requireAuth, async 
     return c.json({ error: "Branch name is required" }, 400);
   }
 
+  const booleanFlags = ["preventDirectPush", "preventForcePush", "preventDeletion", "requireReviews"] as const;
+  for (const flag of booleanFlags) {
+    if (body[flag] !== undefined && typeof body[flag] !== "boolean") {
+      return c.json({ error: `${flag} must be a boolean` }, 400);
+    }
+  }
+
   if (body.requiredReviewCount !== undefined) {
-    if (!Number.isInteger(body.requiredReviewCount) || body.requiredReviewCount < 1 || body.requiredReviewCount > 10) {
+    if (!Number.isFinite(body.requiredReviewCount) || !Number.isInteger(body.requiredReviewCount) || body.requiredReviewCount < 1 || body.requiredReviewCount > 10) {
       return c.json({ error: "Required review count must be an integer between 1 and 10" }, 400);
     }
   }
 
-  const existing = await db.query.branchProtectionRules.findFirst({
-    where: and(
-      eq(branchProtectionRules.repositoryId, repo.id),
-      eq(branchProtectionRules.branchName, normalizedBranchName)
-    ),
-  });
+  try {
+    const [rule] = await db
+      .insert(branchProtectionRules)
+      .values({
+        repositoryId: repo.id,
+        branchName: normalizedBranchName,
+        preventDirectPush: body.preventDirectPush ?? false,
+        preventForcePush: body.preventForcePush ?? false,
+        preventDeletion: body.preventDeletion ?? false,
+        requireReviews: body.requireReviews ?? false,
+        requiredReviewCount: body.requiredReviewCount ?? 1,
+      })
+      .returning();
 
-  if (existing) {
-    return c.json({ error: "A protection rule for this branch already exists" }, 400);
+    return c.json(rule);
+  } catch (err: any) {
+    if (err?.code === "23505" || err?.constraint?.includes("branch_protection_rules_repo_branch_unique")) {
+      return c.json({ error: "A protection rule for this branch already exists" }, 400);
+    }
+    throw err;
   }
-
-  const [rule] = await db
-    .insert(branchProtectionRules)
-    .values({
-      repositoryId: repo.id,
-      branchName: normalizedBranchName,
-      preventDirectPush: body.preventDirectPush ?? false,
-      preventForcePush: body.preventForcePush ?? false,
-      preventDeletion: body.preventDeletion ?? false,
-      requireReviews: body.requireReviews ?? false,
-      requiredReviewCount: body.requiredReviewCount ?? 1,
-    })
-    .returning();
-
-  return c.json(rule);
 });
 
 app.patch("/api/repositories/:owner/:name/branch-protection/:ruleId", requireAuth, async (c) => {
@@ -806,8 +809,15 @@ app.patch("/api/repositories/:owner/:name/branch-protection/:ruleId", requireAut
     requiredReviewCount?: number;
   }>();
 
+  const booleanFlags = ["preventDirectPush", "preventForcePush", "preventDeletion", "requireReviews"] as const;
+  for (const flag of booleanFlags) {
+    if (body[flag] !== undefined && typeof body[flag] !== "boolean") {
+      return c.json({ error: `${flag} must be a boolean` }, 400);
+    }
+  }
+
   if (body.requiredReviewCount !== undefined) {
-    if (!Number.isInteger(body.requiredReviewCount) || body.requiredReviewCount < 1 || body.requiredReviewCount > 10) {
+    if (!Number.isFinite(body.requiredReviewCount) || !Number.isInteger(body.requiredReviewCount) || body.requiredReviewCount < 1 || body.requiredReviewCount > 10) {
       return c.json({ error: "Required review count must be an integer between 1 and 10" }, 400);
     }
   }
