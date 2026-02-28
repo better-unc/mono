@@ -22,7 +22,7 @@ COPY packages/lib/package.json ./packages/lib/
 COPY packages/hooks/package.json ./packages/hooks/
 COPY packages/db/package.json ./packages/db/
 
-RUN bun install
+RUN bun install --ignore-scripts
 
 COPY packages ./packages
 COPY apps/web ./apps/web
