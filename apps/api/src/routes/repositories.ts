@@ -737,7 +737,12 @@ app.post("/api/repositories/:owner/:name/branch-protection", requireAuth, async 
     requiredReviewCount?: number;
   }>();
 
-  if (!body.branchName || typeof body.branchName !== "string") {
+  const normalizedBranchName =
+    typeof body.branchName === "string"
+      ? body.branchName.trim().replace(/^refs\/heads\//, "")
+      : "";
+
+  if (!normalizedBranchName) {
     return c.json({ error: "Branch name is required" }, 400);
   }
 
@@ -750,7 +755,7 @@ app.post("/api/repositories/:owner/:name/branch-protection", requireAuth, async 
   const existing = await db.query.branchProtectionRules.findFirst({
     where: and(
       eq(branchProtectionRules.repositoryId, repo.id),
-      eq(branchProtectionRules.branchName, body.branchName)
+      eq(branchProtectionRules.branchName, normalizedBranchName)
     ),
   });
 
@@ -762,7 +767,7 @@ app.post("/api/repositories/:owner/:name/branch-protection", requireAuth, async 
     .insert(branchProtectionRules)
     .values({
       repositoryId: repo.id,
-      branchName: body.branchName,
+      branchName: normalizedBranchName,
       preventDirectPush: body.preventDirectPush ?? false,
       preventForcePush: body.preventForcePush ?? false,
       preventDeletion: body.preventDeletion ?? false,
