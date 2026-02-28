@@ -18,24 +18,35 @@ jobs:
         include:
           - app: api
             dockerfile: apps/api/Dockerfile
-            build-args: |
-              WEB_URL=http://localhost:3000
           - app: web
             dockerfile: apps/web/Dockerfile
-            build-args: |
-              NPM_CONFIG_HUGEICONS_KEY=${{ secrets.NPM_CONFIG_HUGEICONS_KEY }}
-              API_URL=http://localhost:3001
-              VITE_API_URL=http://localhost:3001
     steps:
       - uses: actions/checkout@v4
 
       - uses: docker/setup-buildx-action@v3
 
-      - uses: docker/build-push-action@v6
+      - name: Build API image
+        if: matrix.app == 'api'
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ${{ matrix.dockerfile }}
           push: false
-          build-args: ${{ matrix.build-args }}
+          build-args: |
+            WEB_URL=http://localhost:3000
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}
+
+      - name: Build Web image
+        if: matrix.app == 'web'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: false
+          build-args: |
+            NPM_CONFIG_HUGEICONS_KEY=${{ secrets.NPM_CONFIG_HUGEICONS_KEY }}
+            API_URL=http://localhost:3001
+            VITE_API_URL=http://localhost:3001
           cache-from: type=gha,scope=${{ matrix.app }}
           cache-to: type=gha,mode=max,scope=${{ matrix.app }}
