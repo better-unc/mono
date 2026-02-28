@@ -435,7 +435,13 @@ function BranchProtectionRuleRow({
           <HugeiconsIcon icon={LockKeyIcon} strokeWidth={2} className="size-4 text-muted-foreground" />
           <span className="font-mono font-medium text-sm">{rule.branchName}</span>
         </div>
-        <Button variant="destructive" size="sm" onClick={onDelete} disabled={deleting}>
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={onDelete}
+          disabled={deleting}
+          aria-label={`Delete protection rule for ${rule.branchName}`}
+        >
           {deleting ? (
             <HugeiconsIcon icon={Loading02Icon} strokeWidth={2} className="size-4 animate-spin" />
           ) : (
