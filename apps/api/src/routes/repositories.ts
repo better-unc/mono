@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { db, users, repositories, stars, repoBranchMetadata } from "@gitbruv/db";
+import { db, users, repositories, stars, repoBranchMetadata, branchProtectionRules } from "@gitbruv/db";
 import { eq, sql, desc, and } from "drizzle-orm";
 import { authMiddleware, requireAuth, type AuthVariables } from "../middleware/auth";
 import { putObject, deletePrefix, getRepoPrefix, copyPrefix, listObjects } from "../s3";
@@ -685,6 +685,154 @@ app.patch("/api/repositories/:id", requireAuth, async (c) => {
     .returning();
 
   return c.json(updated);
+});
+
+// Branch protection rules
+
+async function getRepoByOwnerName(owner: string, name: string) {
+  const result = await db
+    .select({
+      id: repositories.id,
+      ownerId: repositories.ownerId,
+    })
+    .from(repositories)
+    .innerJoin(users, eq(users.id, repositories.ownerId))
+    .where(and(eq(users.username, owner), eq(repositories.name, name)))
+    .limit(1);
+  return result[0] ?? null;
+}
+
+app.get("/api/repositories/:owner/:name/branch-protection", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const owner = c.req.param("owner");
+  const name = c.req.param("name");
+
+  const repo = await getRepoByOwnerName(owner, name);
+  if (!repo) return c.json({ error: "Repository not found" }, 404);
+  if (repo.ownerId !== user.id) return c.json({ error: "Unauthorized" }, 403);
+
+  const rules = await db
+    .select()
+    .from(branchProtectionRules)
+    .where(eq(branchProtectionRules.repositoryId, repo.id));
+
+  return c.json({ rules });
+});
+
+app.post("/api/repositories/:owner/:name/branch-protection", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const owner = c.req.param("owner");
+  const name = c.req.param("name");
+
+  const repo = await getRepoByOwnerName(owner, name);
+  if (!repo) return c.json({ error: "Repository not found" }, 404);
+  if (repo.ownerId !== user.id) return c.json({ error: "Unauthorized" }, 403);
+
+  const body = await c.req.json<{
+    branchName: string;
+    preventDirectPush?: boolean;
+    preventForcePush?: boolean;
+    preventDeletion?: boolean;
+    requireReviews?: boolean;
+    requiredReviewCount?: number;
+  }>();
+
+  if (!body.branchName || typeof body.branchName !== "string") {
+    return c.json({ error: "Branch name is required" }, 400);
+  }
+
+  const existing = await db.query.branchProtectionRules.findFirst({
+    where: and(
+      eq(branchProtectionRules.repositoryId, repo.id),
+      eq(branchProtectionRules.branchName, body.branchName)
+    ),
+  });
+
+  if (existing) {
+    return c.json({ error: "A protection rule for this branch already exists" }, 400);
+  }
+
+  const [rule] = await db
+    .insert(branchProtectionRules)
+    .values({
+      repositoryId: repo.id,
+      branchName: body.branchName,
+      preventDirectPush: body.preventDirectPush ?? false,
+      preventForcePush: body.preventForcePush ?? false,
+      preventDeletion: body.preventDeletion ?? false,
+      requireReviews: body.requireReviews ?? false,
+      requiredReviewCount: body.requiredReviewCount ?? 1,
+    })
+    .returning();
+
+  return c.json(rule);
+});
+
+app.patch("/api/repositories/:owner/:name/branch-protection/:ruleId", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const owner = c.req.param("owner");
+  const name = c.req.param("name");
+  const ruleId = c.req.param("ruleId");
+
+  const repo = await getRepoByOwnerName(owner, name);
+  if (!repo) return c.json({ error: "Repository not found" }, 404);
+  if (repo.ownerId !== user.id) return c.json({ error: "Unauthorized" }, 403);
+
+  const rule = await db.query.branchProtectionRules.findFirst({
+    where: and(
+      eq(branchProtectionRules.id, ruleId),
+      eq(branchProtectionRules.repositoryId, repo.id)
+    ),
+  });
+
+  if (!rule) return c.json({ error: "Protection rule not found" }, 404);
+
+  const body = await c.req.json<{
+    preventDirectPush?: boolean;
+    preventForcePush?: boolean;
+    preventDeletion?: boolean;
+    requireReviews?: boolean;
+    requiredReviewCount?: number;
+  }>();
+
+  const [updated] = await db
+    .update(branchProtectionRules)
+    .set({
+      preventDirectPush: body.preventDirectPush ?? rule.preventDirectPush,
+      preventForcePush: body.preventForcePush ?? rule.preventForcePush,
+      preventDeletion: body.preventDeletion ?? rule.preventDeletion,
+      requireReviews: body.requireReviews ?? rule.requireReviews,
+      requiredReviewCount: body.requiredReviewCount ?? rule.requiredReviewCount,
+      updatedAt: new Date(),
+    })
+    .where(eq(branchProtectionRules.id, ruleId))
+    .returning();
+
+  return c.json(updated);
+});
+
+app.delete("/api/repositories/:owner/:name/branch-protection/:ruleId", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const owner = c.req.param("owner");
+  const name = c.req.param("name");
+  const ruleId = c.req.param("ruleId");
+
+  const repo = await getRepoByOwnerName(owner, name);
+  if (!repo) return c.json({ error: "Repository not found" }, 404);
+  if (repo.ownerId !== user.id) return c.json({ error: "Unauthorized" }, 403);
+
+  const rule = await db.query.branchProtectionRules.findFirst({
+    where: and(
+      eq(branchProtectionRules.id, ruleId),
+      eq(branchProtectionRules.repositoryId, repo.id)
+    ),
+  });
+
+  if (!rule) return c.json({ error: "Protection rule not found" }, 404);
+
+  await db.delete(branchProtectionRules).where(eq(branchProtectionRules.id, ruleId));
+
+  return c.json({ success: true });
 });
 
 export default app;

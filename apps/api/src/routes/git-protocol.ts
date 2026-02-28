@@ -1,8 +1,8 @@
 import { Hono } from "hono";
-import { db, users, repositories } from "@gitbruv/db";
+import { db, users, repositories, branchProtectionRules } from "@gitbruv/db";
 import { eq, and } from "drizzle-orm";
 import { authMiddleware, type AuthUser, type AuthVariables } from "../middleware/auth";
-import { createGitStore, getRefsAdvertisement, repoCache } from "../git";
+import { createGitStore, getRefsAdvertisement, repoCache, isAncestor } from "../git";
 import git from "isomorphic-git";
 import { getAuth } from "../auth";
 import { putObject, deleteObject, getObject } from "../s3";
@@ -674,6 +674,61 @@ app.post("/:owner/:name/git-receive-pack", async (c) => {
 
     console.log(`[API] receive-pack: processing ${updates.length} ref updates`);
 
+    // Branch protection enforcement
+    const protectionRules = await db
+      .select()
+      .from(branchProtectionRules)
+      .where(eq(branchProtectionRules.repositoryId, repo.id));
+
+    if (protectionRules.length > 0) {
+      const ruleMap = new Map(protectionRules.map(r => [r.branchName, r]));
+      const rejectedRefs: string[] = [];
+
+      for (const update of updates) {
+        const branchName = update.ref.startsWith("refs/heads/")
+          ? update.ref.replace("refs/heads/", "")
+          : update.ref;
+
+        const rule = ruleMap.get(branchName);
+        if (!rule) continue;
+
+        const isDelete = update.newOid === "0".repeat(40);
+
+        if (isDelete && rule.preventDeletion) {
+          rejectedRefs.push(`ng ${update.ref} protected branch - deletion not allowed`);
+          continue;
+        }
+
+        if (!isDelete && rule.preventDirectPush) {
+          rejectedRefs.push(`ng ${update.ref} protected branch - direct push not allowed, use a pull request`);
+          continue;
+        }
+      }
+
+      if (rejectedRefs.length > 0) {
+        let response = "";
+        const unpackOk = "unpack ok\n";
+        const unpackOkLen = unpackOk.length + 4;
+        response += unpackOkLen.toString(16).padStart(4, "0") + unpackOk;
+
+        for (const errorLine of rejectedRefs) {
+          const line = errorLine + "\n";
+          const lineLen = line.length + 4;
+          response += lineLen.toString(16).padStart(4, "0") + line;
+        }
+        response += "0000";
+
+        console.log(`[API] receive-pack: rejected ${rejectedRefs.length} refs due to branch protection`);
+        return new Response(Buffer.from(response, "ascii"), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/x-git-receive-pack-result",
+            "Cache-Control": "no-cache",
+          },
+        });
+      }
+    }
+
     const storeObject = async (oid: string, type: string, data: Buffer) => {
       const prefix = oid.substring(0, 2);
       const suffix = oid.substring(2);
@@ -694,6 +749,54 @@ app.post("/:owner/:name/git-receive-pack", async (c) => {
       throw new Error(unpackResult.error || "Failed to unpack");
     }
     console.log(`[API] receive-pack: unpacked ${unpackResult.objectCount} objects`);
+
+    // Force push detection (after unpack so objects are available for ancestry check)
+    if (protectionRules.length > 0) {
+      const ruleMap = new Map(protectionRules.map(r => [r.branchName, r]));
+      const forcePushRejections: string[] = [];
+
+      for (const update of updates) {
+        const branchName = update.ref.startsWith("refs/heads/")
+          ? update.ref.replace("refs/heads/", "")
+          : update.ref;
+
+        const rule = ruleMap.get(branchName);
+        if (!rule || !rule.preventForcePush) continue;
+
+        const isDelete = update.newOid === "0".repeat(40);
+        const isCreate = update.oldOid === "0".repeat(40);
+
+        if (isDelete || isCreate) continue;
+
+        const ancestor = await isAncestor(store.fs, store.dir, update.oldOid, update.newOid);
+        if (!ancestor) {
+          forcePushRejections.push(`ng ${update.ref} protected branch - force push not allowed`);
+        }
+      }
+
+      if (forcePushRejections.length > 0) {
+        let response = "";
+        const unpackOk = "unpack ok\n";
+        const unpackOkLen = unpackOk.length + 4;
+        response += unpackOkLen.toString(16).padStart(4, "0") + unpackOk;
+
+        for (const errorLine of forcePushRejections) {
+          const line = errorLine + "\n";
+          const lineLen = line.length + 4;
+          response += lineLen.toString(16).padStart(4, "0") + line;
+        }
+        response += "0000";
+
+        console.log(`[API] receive-pack: rejected ${forcePushRejections.length} refs due to force push protection`);
+        return new Response(Buffer.from(response, "ascii"), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/x-git-receive-pack-result",
+            "Cache-Control": "no-cache",
+          },
+        });
+      }
+    }
 
     for (const update of updates) {
       const refPath = update.ref.startsWith("refs/") ? update.ref : `refs/heads/${update.ref}`;

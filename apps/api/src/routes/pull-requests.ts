@@ -11,6 +11,7 @@ import {
   prReviewers,
   prReactions,
   labels,
+  branchProtectionRules,
 } from "@gitbruv/db";
 import { eq, sql, and, desc, or } from "drizzle-orm";
 import { authMiddleware, requireAuth, type AuthVariables } from "../middleware/auth";
@@ -712,6 +713,40 @@ app.post("/api/pulls/:id/merge", requireAuth, async (c) => {
 
   if (user.id !== baseRepo.ownerId && user.id !== pr.authorId) {
     return c.json({ error: "Not authorized to merge" }, 403);
+  }
+
+  // Check branch protection: required reviews
+  const protectionRule = await db.query.branchProtectionRules.findFirst({
+    where: and(
+      eq(branchProtectionRules.repositoryId, pr.baseRepoId),
+      eq(branchProtectionRules.branchName, pr.baseBranch)
+    ),
+  });
+
+  if (protectionRule?.requireReviews && protectionRule.requiredReviewCount > 0) {
+    const reviews = await db.query.prReviews.findMany({
+      where: eq(prReviews.pullRequestId, pr.id),
+      orderBy: [desc(prReviews.createdAt)],
+    });
+
+    // Deduplicate by author (keep latest review per author)
+    const latestByAuthor = new Map<string, typeof reviews[0]>();
+    for (const review of reviews) {
+      if (!latestByAuthor.has(review.authorId)) {
+        latestByAuthor.set(review.authorId, review);
+      }
+    }
+
+    // Count approvals (exclude PR author's self-reviews)
+    const approvalCount = Array.from(latestByAuthor.values())
+      .filter(r => r.state === "approved" && r.authorId !== pr.authorId)
+      .length;
+
+    if (approvalCount < protectionRule.requiredReviewCount) {
+      return c.json({
+        error: `This pull request requires at least ${protectionRule.requiredReviewCount} approving review(s) before merging. Currently has ${approvalCount}.`
+      }, 403);
+    }
   }
 
   const headRepo = await db.query.repositories.findFirst({

@@ -149,6 +149,28 @@ export const repoBranchMetadata = pgTable(
   ],
 );
 
+export const branchProtectionRules = pgTable(
+  'branch_protection_rules',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    repositoryId: uuid('repository_id')
+      .notNull()
+      .references(() => repositories.id, { onDelete: 'cascade' }),
+    branchName: text('branch_name').notNull(),
+    preventDirectPush: boolean('prevent_direct_push').notNull().default(false),
+    preventForcePush: boolean('prevent_force_push').notNull().default(false),
+    preventDeletion: boolean('prevent_deletion').notNull().default(false),
+    requireReviews: boolean('require_reviews').notNull().default(false),
+    requiredReviewCount: integer('required_review_count').notNull().default(1),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => [
+    index('branch_protection_rules_repo_id_idx').on(table.repositoryId),
+    index('branch_protection_rules_repo_branch_unique').on(table.repositoryId, table.branchName),
+  ],
+);
+
 export const stars = pgTable(
   'stars',
   {
@@ -922,6 +944,13 @@ export const apiKeyRelations = relations(apiKeys, ({ one }) => ({
 export const repoBranchMetadataRelations = relations(repoBranchMetadata, ({ one }) => ({
   repo: one(repositories, {
     fields: [repoBranchMetadata.repoId],
+    references: [repositories.id],
+  }),
+}));
+
+export const branchProtectionRuleRelations = relations(branchProtectionRules, ({ one }) => ({
+  repository: one(repositories, {
+    fields: [branchProtectionRules.repositoryId],
     references: [repositories.id],
   }),
 }));

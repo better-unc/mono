@@ -1400,4 +1400,36 @@ export async function performMerge(
   }
 }
 
+export async function isAncestor(
+  fs: S3Fs,
+  dir: string,
+  ancestorOid: string,
+  descendantOid: string
+): Promise<boolean> {
+  if (ancestorOid === descendantOid) return true;
+
+  const visited = new Set<string>();
+  const queue = [descendantOid];
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    if (current === ancestorOid) return true;
+    if (visited.has(current)) continue;
+    visited.add(current);
+    if (visited.size > 10000) break;
+
+    try {
+      const { commit } = await git.readCommit({ fs, dir, oid: current });
+      for (const parent of commit.parent) {
+        if (parent === ancestorOid) return true;
+        if (!visited.has(parent)) queue.push(parent);
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return false;
+}
+
 export { repoCache };
