@@ -1,12 +1,23 @@
 import eslint from "@eslint/js";
 import tseslint from "typescript-eslint";
 
-/** @param {{ node?: boolean }} options */
-export function createConfig({ node = false } = {}) {
+/** @param {{ node?: boolean, tsconfigRootDir?: string }} options */
+export function createConfig({ node = false, tsconfigRootDir } = {}) {
   return tseslint.config(
     eslint.configs.recommended,
     ...tseslint.configs.strict,
     ...tseslint.configs.stylistic,
+    ...(tsconfigRootDir
+      ? [
+          {
+            languageOptions: {
+              parserOptions: {
+                tsconfigRootDir,
+              },
+            },
+          },
+        ]
+      : []),
     {
       rules: {
         "@typescript-eslint/no-unused-vars": [

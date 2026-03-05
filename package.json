@@ -2,7 +2,7 @@
   "name": "gitbruv",
   "devDependencies": {
     "prettier": "^3.8.0",
-    "turbo": "^2.7.2",
+    "turbo": "^2.8.13",
     "typescript": "^5"
   },
   "overrides": {
