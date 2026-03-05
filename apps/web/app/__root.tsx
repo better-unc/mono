@@ -53,6 +53,11 @@ export const Route = createRootRoute({
     ],
     links: [
       {
+        rel: 'preload',
+        href: appCss,
+        as: 'style',
+      },
+      {
         rel: 'stylesheet',
         href: appCss,
       },
@@ -71,7 +76,7 @@ function RootLayout() {
   useEffect(() => setMounted(true), []);
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="dark" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
