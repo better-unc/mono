@@ -116,20 +116,22 @@ function RepoLayoutContent() {
       queryFn: () => api.repositories.getCommits(owner, name, currentBranch, 1, 0),
     });
 
-    // Issues tab
+    // Issues tab (default view: open issues, limit 30)
+    const defaultIssueFilters = { state: "open" as const, limit: 30 };
     queryClient.prefetchQuery({
-      queryKey: ["issues", owner, name, undefined],
-      queryFn: () => api.issues.list(owner, name),
+      queryKey: ["issues", owner, name, defaultIssueFilters],
+      queryFn: () => api.issues.list(owner, name, defaultIssueFilters),
     });
     queryClient.prefetchQuery({
       queryKey: ["labels", owner, name],
       queryFn: () => api.issues.listLabels(owner, name),
     });
 
-    // Pull Requests tab
+    // Pull Requests tab (default view: open PRs, limit 30)
+    const defaultPRFilters = { state: "open" as const, limit: 30 };
     queryClient.prefetchQuery({
-      queryKey: ["pullRequests", owner, name, undefined],
-      queryFn: () => api.pullRequests.list(owner, name),
+      queryKey: ["pullRequests", owner, name, defaultPRFilters],
+      queryFn: () => api.pullRequests.list(owner, name, defaultPRFilters),
     });
 
     // Commits tab (first page)
