@@ -11,7 +11,8 @@ import {
   WorkHistoryIcon,
   KanbanIcon,
 } from "@hugeicons-pro/core-stroke-standard";
-import { useForkRepository, useIssueCount, usePullRequestCount, useRepoBranches, useRepoCommitCount, useRepositoryInfo } from "@gitbruv/hooks";
+import { useForkRepository, useIssueCount, usePullRequestCount, useRepoBranches, useRepoCommitCount, useRepositoryInfo, useApi } from "@gitbruv/hooks";
+import { useQueryClient } from "@tanstack/react-query";
 import { BranchSelector } from "@/components/branch-selector";
 import { CloneUrl } from "@/components/clone-url";
 import { StarButton } from "@/components/star-button";
@@ -81,11 +82,76 @@ function RepoLayoutContent() {
   const [isForkDialogOpen, setIsForkDialogOpen] = useState(false);
   const [forkName, setForkName] = useState("");
 
+  const queryClient = useQueryClient();
+  const api = useApi();
+
   useEffect(() => {
     if (repo?.name) {
       setForkName(repo.name);
     }
   }, [repo?.name]);
+
+  // Prefetch all tab data so tab switches are instant
+  useEffect(() => {
+    if (!repo || !currentBranch) return;
+
+    const owner = username;
+    const name = repoName;
+
+    // Code tab
+    queryClient.prefetchQuery({
+      queryKey: ["repository", owner, name, "tree", currentBranch, ""],
+      queryFn: () => api.repositories.getTree(owner, name, currentBranch, ""),
+    });
+    queryClient.prefetchQuery({
+      queryKey: ["repository", owner, name, "tree-commits", currentBranch, ""],
+      queryFn: () => api.repositories.getTreeCommits(owner, name, currentBranch, ""),
+    });
+    queryClient.prefetchQuery({
+      queryKey: ["repository", owner, name, "readmeOid", currentBranch],
+      queryFn: () => api.repositories.getReadmeOid(owner, name, currentBranch),
+    });
+    queryClient.prefetchQuery({
+      queryKey: ["repository", owner, name, "commits", currentBranch, 1, 0],
+      queryFn: () => api.repositories.getCommits(owner, name, currentBranch, 1, 0),
+    });
+
+    // Issues tab (default view: open issues, limit 30)
+    const defaultIssueFilters = { state: "open" as const, limit: 30 };
+    queryClient.prefetchQuery({
+      queryKey: ["issues", owner, name, defaultIssueFilters],
+      queryFn: () => api.issues.list(owner, name, defaultIssueFilters),
+    });
+    queryClient.prefetchQuery({
+      queryKey: ["labels", owner, name],
+      queryFn: () => api.issues.listLabels(owner, name),
+    });
+
+    // Pull Requests tab (default view: open PRs, limit 30)
+    const defaultPRFilters = { state: "open" as const, limit: 30 };
+    queryClient.prefetchQuery({
+      queryKey: ["pullRequests", owner, name, defaultPRFilters],
+      queryFn: () => api.pullRequests.list(owner, name, defaultPRFilters),
+    });
+
+    // Commits tab (first page)
+    queryClient.prefetchQuery({
+      queryKey: ["repository", owner, name, "commits", currentBranch, 30, 0],
+      queryFn: () => api.repositories.getCommits(owner, name, currentBranch, 30, 0),
+    });
+
+    // Discussions tab
+    queryClient.prefetchQuery({
+      queryKey: ["discussions", owner, name, undefined, 20, 0],
+      queryFn: () => api.discussions.list(owner, name, { limit: 20, offset: 0 }),
+    });
+
+    // Projects tab
+    queryClient.prefetchQuery({
+      queryKey: ["projects", owner, name],
+      queryFn: () => api.projects.list(owner, name),
+    });
+  }, [repo, currentBranch, username, repoName, queryClient, api]);
 
   function handleForkSubmit(e?: React.FormEvent) {
     e?.preventDefault();

@@ -2,33 +2,33 @@
   "name": "gitbruv",
   "devDependencies": {
     "prettier": "^3.8.0",
-    "turbo": "^2.7.2",
+    "turbo": "^2.8.13",
     "typescript": "^5"
   },
   "overrides": {
-    "better-auth": "^1.4.17",
-    "@better-auth/expo": "^1.4.17",
-    "@better-auth/oauth-provider": "^1.4.17",
-    "@better-auth/passkey": "^1.4.17",
-    "typescript": "^5",
-    "@types/react": "19.1.10",
-    "@types/react-dom": "19.1.10",
-    "@tanstack/react-query": "^5.90.16",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
+    "better-auth": "^1.5.3",
+    "@better-auth/expo": "^1.5.3",
+    "@better-auth/oauth-provider": "^1.5.3",
+    "@better-auth/passkey": "^1.5.3",
+    "typescript": "^5.9.3",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@tanstack/react-query": "^5.90.21",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
     "drizzle-orm": "^0.45.1",
     "postgres": "^3.4.8",
-    "bcryptjs": "^3.0.3",
-    "@types/bcryptjs": "^3.0.0"
+    "eslint": "~9.39.3"
   },
-  "packageManager": "bun@1.3.5",
+  "packageManager": "bun@1.3.10",
   "private": true,
   "scripts": {
     "dev:web": "turbo dev --filter=@gitbruv/web --filter=@gitbruv/api",
     "dev:mobile": "turbo dev --filter=@gitbruv/mobile --filter=@gitbruv/api",
     "dev:oauth-test": "turbo dev --filter=@gitbruv/web --filter=@gitbruv/oauth-test --filter=@gitbruv/api",
     "build:web": "turbo build --filter=@gitbruv/web --filter=@gitbruv/api",
-    "lint": "turbo lint --force 2>&1 | grep -E \"(✖|Tasks:|Failed:)\""
+    "lint": "turbo lint --force",
+    "lint:quick": "turbo lint --force 2>&1 | grep -E \"(✖|Tasks:|Failed:)\""
   },
   "workspaces": [
     "apps/*",
