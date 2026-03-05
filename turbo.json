@@ -1,38 +1,14 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "ui": "tui",
-  "envMode": "loose",
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env"],
-      "outputs": [".output/**", "!.output/cache/**", "dist/**", "target/release/**"]
+      "outputs": ["dist/**", ".output/**"]
     },
     "dev": {
       "cache": false,
       "persistent": true
     },
-    "start": {
-      "cache": false,
-      "persistent": true
-    },
-    "lint": {},
-    "db:generate": {
-      "cache": false,
-      "inputs": ["$TURBO_DEFAULT$", ".env"]
-    },
-    "db:migrate": {
-      "cache": false,
-      "inputs": ["$TURBO_DEFAULT$", ".env"]
-    },
-    "db:push": {
-      "cache": false,
-      "inputs": ["$TURBO_DEFAULT$", ".env"]
-    },
-    "db:studio": {
-      "cache": false,
-      "persistent": true,
-      "inputs": ["$TURBO_DEFAULT$", ".env"]
-    }
+    "lint": {}
   }
 }
